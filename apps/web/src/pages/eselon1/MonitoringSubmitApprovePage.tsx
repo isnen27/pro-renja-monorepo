@@ -962,12 +962,12 @@ export default function MonitoringSubmitApprovePage() {
         </div>
       )}
       {/* ══════════════════════════════════════════════════════════════
-          6. MODAL POP-UP NOTIFIKASI PENGIRIMAN KE BINCANG
+          6. MODAL POP-UP NOTIFIKASI PENGIRIMAN KE BINCANG / APPROVER
          ══════════════════════════════════════════════════════════════ */}
-      {approvalNoticeModal && (
+      {noticeModalMessage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setApprovalNoticeModal(null)}
+          onClick={() => setNoticeModalMessage(null)}
         >
           <div
             className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center space-y-4 animate-in fade-in zoom-in duration-200"
@@ -979,13 +979,13 @@ export default function MonitoringSubmitApprovePage() {
               </div>
             </div>
             <h3 className="text-base font-bold text-[var(--text)]">
-              Persetujuan Berhasil
+              Notifikasi
             </h3>
             <p className="text-sm text-[var(--text)] font-semibold leading-relaxed">
-              Data telah disetujui dan berhasil dikirim ke BINCANG.
+              {noticeModalMessage}
             </p>
             <button
-              onClick={() => setApprovalNoticeModal(null)}
+              onClick={() => setNoticeModalMessage(null)}
               className="w-full py-2.5 rounded-xl bg-[var(--primary)] text-white font-semibold text-xs hover:opacity-90 transition-opacity shadow-md cursor-pointer"
             >
               OK

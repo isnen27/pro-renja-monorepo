@@ -25,7 +25,7 @@ export async function getSbmDatabaseItems(): Promise<SbmDatabaseItem[]> {
 
   try {
     const data = await import("./sbmData.json");
-    cachedItems = (data.default || data) as SbmDatabaseItem[];
+    cachedItems = (data.default || data) as unknown as SbmDatabaseItem[];
     return cachedItems;
   } catch (err) {
     console.error("Gagal memuat sbmData.json:", err);

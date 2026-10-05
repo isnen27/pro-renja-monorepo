@@ -470,7 +470,7 @@ export function getKROByUnit(unit: string): KelompokRincianOutput[] {
 }
 
 export function getSasaranByProgram(programKode: string): SasaranProgram[] {
-  return sasaranProgram.filter(sp => sp.kegiatan.includes(programKode) || sp.program.includes(programKode));
+  return sasaranProgram.filter(sp => sp.kegiatan.includes(programKode) || (sp as any).program?.includes(programKode));
 }
 
 export function getIndikatorHierarchy(tahun?: number): any[] {
@@ -488,7 +488,7 @@ export function getIndikatorHierarchy(tahun?: number): any[] {
               ...sk,
               children: sk.indikator.map(ind => ({
                 ...ind,
-                target2027: ind.target[tahun || 2027],
+                target2027: (ind.target as Record<string, number | string>)[String(tahun || 2027)],
               })),
             })),
         })),
