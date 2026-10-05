@@ -437,7 +437,7 @@ export default function IsianBab2Page() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto relative">
+    <div className="p-6 space-y-6 max-w-7xl w-full mx-auto relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-emerald-600 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-xl animate-fade-in">
