@@ -13,7 +13,7 @@ import {
 
 // ─── Tipe data ────────────────────────────────────────────────────────────────
 type StatusHistori = "Pagu Indikatif" | "Pagu Anggaran" | "Alokasi Anggaran";
-type UnitKerja = "Deputi TEGAS" | "Deputi ASA" | "Deputi PENGASUH";
+type UnitKerja = "Deputi TEGAS" | "Deputi ASA" | "Deputi PENGASUH" | "SETIA";
 
 interface HistoriEntry {
   kode: string;
@@ -343,6 +343,7 @@ export default function PilihHistoriPage() {
                 <option value="Deputi TEGAS">Deputi TEGAS</option>
                 <option value="Deputi ASA">Deputi ASA</option>
                 <option value="Deputi PENGASUH">Deputi PENGASUH</option>
+                <option value="SETIA">SETIA</option>
               </select>
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] pointer-events-none" />
             </div>

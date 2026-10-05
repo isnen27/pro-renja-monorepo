@@ -629,6 +629,7 @@ export default function MonitoringSubmitApprovePage() {
                 <option value="Deputi ASA">Deputi ASA</option>
                 <option value="Deputi PENGASUH">Deputi PENGASUH</option>
                 <option value="Sekretariat Utama">Sekretariat Utama</option>
+                <option value="SETIA">SETIA</option>
               </select>
             </div>
 
