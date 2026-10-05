@@ -15,10 +15,48 @@ import {
 type StatusHistori = "Pagu Indikatif" | "Pagu Anggaran" | "Alokasi Anggaran";
 type UnitKerja = "Deputi TEGAS" | "Deputi ASA" | "Deputi PENGASUH" | "SETIA";
 
-interface HistoriEntry {
+export interface HistoriEntry {
   kode: string;
   label: string;
   status: StatusHistori;
+  rev_ke: number;
+  sumber: string;
+}
+
+export interface MonitoringStorageItem {
+  id: string;
+  unit_kerja: string;
+  owner: "Operator" | "Approver" | "BINCANG";
+  kodifikasi: string;
+  tahap_status: StatusHistori;
+  rev_ke: number;
+  status_histori_full: string;
+  sumber: string;
+  tgl_revisi: string;
+  is_approved: boolean;
+}
+
+function getMonitoringList(): MonitoringStorageItem[] {
+  try {
+    const raw = localStorage.getItem("renja_e1_monitoring_list");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error(e);
+  }
+  return [
+    {
+      id: "hist_1",
+      unit_kerja: "Deputi TEGAS",
+      owner: "BINCANG",
+      kodifikasi: "D00",
+      tahap_status: "Pagu Indikatif",
+      rev_ke: 0,
+      status_histori_full: "D00 - Pagu Indikatif - Rev ke-0",
+      sumber: "D00",
+      tgl_revisi: "05-10-2026 08:30 WIB",
+      is_approved: true,
+    },
+  ];
 }
 
 // ─── Helper: generate kodifikasi ─────────────────────────────────────────────
@@ -28,22 +66,24 @@ function buildKodifikasiList(status: StatusHistori): HistoriEntry[] {
       "00",
       ...Array.from({ length: 26 }, (_, i) => "0" + String.fromCharCode(97 + i)),
     ];
-    return subVersions.map((v) => ({
+    return subVersions.map((v, idx) => ({
       kode: "D" + v,
       label: "Pagu Indikatif - D" + v,
       status,
+      rev_ke: idx,
+      sumber: "D00",
     }));
   }
   if (status === "Pagu Anggaran") {
     return Array.from({ length: 20 }, (_, i) => {
       const kode = "D" + String(i + 1).padStart(2, "0");
-      return { kode, label: "Pagu Anggaran - " + kode, status };
+      return { kode, label: "Pagu Anggaran - " + kode, status, rev_ke: i, sumber: "D00" };
     });
   }
   // Alokasi Anggaran: E00 - E20
   return Array.from({ length: 21 }, (_, i) => {
     const kode = "E" + String(i).padStart(2, "0");
-    return { kode, label: "Alokasi Anggaran - " + kode, status };
+    return { kode, label: "Alokasi Anggaran - " + kode, status, rev_ke: i, sumber: "D01" };
   });
 }
 
@@ -56,85 +96,74 @@ function getNextHistori(
   return entries[idx + 1];
 }
 
-// ─── Helper: Opsi Histori Awal per Status ────────────────────────────────────
-function getHistoriAwalOptions(
-  status: StatusHistori,
-  historyLog: HistoriEntry[]
-): { kode: string; label: string }[] {
-  if (status === "Pagu Indikatif") {
-    return [{ kode: "D00", label: "Pagu Indikatif - D00" }];
-  }
+// ─── Helper: Hitung Histori Sinkron dengan Monitoring ────────────────────────
+function calculateHistoriSynced(
+  unit: string,
+  status: StatusHistori
+): { historiAwalLabel: string; historiTujuan: HistoriEntry; approvedNotice?: string } {
+  const monitoringList = getMonitoringList();
 
-  if (status === "Pagu Anggaran") {
-    const lastIndikatif =
-      [...historyLog].reverse().find((h) => h.status === "Pagu Indikatif")?.label ||
-      "Pagu Indikatif - D00";
-
-    const createdPaguAnggaran = historyLog.filter(
-      (h) => h.status === "Pagu Anggaran"
-    );
-
-    return [
-      { kode: "PREV_STAGE", label: lastIndikatif },
-      ...createdPaguAnggaran.map((h) => ({ kode: h.kode, label: h.label })),
-    ];
-  }
-
-  // Alokasi Anggaran
-  const lastPaguAnggaran =
-    [...historyLog].reverse().find((h) => h.status === "Pagu Anggaran")?.label ||
-    "Pagu Anggaran - D01";
-
-  const createdAlokasi = historyLog.filter(
-    (h) => h.status === "Alokasi Anggaran"
+  const existingForUnitAndStatus = monitoringList.filter(
+    (m) => m.unit_kerja === unit && m.tahap_status === status
   );
 
-  return [
-    { kode: "PREV_STAGE", label: lastPaguAnggaran },
-    ...createdAlokasi.map((h) => ({ kode: h.kode, label: h.label })),
-  ];
-}
+  const approvedItems = existingForUnitAndStatus.filter((m) => m.is_approved);
 
-// ─── Helper: Hitung Histori Tujuan ───────────────────────────────────────────
-function calculateHistoriTujuan(
-  status: StatusHistori,
-  historiAwalKode: string
-): HistoriEntry | null {
-  if (status === "Pagu Indikatif") {
+  const kodifikasiList = buildKodifikasiList(status);
+
+  if (approvedItems.length > 0) {
+    const lastApproved = [...approvedItems].sort((a, b) => b.rev_ke - a.rev_ke)[0];
+    
+    const lastApprovedIdx = kodifikasiList.findIndex((k) => k.kode === lastApproved.kodifikasi);
+    const nextEntry = (lastApprovedIdx !== -1 && lastApprovedIdx + 1 < kodifikasiList.length)
+      ? kodifikasiList[lastApprovedIdx + 1]
+      : kodifikasiList[kodifikasiList.length - 1];
+
+    const nextRevKe = lastApproved.rev_ke + 1;
+    const historiTujuan: HistoriEntry = {
+      kode: nextEntry.kode,
+      label: `${status} - ${nextEntry.kode}`,
+      status,
+      rev_ke: nextRevKe,
+      sumber: lastApproved.kodifikasi,
+    };
+
     return {
-      kode: "D00",
-      label: "Pagu Indikatif - D00",
-      status: "Pagu Indikatif",
+      historiAwalLabel: `${status} - ${lastApproved.kodifikasi}`,
+      historiTujuan,
+      approvedNotice: `Histori '${status} - ${lastApproved.kodifikasi}' untuk ${unit} telah disetujui (Disetujui & Proses Kemenkeu). Sistem otomatis membuat histori revisi baru: '${historiTujuan.label}' (Rev ke-${nextRevKe}).`,
     };
   }
 
-  if (status === "Pagu Anggaran") {
-    if (!historiAwalKode || historiAwalKode === "PREV_STAGE") {
-      // Pembukaan pertama kali di Pagu Anggaran -> D01
-      return {
-        kode: "D01",
-        label: "Pagu Anggaran - D01",
-        status: "Pagu Anggaran",
-      };
-    }
-    const paguAnggaranList = buildKodifikasiList("Pagu Anggaran");
-    return getNextHistori(paguAnggaranList, historiAwalKode);
+  if (existingForUnitAndStatus.length > 0) {
+    const latestExisting = [...existingForUnitAndStatus].sort((a, b) => b.rev_ke - a.rev_ke)[0];
+    const historiTujuan: HistoriEntry = {
+      kode: latestExisting.kodifikasi,
+      label: `${status} - ${latestExisting.kodifikasi}`,
+      status,
+      rev_ke: latestExisting.rev_ke,
+      sumber: latestExisting.sumber || "D00",
+    };
+
+    return {
+      historiAwalLabel: `${status} - ${latestExisting.sumber || latestExisting.kodifikasi}`,
+      historiTujuan,
+    };
   }
 
-  if (status === "Alokasi Anggaran") {
-    if (!historiAwalKode || historiAwalKode === "PREV_STAGE") {
-      // Pembukaan pertama kali di Alokasi Anggaran -> E00
-      return {
-        kode: "E00",
-        label: "Alokasi Anggaran - E00",
-        status: "Alokasi Anggaran",
-      };
-    }
-    const alokasiList = buildKodifikasiList("Alokasi Anggaran");
-    return getNextHistori(alokasiList, historiAwalKode);
-  }
+  const defaultEntry = kodifikasiList[0];
+  const historiTujuan: HistoriEntry = {
+    kode: defaultEntry.kode,
+    label: `${status} - ${defaultEntry.kode}`,
+    status,
+    rev_ke: 0,
+    sumber: defaultEntry.kode,
+  };
 
-  return null;
+  return {
+    historiAwalLabel: `${status} - ${defaultEntry.kode}`,
+    historiTujuan,
+  };
 }
 
 // ─── Komponen utama ───────────────────────────────────────────────────────────
@@ -143,9 +172,8 @@ export default function PilihHistoriPage() {
   const [statusHistori, setStatusHistori] = useState<StatusHistori | "">("");
   const [historiAwal, setHistoriAwal] = useState<string>("");
 
-  // Log histori yang tercatat dibuat oleh user (default awal D00)
   const [historyLog, setHistoryLog] = useState<HistoriEntry[]>([
-    { kode: "D00", label: "Pagu Indikatif - D00", status: "Pagu Indikatif" },
+    { kode: "D00", label: "Pagu Indikatif - D00", status: "Pagu Indikatif", rev_ke: 0, sumber: "D00" },
   ]);
 
   const [showPopup, setShowPopup] = useState(false);
@@ -158,7 +186,6 @@ export default function PilihHistoriPage() {
 
   const tanggalPengajuan = "04 Oktober 2026";
 
-  // Ambil histori terakhir yang tercatat berdasarkan status histori
   const lastCreatedPaguIndikatif =
     [...historyLog].reverse().find((h) => h.status === "Pagu Indikatif")?.label ||
     "Pagu Indikatif - D00";
@@ -167,31 +194,26 @@ export default function PilihHistoriPage() {
     [...historyLog].reverse().find((h) => h.status === "Pagu Anggaran")?.label ||
     "Pagu Anggaran - D01";
 
-  // Revisi Terakhir yang ditampilkan di Baris 1
   const revisiTerakhirHistori = historyLog[historyLog.length - 1].label;
 
-  // Daftar Opsi Histori Awal berdasarkan Status Histori
-  const historiAwalOptions = statusHistori
-    ? getHistoriAwalOptions(statusHistori as StatusHistori, historyLog)
-    : [];
-
-  // Hitung Histori Tujuan
-  const historiTujuan: HistoriEntry | null = statusHistori
-    ? calculateHistoriTujuan(statusHistori as StatusHistori, historiAwal)
+  // Hitung Histori Sinkron dengan Monitoring
+  const syncedCalculation = (unitKerja && statusHistori)
+    ? calculateHistoriSynced(unitKerja, statusHistori as StatusHistori)
     : null;
 
-  // Reset histori awal saat status histori berubah
+  const historiAwalDisplay = syncedCalculation?.historiAwalLabel || (statusHistori ? `${statusHistori} - D00` : "");
+  const historiTujuan = syncedCalculation?.historiTujuan || null;
+  const approvedNotice = syncedCalculation?.approvedNotice;
+
   useEffect(() => {
-    if (statusHistori === "Pagu Indikatif") {
-      setHistoriAwal("D00");
-    } else if (statusHistori === "Pagu Anggaran" || statusHistori === "Alokasi Anggaran") {
-      setHistoriAwal("PREV_STAGE");
+    if (statusHistori) {
+      setHistoriAwal(historiAwalDisplay);
     } else {
       setHistoriAwal("");
     }
     setIsMigrated(false);
     setMigrationNotice("");
-  }, [statusHistori]);
+  }, [statusHistori, unitKerja, historiAwalDisplay]);
 
   // Reset semua saat unit kerja berubah
   useEffect(() => {
@@ -238,11 +260,11 @@ export default function PilihHistoriPage() {
 
   // ── Handler OK ────────────────────────────────────────────────────────────
   function handleOk() {
-    if (!unitKerja || !statusHistori || !historiAwal || !historiTujuan) return;
+    if (!unitKerja || !statusHistori || !historiTujuan) return;
 
     setPendingCreatedEntry(historiTujuan);
 
-    let msg = 'Anda telah membuat histori "' + historiTujuan.label + '"';
+    let msg = 'Anda telah membuat histori "' + historiTujuan.label + '" (Rev ke-' + historiTujuan.rev_ke + ') untuk ' + unitKerja + '.';
     if (isMigrated) {
       msg +=
         ' dengan meng-copy seluruh data dari histori tahap sebelumnya (' +
@@ -255,21 +277,48 @@ export default function PilihHistoriPage() {
   }
 
   function handleClosePopup() {
-    if (pendingCreatedEntry) {
+    if (pendingCreatedEntry && unitKerja) {
       const newLog = [...historyLog, pendingCreatedEntry];
       setHistoryLog(newLog);
 
-      // Simpan histori aktif ke localStorage agar submenu Isian Bab I bisa membacanya
+      // 1. Simpan ke active histori
       const activePayload = {
-        id: pendingCreatedEntry.kode + "_" + (unitKerja || "unknown"),
-        kdsatker: unitKerja || "",
+        id: pendingCreatedEntry.kode + "_" + unitKerja + "_" + Date.now(),
+        kdsatker: unitKerja,
         kode_sts_history: pendingCreatedEntry.kode,
         status_histori: pendingCreatedEntry.status,
+        rev_ke: pendingCreatedEntry.rev_ke,
+        sumber: pendingCreatedEntry.sumber,
         label: pendingCreatedEntry.label,
         tgl_pengajuan: new Date().toISOString(),
         is_approved: false,
+        owner: "Operator",
       };
       localStorage.setItem("renja_e1_active_histori", JSON.stringify(activePayload));
+
+      // 2. Sinkronkan ke daftar monitoring di localStorage
+      const newMonitoringItem: MonitoringStorageItem = {
+        id: activePayload.id,
+        unit_kerja: unitKerja,
+        owner: "Operator",
+        kodifikasi: pendingCreatedEntry.kode,
+        tahap_status: pendingCreatedEntry.status,
+        rev_ke: pendingCreatedEntry.rev_ke,
+        status_histori_full: `${pendingCreatedEntry.kode} - ${pendingCreatedEntry.status} - Rev ke-${pendingCreatedEntry.rev_ke}`,
+        sumber: pendingCreatedEntry.sumber,
+        tgl_revisi: new Date().toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB",
+        is_approved: false,
+      };
+
+      const currentMonitoring = getMonitoringList();
+      const filteredMonitoring = currentMonitoring.filter((m) => m.id !== newMonitoringItem.id);
+      localStorage.setItem("renja_e1_monitoring_list", JSON.stringify([newMonitoringItem, ...filteredMonitoring]));
 
       setPendingCreatedEntry(null);
     }
@@ -277,7 +326,7 @@ export default function PilihHistoriPage() {
     handleBatal();
   }
 
-  const isFormValid = !!unitKerja && !!statusHistori && !!historiAwal;
+  const isFormValid = !!unitKerja && !!statusHistori;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -488,29 +537,10 @@ export default function PilihHistoriPage() {
           <div className="flex-1 px-4 py-3 flex items-center">
             {statusHistori ? (
               <div className="relative w-full">
-                {statusHistori === "Pagu Indikatif" ? (
-                  // Jika Pagu Indikatif: Terkunci pada D00
-                  <div className="flex items-center justify-between w-full bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg px-3 py-2 opacity-80">
-                    <span className="font-medium text-[var(--primary)]">Pagu Indikatif - D00</span>
-                    <Lock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                  </div>
-                ) : (
-                  // Pagu Anggaran & Alokasi Anggaran: Dropdown Pilihan
-                  <>
-                    <select
-                      value={historiAwal}
-                      onChange={(e) => setHistoriAwal(e.target.value)}
-                      className="w-full appearance-none bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all cursor-pointer"
-                    >
-                      {historiAwalOptions.map((opt) => (
-                        <option key={opt.kode} value={opt.kode}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] pointer-events-none" />
-                  </>
-                )}
+                <div className="flex items-center justify-between w-full bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg px-3 py-2 opacity-90">
+                  <span className="font-medium text-[var(--primary)]">{historiAwalDisplay}</span>
+                  <Lock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                </div>
               </div>
             ) : (
               <p className="text-sm text-[var(--text-muted)] italic">
@@ -535,20 +565,29 @@ export default function PilihHistoriPage() {
                   {historiTujuan.label}
                 </span>
                 <span className="text-xs text-[var(--text-muted)]">
-                  {statusHistori === "Pagu Indikatif"
-                    ? "(Tetap D00 — tidak dapat memilih kodifikasi lain)"
-                    : "(akan dibuat otomatis)"}
+                  (Dibuat otomatis oleh sistem)
                 </span>
               </>
             ) : (
               <p className="text-sm text-[var(--text-muted)] italic">
-                {historiAwal
-                  ? "Tidak ada histori berikutnya (sudah maksimum)"
-                  : "Akan otomatis terisi setelah Histori Awal dipilih"}
+                {unitKerja && statusHistori
+                  ? "Pilihan histori sedang diproses..."
+                  : "Akan otomatis terisi setelah Unit Kerja & Status Histori dipilih"}
               </p>
             )}
           </div>
         </div>
+
+        {/* Callout Notice jika status histori sebelumnya sudah disetujui */}
+        {approvedNotice && (
+          <div className="p-4 bg-amber-50/90 dark:bg-amber-950/40 border-t border-b border-amber-300 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
+            <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold text-amber-900 dark:text-amber-300">Status Persetujuan Ditemukan:</p>
+              <p className="leading-relaxed">{approvedNotice}</p>
+            </div>
+          </div>
+        )}
 
         {/* ── Tombol OK & BATAL ── */}
         <div className="flex items-center justify-end gap-3 px-4 py-4 bg-[var(--accent)]">
