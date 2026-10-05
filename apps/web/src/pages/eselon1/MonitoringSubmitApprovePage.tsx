@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 // ─── Tipe Data ────────────────────────────────────────────────────────────────
-type UserRole = "Operator" | "Approver" | "Super Admin";
+type UserRole = "Operator" | "Approver" | "BINCANG" | "Super Admin";
 type FilterMode = "all" | "latest" | "pending" | "approved";
 type StatusHistoriType = "Pagu Indikatif" | "Pagu Anggaran" | "Alokasi Anggaran";
 
@@ -229,7 +229,85 @@ export default function MonitoringSubmitApprovePage() {
   // Approver / Super Admin: Setuju (Kirim ke BINCANG)
   function handleApproveByApprover(id: string) {
     if (currentUserRole === "Operator") {
-      setShowRoleNotice("Aksi Persetujuan hanya dapat dilakukan oleh User Approval & Super Admin.");
+      setShowRoleNotice("Aksi Persetujuan hanya dapat dilakukan oleh User Approval, BINCANG, & Super Admin.");
+      setTimeout(() => setShowRoleNotice(null), 4000);
+      return;
+    }
+
+    setDataList((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            owner: "BINCANG",
+            is_approved: false,
+          };
+        }
+        return item;
+      })
+    );
+
+    // Sinkronkan ke active histori di localStorage
+    try {
+      const activeRaw = localStorage.getItem("renja_e1_active_histori");
+      if (activeRaw) {
+        const activeItem = JSON.parse(activeRaw);
+        if (activeItem.id === id || activeItem.kode_sts_history) {
+          activeItem.is_approved = false;
+          activeItem.owner = "BINCANG";
+          localStorage.setItem("renja_e1_active_histori", JSON.stringify(activeItem));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    setNoticeModalMessage("Data telah disetujui Approver dan dikirim ke BINCANG.");
+  }
+
+  // Approver / Super Admin: Tolak (Kembalikan ke Operator)
+  function handleRejectByApprover(id: string) {
+    if (currentUserRole === "Operator") {
+      setShowRoleNotice("Aksi Penolakan hanya dapat dilakukan oleh User Approval, BINCANG, & Super Admin.");
+      setTimeout(() => setShowRoleNotice(null), 4000);
+      return;
+    }
+
+    setDataList((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            owner: "Operator",
+            is_approved: false,
+          };
+        }
+        return item;
+      })
+    );
+
+    // Sinkronkan ke active histori di localStorage
+    try {
+      const activeRaw = localStorage.getItem("renja_e1_active_histori");
+      if (activeRaw) {
+        const activeItem = JSON.parse(activeRaw);
+        if (activeItem.id === id || activeItem.kode_sts_history) {
+          activeItem.is_approved = false;
+          activeItem.owner = "Operator";
+          localStorage.setItem("renja_e1_active_histori", JSON.stringify(activeItem));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    setNoticeModalMessage("Data ditolak dan dikembalikan ke Operator.");
+  }
+
+  // BINCANG / Super Admin: Setuju (Disetujui & Proses Kemenkeu)
+  function handleApproveByBincang(id: string) {
+    if (currentUserRole === "Operator" || currentUserRole === "Approver") {
+      setShowRoleNotice("Aksi Persetujuan Akhir hanya dapat dilakukan oleh User BINCANG & Super Admin.");
       setTimeout(() => setShowRoleNotice(null), 4000);
       return;
     }
@@ -271,13 +349,13 @@ export default function MonitoringSubmitApprovePage() {
       console.error(e);
     }
 
-    setNoticeModalMessage("Data telah disetujui dan berhasil dikirim ke BINCANG.");
+    setNoticeModalMessage("Data telah disetujui BINCANG dan diproses ke Kemenkeu.");
   }
 
-  // Approver / Super Admin: Tolak (Kembalikan ke Operator)
-  function handleRejectByApprover(id: string) {
-    if (currentUserRole === "Operator") {
-      setShowRoleNotice("Aksi Penolakan hanya dapat dilakukan oleh User Approval & Super Admin.");
+  // BINCANG / Super Admin: Tolak (Kembalikan ke Approver)
+  function handleRejectByBincang(id: string) {
+    if (currentUserRole === "Operator" || currentUserRole === "Approver") {
+      setShowRoleNotice("Aksi Penolakan BINCANG hanya dapat dilakukan oleh User BINCANG & Super Admin.");
       setTimeout(() => setShowRoleNotice(null), 4000);
       return;
     }
@@ -287,7 +365,7 @@ export default function MonitoringSubmitApprovePage() {
         if (item.id === id) {
           return {
             ...item,
-            owner: "Operator",
+            owner: "Approver",
             is_approved: false,
           };
         }
@@ -302,7 +380,7 @@ export default function MonitoringSubmitApprovePage() {
         const activeItem = JSON.parse(activeRaw);
         if (activeItem.id === id || activeItem.kode_sts_history) {
           activeItem.is_approved = false;
-          activeItem.owner = "Operator";
+          activeItem.owner = "Approver";
           localStorage.setItem("renja_e1_active_histori", JSON.stringify(activeItem));
         }
       }
@@ -310,7 +388,7 @@ export default function MonitoringSubmitApprovePage() {
       console.error(e);
     }
 
-    setNoticeModalMessage("Data ditolak dan dikembalikan ke Operator.");
+    setNoticeModalMessage("Data ditolak oleh BINCANG dan dikembalikan ke Approver.");
   }
 
   function handleRequestDelete(item: MonitoringItem) {
@@ -396,7 +474,7 @@ export default function MonitoringSubmitApprovePage() {
             <UserCheck className="h-3.5 w-3.5" />
             Simulasi Role:
           </span>
-          {(["Operator", "Approver", "Super Admin"] as UserRole[]).map((r) => (
+          {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
             <button
               key={r}
               onClick={() => setCurrentUserRole(r)}
@@ -406,6 +484,8 @@ export default function MonitoringSubmitApprovePage() {
                     ? "bg-blue-600 text-white shadow"
                     : r === "Approver"
                     ? "bg-emerald-600 text-white shadow"
+                    : r === "BINCANG"
+                    ? "bg-amber-600 text-white shadow"
                     : "bg-purple-600 text-white shadow"
                   : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card)]"
               }`}
@@ -657,10 +737,16 @@ export default function MonitoringSubmitApprovePage() {
                       </div>
                     </td>
 
-                    {/* 6. Kolom Kirim Data (Operator) / Persetujuan Tolak & Setuju (Approver) */}
+                    {/* 6. Kolom Persetujuan / Kirim Data */}
                     <td className="p-3 text-center">
-                      {currentUserRole === "Operator" ? (
-                        // Role OPERATOR: Tombol Kirim Data
+                      {item.is_approved ? (
+                        // Ketika sudah disetujui akhir oleh BINCANG / Super Admin
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-sm">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          <span>Disetujui &amp; Proses Kemenkeu</span>
+                        </span>
+                      ) : currentUserRole === "Operator" ? (
+                        // Role OPERATOR
                         item.owner === "Operator" ? (
                           <button
                             onClick={() => handleSendByOperator(item.id)}
@@ -676,35 +762,111 @@ export default function MonitoringSubmitApprovePage() {
                             <span>Sudah Dikirim ({item.owner})</span>
                           </span>
                         )
-                      ) : (
-                        // Role APPROVAL / SUPER ADMIN: Choice TOLAK atau SETUJU
-                        item.owner === "BINCANG" || item.is_approved ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>Disetujui (BINCANG)</span>
-                          </span>
-                        ) : (
+                      ) : currentUserRole === "Approver" ? (
+                        // Role APPROVER
+                        item.owner === "Approver" ? (
                           <div className="inline-flex items-center gap-1.5 justify-center">
-                            {/* Tombol TOLAK */}
                             <button
                               onClick={() => handleRejectByApprover(item.id)}
                               className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                              title="Tolak & kembalikan ke Operator"
+                              title="Tolak &amp; kembalikan ke Operator"
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               <span>TOLAK</span>
                             </button>
-
-                            {/* Tombol SETUJU */}
                             <button
                               onClick={() => handleApproveByApprover(item.id)}
                               className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                              title="Setuju & kirim data ke BINCANG"
+                              title="Setuju &amp; kirim data ke BINCANG"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>SETUJU</span>
                             </button>
                           </div>
+                        ) : item.owner === "BINCANG" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            <History className="h-3.5 w-3.5 text-amber-600" />
+                            <span>Proses Approval BINCANG</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
+                            <span>Menunggu Operator</span>
+                          </span>
+                        )
+                      ) : currentUserRole === "BINCANG" ? (
+                        // Role BINCANG
+                        item.owner === "BINCANG" ? (
+                          <div className="inline-flex items-center gap-1.5 justify-center">
+                            <button
+                              onClick={() => handleRejectByBincang(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Tolak &amp; kembalikan histori ke Approver"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>TOLAK</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveByBincang(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Setuju &amp; proses data ke Kemenkeu"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>SETUJU</span>
+                            </button>
+                          </div>
+                        ) : item.owner === "Approver" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+                            <span>Proses Approver</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
+                            <span>Proses Operator</span>
+                          </span>
+                        )
+                      ) : (
+                        // Role SUPER ADMIN (Akses Penuh ke Aksi Approver & BINCANG)
+                        item.owner === "BINCANG" ? (
+                          <div className="inline-flex items-center gap-1.5 justify-center">
+                            <button
+                              onClick={() => handleRejectByBincang(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Tolak &amp; kembalikan histori ke Approver"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>TOLAK</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveByBincang(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Setuju &amp; proses data ke Kemenkeu"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>SETUJU</span>
+                            </button>
+                          </div>
+                        ) : item.owner === "Approver" ? (
+                          <div className="inline-flex items-center gap-1.5 justify-center">
+                            <button
+                              onClick={() => handleRejectByApprover(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Tolak &amp; kembalikan ke Operator"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>TOLAK</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveByApprover(item.id)}
+                              className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Setuju &amp; kirim data ke BINCANG"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>SETUJU</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
+                            <span>Menunggu Operator</span>
+                          </span>
                         )
                       )}
                     </td>
