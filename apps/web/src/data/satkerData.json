@@ -1,0 +1,26 @@
+[
+  {
+    "kode": "078",
+    "nama": "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN (PPATK)",
+    "jenis": "Kementerian / Lembaga",
+    "eselon": "Eselon I",
+    "lokasi": "Jakarta Pusat, DKI Jakarta",
+    "keterangan": "Induk Organisasi Kementerian/Lembaga PPATK"
+  },
+  {
+    "kode": "453374",
+    "nama": "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN",
+    "jenis": "Satuan Kerja Utama",
+    "eselon": "Eselon I / II",
+    "lokasi": "Jl. Ir. H. Juanda No. 35, Jakarta Pusat",
+    "keterangan": "Satker Utama Pengelola Anggaran dan Dukungan Manajemen PPATK"
+  },
+  {
+    "kode": "417654",
+    "nama": "PUSDIKLAT ANTI PENCUCIAN UANG DAN PENCEGAHAN PENDANAAN TERORISME",
+    "jenis": "Satuan Kerja Dekonsentrasi / Pelatihan",
+    "eselon": "Eselon II (PATIH)",
+    "lokasi": "Tapos, Kota Depok, Jawa Barat",
+    "keterangan": "Satker Penyelenggara Pendidikan dan Pelatihan APU PPT & PPSPM"
+  }
+]

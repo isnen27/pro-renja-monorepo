@@ -1,0 +1,114 @@
+[
+  {
+    "singkatan": "KREASI",
+    "initial": "K",
+    "nama": "Direktorat Hukum dan Regulasi",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Strategi dan Kerja Sama (TEGAS)"
+  },
+  {
+    "singkatan": "SALAM",
+    "initial": "S",
+    "nama": "Direktorat Strategi dan Kerja Sama Dalam Negeri",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Strategi dan Kerja Sama (TEGAS)"
+  },
+  {
+    "singkatan": "SERASI",
+    "initial": "S",
+    "nama": "Direktorat Strategi dan Kerja Sama Internasional",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Strategi dan Kerja Sama (TEGAS)"
+  },
+  {
+    "singkatan": "REKAN",
+    "initial": "R",
+    "nama": "Direktorat Pelaporan",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Pelaporan dan Pengawasan Kepatuhan (PENGASUH)"
+  },
+  {
+    "singkatan": "PENJAGA",
+    "initial": "P",
+    "nama": "Direktorat Pengawasan Kepatuhan Penyedia Jasa Keuangan",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Pelaporan dan Pengawasan Kepatuhan (PENGASUH)"
+  },
+  {
+    "singkatan": "PATUH",
+    "initial": "P",
+    "nama": "Direktorat Pengawasan Kepatuhan Penyedia Barang dan/atau Jasa Lain dan Profesi",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Pelaporan dan Pengawasan Kepatuhan (PENGASUH)"
+  },
+  {
+    "singkatan": "SIASAT",
+    "initial": "S",
+    "nama": "Direktorat Analisis dan Pemeriksaan I",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Analisis Transaksi Keuangan (ASA)"
+  },
+  {
+    "singkatan": "SIDIK",
+    "initial": "S",
+    "nama": "Direktorat Analisis dan Pemeriksaan II",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Analisis Transaksi Keuangan (ASA)"
+  },
+  {
+    "singkatan": "SIAGA",
+    "initial": "S",
+    "nama": "Direktorat Analisis dan Pemeriksaan III",
+    "cluster": "Direktorat",
+    "subcluster": "Deputi Bidang Analisis Transaksi Keuangan (ASA)"
+  },
+  {
+    "singkatan": "PEKA",
+    "initial": "P",
+    "nama": "Inspektorat",
+    "cluster": "Inspektorat (PEKA)",
+    "subcluster": "Pengawasan Internal"
+  },
+  {
+    "singkatan": "BINCANG",
+    "initial": "B",
+    "nama": "Biro Perencanaan dan Keuangan",
+    "cluster": "Biro / Sekretariat Utama (SETIA)",
+    "subcluster": "Biro & Penyelenggara Operational"
+  },
+  {
+    "singkatan": "BERMAKNA",
+    "initial": "B",
+    "nama": "Biro Sumber Daya Manusia, Organisasi dan Tata Laksana",
+    "cluster": "Biro / Sekretariat Utama (SETIA)",
+    "subcluster": "Biro & Penyelenggara Operational"
+  },
+  {
+    "singkatan": "BIRU",
+    "initial": "B",
+    "nama": "Biro Umum",
+    "cluster": "Biro / Sekretariat Utama (SETIA)",
+    "subcluster": "Biro & Penyelenggara Operational"
+  },
+  {
+    "singkatan": "BERMITRA",
+    "initial": "B",
+    "nama": "Pusat Pemberdayaan Kemitraan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+    "cluster": "Pusat (Pusdiklat / Pusintok / Kemitraan)",
+    "subcluster": "Pusat Pendukung"
+  },
+  {
+    "singkatan": "PATIH",
+    "initial": "P",
+    "nama": "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+    "cluster": "Pusat (Pusdiklat / Pusintok / Kemitraan)",
+    "subcluster": "Pusat Pendukung"
+  },
+  {
+    "singkatan": "LOGIS",
+    "initial": "L",
+    "nama": "Pusat Teknologi Informasi",
+    "cluster": "Pusat (Pusdiklat / Pusintok / Kemitraan)",
+    "subcluster": "Pusat Pendukung"
+  }
+]

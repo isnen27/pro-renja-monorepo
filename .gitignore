@@ -1,0 +1,17 @@
+# Dependensi & Lingkungan
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+
+# Berkas Build & Cache
+dist/
+build/
+.cache/
+*.log
+
+# Pengaturan Git & IDE
+.git/
+.idea/
+.vscode/

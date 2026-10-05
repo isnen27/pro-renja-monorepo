@@ -1,0 +1,576 @@
+[
+  {
+    "kodeTabel": "T01_P004",
+    "page": "Halaman 4",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "1. Honorarium Penanggung Jawab Pengelola Keuangan",
+    "itemCount": 41
+  },
+  {
+    "kodeTabel": "T02_P005",
+    "page": "Halaman 5",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "2. Honorarium Pengadaan Barang/Jasa",
+    "itemCount": 37
+  },
+  {
+    "kodeTabel": "T03_P006",
+    "page": "Halaman 6",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "3. Honorarium Perangkat UKPBJ",
+    "itemCount": 40
+  },
+  {
+    "kodeTabel": "T04_P007",
+    "page": "Halaman 7",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "4. Honorarium Pengelola PNBP",
+    "itemCount": 54
+  },
+  {
+    "kodeTabel": "T05_P008",
+    "page": "Halaman 8",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "5. Honorarium Pengelola SAI",
+    "itemCount": 53
+  },
+  {
+    "kodeTabel": "T06_P009",
+    "page": "Halaman 9",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "6. Honorarium Pengurus/Penyimpan BMN",
+    "itemCount": 42
+  },
+  {
+    "kodeTabel": "T07_P010",
+    "page": "Halaman 10",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "7. Honorarium Penunjang Penelitian/Perekayasaan",
+    "itemCount": 40
+  },
+  {
+    "kodeTabel": "T08_P011",
+    "page": "Halaman 11",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "8. Honorarium Komite Penelitian",
+    "itemCount": 48
+  },
+  {
+    "kodeTabel": "T09_P012",
+    "page": "Halaman 12",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "9. Honorarium Narasumber/Moderator/Pembawa Acara/Panitia",
+    "itemCount": 64
+  },
+  {
+    "kodeTabel": "T10_P013",
+    "page": "Halaman 13",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "10. Honorarium Pemberi Keterangan Ahli/Saksi Ahli dan Beracara",
+    "itemCount": 20
+  },
+  {
+    "kodeTabel": "T11_P014",
+    "page": "Halaman 14",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "27. Honorarium Satpam, Pengemudi, Petugas Kebersihan, dan Pramubakti",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T12_P015",
+    "page": "Halaman 15",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "28. Satuan Biaya Uang Harian Perjadin Dalam Negeri",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T13_P015",
+    "page": "Halaman 15",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "28.2 Uang Representasi Perjalanan Dinas Dalam Negeri",
+    "itemCount": 3
+  },
+  {
+    "kodeTabel": "T14_P016",
+    "page": "Halaman 16",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "29. Satuan Biaya Uang Harian Perjalanan Dinas Luar Negeri (Amerika & Eropa)",
+    "itemCount": 42
+  },
+  {
+    "kodeTabel": "T15_P017",
+    "page": "Halaman 17",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "29. Satuan Biaya Uang Harian Perjalanan Dinas Luar Negeri (Afrika & Asia)",
+    "itemCount": 45
+  },
+  {
+    "kodeTabel": "T16_P018",
+    "page": "Halaman 18",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "29. Satuan Biaya Uang Harian Perjalanan Dinas Luar Negeri (Asia Pasifik)",
+    "itemCount": 10
+  },
+  {
+    "kodeTabel": "T17_P019",
+    "page": "Halaman 19",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "30. Satuan Biaya Penginapan Perjalanan Dinas Dalam Negeri",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T18_P020",
+    "page": "Halaman 20",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "31. Satuan Biaya Rapat/Pertemuan di Luar Kantor (Menteri/Eselon I)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T19_P021",
+    "page": "Halaman 21",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "31. Satuan Biaya Rapat/Pertemuan di Luar Kantor (Eselon II/Fungsional Utama)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T20_P022",
+    "page": "Halaman 22",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "31. Satuan Biaya Rapat/Pertemuan di Luar Kantor (Eselon III/Fungsional Madya)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T21_P022",
+    "page": "Halaman 22",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "31.2 Uang Harian Kegiatan Rapat/Pertemuan di Luar Kantor",
+    "itemCount": 1
+  },
+  {
+    "kodeTabel": "T22_P023",
+    "page": "Halaman 23",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "32. Satuan Biaya Tiket Perjadin Pindah Luar Negeri (Jakarta - Perwakilan)",
+    "itemCount": 43
+  },
+  {
+    "kodeTabel": "T23_P024",
+    "page": "Halaman 24",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "32. Satuan Biaya Tiket Perjadin Pindah Luar Negeri (Perwakilan - Jakarta)",
+    "itemCount": 45
+  },
+  {
+    "kodeTabel": "T24_P025",
+    "page": "Halaman 25",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "32. Satuan Biaya Tiket Perjadin Pindah Luar Negeri (Lanjutan)",
+    "itemCount": 44
+  },
+  {
+    "kodeTabel": "T25_P026",
+    "page": "Halaman 26",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "33. Satuan Biaya Operasional Khusus Kepala Perwakilan RI (Amerika)",
+    "itemCount": 45
+  },
+  {
+    "kodeTabel": "T26_P027",
+    "page": "Halaman 27",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "33. Satuan Biaya Operasional Khusus Kepala Perwakilan RI (Afrika & Asia)",
+    "itemCount": 50
+  },
+  {
+    "kodeTabel": "T27_P028",
+    "page": "Halaman 28",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "33. Satuan Biaya Operasional Khusus Kepala Perwakilan RI (Timur Tengah)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T28_P029",
+    "page": "Halaman 29",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "34. Satuan Biaya Makanan Penambah Daya Tahan Tubuh",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T29_P030",
+    "page": "Halaman 30",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "35. Satuan Biaya Sewa Kendaraan (Kegiatan Insidentil)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T30_P031",
+    "page": "Halaman 31",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "35.2 Sewa Kendaraan Operasional Pejabat",
+    "itemCount": 39
+  },
+  {
+    "kodeTabel": "T31_P032",
+    "page": "Halaman 32",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "35.3 Sewa Kendaraan Operasional Kantor dan/atau Lapangan",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T32_P033",
+    "page": "Halaman 33",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "36. Satuan Biaya Pengadaan Kendaraan Dinas (Pejabat)",
+    "itemCount": 52
+  },
+  {
+    "kodeTabel": "T33_P034",
+    "page": "Halaman 34",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "36.2 Kendaraan Operasional Pejabat / Operasional Kantor Roda 4",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T34_P034",
+    "page": "Halaman 34",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "36.3 Kendaraan Operasional Bus",
+    "itemCount": 3
+  },
+  {
+    "kodeTabel": "T35_P035",
+    "page": "Halaman 35",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "36.4 Kendaraan Operasional Kantor Roda 2",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T36_P035",
+    "page": "Halaman 35",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "36.5 Kendaraan Listrik Berbasis Baterai (KBLBB)",
+    "itemCount": 4
+  },
+  {
+    "kodeTabel": "T37_P036",
+    "page": "Halaman 36",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "37. Satuan Biaya Pengadaan Pakaian Dinas",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T38_P037",
+    "page": "Halaman 37",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "38. Satuan Biaya Konsumsi Rapat/Pertemuan",
+    "itemCount": 39
+  },
+  {
+    "kodeTabel": "T39_P038",
+    "page": "Halaman 38",
+    "lampiran": "Lampiran I (Batas Tertinggi)",
+    "jenisTabel": "39. Satuan Biaya Konsumsi Kegiatan Diklat",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T42_P062",
+    "page": "Halaman 62",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Aceh & Sumut)",
+    "itemCount": 41
+  },
+  {
+    "kodeTabel": "T43_P063",
+    "page": "Halaman 63",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Riau, Jambi, Sumbar, Sumsel)",
+    "itemCount": 57
+  },
+  {
+    "kodeTabel": "T44_P064",
+    "page": "Halaman 64",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Lampung, Bengkulu, Banten, Jabar)",
+    "itemCount": 55
+  },
+  {
+    "kodeTabel": "T45_P065",
+    "page": "Halaman 65",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Jateng, DIY, Jatim)",
+    "itemCount": 59
+  },
+  {
+    "kodeTabel": "T46_P066",
+    "page": "Halaman 66",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Bali, NTB, NTT, Kalbar, Kalteng)",
+    "itemCount": 56
+  },
+  {
+    "kodeTabel": "T47_P067",
+    "page": "Halaman 67",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Kalsel, Kaltim, Sulut, Gorontalo, Sulsel)",
+    "itemCount": 56
+  },
+  {
+    "kodeTabel": "T48_P068",
+    "page": "Halaman 68",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "1. Satuan Biaya Transportasi Darat Ibukota Provinsi ke Kab/Kota (Sulteng, Sultra, Maluku, Papua)",
+    "itemCount": 37
+  },
+  {
+    "kodeTabel": "T49_P068",
+    "page": "Halaman 68",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "2. Satuan Biaya Transportasi dari DKI Jakarta ke Kabupaten/Kota Sekitar",
+    "itemCount": 9
+  },
+  {
+    "kodeTabel": "T50_P069",
+    "page": "Halaman 69",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "3. Satuan Biaya Transpor Kegiatan Dalam Kabupaten/Kota Pergi Pulang (PP)",
+    "itemCount": 34
+  },
+  {
+    "kodeTabel": "T51_P070",
+    "page": "Halaman 70",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9. Satuan Biaya Pengadaan Bahan Makanan (Narapidana/Tahanan)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T52_P071",
+    "page": "Halaman 71",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.2 Pengadaan Bahan Makanan Operasi Pasukan / Latihan TNI/POLRI",
+    "itemCount": 54
+  },
+  {
+    "kodeTabel": "T53_P072",
+    "page": "Halaman 72",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.3 Pengadaan Bahan Makanan Pasien Rumah Sakit & PMKS",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T54_P073",
+    "page": "Halaman 73",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.4 Pengadaan Bahan Makanan Penjaga Menara Suar (PMS) & ABK",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T55_P074",
+    "page": "Halaman 74",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.5 Pengadaan Bahan Makanan Petugas Bengkel & Galangan Kapal Kenavigasian",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T56_P075",
+    "page": "Halaman 75",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.6 Pengadaan Bahan Makanan Mahasiswa Sekolah Kedinasan",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T57_P076",
+    "page": "Halaman 76",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "9.7 Pengadaan Bahan Makanan Rescue Team",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T58_P077",
+    "page": "Halaman 77",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "10. Satuan Biaya Konsumsi Tahanan/Deteni/ABK Nonjustisia",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T59_P078",
+    "page": "Halaman 78",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "11. Satuan Biaya Kebutuhan Dasar Perkantoran di Dalam Negeri",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T60_P079",
+    "page": "Halaman 79",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "12. Satuan Biaya Penggantian Inventaris Lama / Pembelian Inventaris Pegawai Baru",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T61_P080",
+    "page": "Halaman 80",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13. Satuan Biaya Pemeliharaan dan Operasional Kendaraan Dinas Pejabat",
+    "itemCount": 40
+  },
+  {
+    "kodeTabel": "T62_P081",
+    "page": "Halaman 81",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13.2 Pemeliharaan Kendaraan Dinas Operasional (Roda 4, Double Gardan, Roda 2)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T63_P081",
+    "page": "Halaman 81",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13.3 Operasional Lingkungan Kantor & Speed Boat",
+    "itemCount": 4
+  },
+  {
+    "kodeTabel": "T64_P082",
+    "page": "Halaman 82",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13.4 Kendaraan Dinas Operasional Patroli Jalan Raya (PJR)",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T65_P082",
+    "page": "Halaman 82",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13.5 Operasional Kendaraan Dinas dari Sewa",
+    "itemCount": 3
+  },
+  {
+    "kodeTabel": "T66_P082",
+    "page": "Halaman 82",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "13.6 Kendaraan Bermotor Listrik Berbasis Baterai (KBLBB)",
+    "itemCount": 5
+  },
+  {
+    "kodeTabel": "T67_P083",
+    "page": "Halaman 83",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "14. Satuan Biaya Pemeliharaan Gedung/Bangunan Dalam Negeri",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T68_P084",
+    "page": "Halaman 84",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "15. Satuan Biaya Sewa Gedung Pertemuan",
+    "itemCount": 38
+  },
+  {
+    "kodeTabel": "T69_P085",
+    "page": "Halaman 85",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "16. Satuan Biaya Transportasi dari/ke Terminal/Stasiun/Bandara/Pelabuhan",
+    "itemCount": 34
+  },
+  {
+    "kodeTabel": "T70_P086",
+    "page": "Halaman 86",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "17. Satuan Biaya Tiket Pesawat Perjadin Dalam Negeri PP (Jakarta - Ambon/Denpasar/Jayapura)",
+    "itemCount": 63
+  },
+  {
+    "kodeTabel": "T71_P087",
+    "page": "Halaman 87",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "17. Satuan Biaya Tiket Pesawat Perjadin Dalam Negeri PP (Banda Aceh, Bandar Lampung, Bandung)",
+    "itemCount": 64
+  },
+  {
+    "kodeTabel": "T72_P088",
+    "page": "Halaman 88",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "17. Satuan Biaya Tiket Pesawat Perjadin Dalam Negeri PP (Batam, Biak, Denpasar, Jambi)",
+    "itemCount": 64
+  },
+  {
+    "kodeTabel": "T73_P089",
+    "page": "Halaman 89",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "17. Satuan Biaya Tiket Pesawat Perjadin Dalam Negeri PP (Kendari, Kupang, Makassar, Malang)",
+    "itemCount": 64
+  },
+  {
+    "kodeTabel": "T74_P090",
+    "page": "Halaman 90",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "17. Satuan Biaya Tiket Pesawat Perjadin Dalam Negeri PP (Medan, Padang, Palembang, Solo)",
+    "itemCount": 61
+  },
+  {
+    "kodeTabel": "T75_P091",
+    "page": "Halaman 91",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "18. Satuan Biaya Tiket Pesawat Perjadin Luar Negeri PP (Amerika & Eropa)",
+    "itemCount": 41
+  },
+  {
+    "kodeTabel": "T76_P092",
+    "page": "Halaman 92",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "18. Satuan Biaya Tiket Pesawat Perjadin Luar Negeri PP (Afrika & Asia)",
+    "itemCount": 42
+  },
+  {
+    "kodeTabel": "T77_P093",
+    "page": "Halaman 93",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "18. Satuan Biaya Tiket Pesawat Perjadin Luar Negeri PP (Asia Pasifik)",
+    "itemCount": 41
+  },
+  {
+    "kodeTabel": "T78_P094",
+    "page": "Halaman 94",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "18. Satuan Biaya Tiket Pesawat Perjadin Luar Negeri PP (Lanjutan)",
+    "itemCount": 10
+  },
+  {
+    "kodeTabel": "T79_P095",
+    "page": "Halaman 95",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19. Satuan Biaya Penyelenggaraan Perwakilan RI di Luar Negeri (ATK, Koran, Lampu, Jamuan)",
+    "itemCount": 56
+  },
+  {
+    "kodeTabel": "T80_P096",
+    "page": "Halaman 96",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19.1 Penyelenggaraan Perwakilan RI di Luar Negeri (Afrika & Asia)",
+    "itemCount": 61
+  },
+  {
+    "kodeTabel": "T81_P097",
+    "page": "Halaman 97",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19.1 Penyelenggaraan Perwakilan RI di Luar Negeri (Asia Pasifik)",
+    "itemCount": 18
+  },
+  {
+    "kodeTabel": "T82_P098",
+    "page": "Halaman 98",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19.2 Pemeliharaan & Sewa Kendaraan Perwakilan RI (Amerika & Eropa)",
+    "itemCount": 56
+  },
+  {
+    "kodeTabel": "T83_P099",
+    "page": "Halaman 99",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19.2 Pemeliharaan & Sewa Kendaraan Perwakilan RI (Afrika & Asia)",
+    "itemCount": 59
+  },
+  {
+    "kodeTabel": "T84_P100",
+    "page": "Halaman 100",
+    "lampiran": "Lampiran II (Dapat Dilampaui)",
+    "jenisTabel": "19.2 Pemeliharaan & Sewa Kendaraan Perwakilan RI (Asia Pasifik)",
+    "itemCount": 19
+  }
+]

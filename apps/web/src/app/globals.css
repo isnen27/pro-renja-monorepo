@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4: class-based dark mode (menggunakan class .dark pada ancestor) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================================
+   CSS VARIABLES - TEMA LIGHT & DARK
+   ======================================== */
+:root {
+  --aksi-blue: #1d4ed8;
+  --aksi-blue-light: #3b82f6;
+  --aksi-blue-dark: #1e40af;
+  --aksi-blue-fade: rgba(29, 78, 216, 0.15);
+  --aksi-blue-glow: rgba(29, 78, 216, 0.25);
+}
+
+/* ── Light Theme ─────────────────────────────── */
+.light {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --primary: var(--aksi-blue);
+  --primary-bg: #dbeafe;
+  --accent: #f1f5f9;
+  --card-gradient: #ffffff;
+  --highlight: transparent;
+  --sidebar-bg: #ffffff;
+}
+
+/* ── Dark Theme ──────────────────────────────── */
+.dark {
+  --bg: #060d1f;
+  --card: #0f1b30;
+  --border: #1e3050;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: var(--aksi-blue-light);
+  --primary-bg: rgba(29, 78, 216, 0.2);
+  --accent: #1e293b;
+  --card-gradient: linear-gradient(145deg, #111d30 0%, #0a1220 100%);
+  --highlight: rgba(255, 255, 255, 0.04);
+  --sidebar-bg: linear-gradient(180deg, #0f1b30 0%, #090f1e 100%);
+  /* Extra dark vars untuk komponen */
+  --dark-border-hover: #2d4a70;
+  --dark-primary-glow: rgba(59, 130, 246, 0.3);
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* ========================================
+   SIDEBAR NAV ITEM
+   ======================================== */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  color: var(--text);
+  text-decoration: none;
+  width: 100%;
+}
+
+.sidebar-nav-item:hover {
+  background-color: var(--accent);
+}
+
+.dark .sidebar-nav-item:hover {
+  background: rgba(71, 85, 105, 0.15);
+  border-color: var(--dark-border-hover);
+}
+
+.sidebar-nav-item.active {
+  color: var(--primary);
+  background-color: var(--primary-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .sidebar-nav-item.active {
+  box-shadow: 0 0 12px var(--dark-primary-glow);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.sidebar-nav-item.active::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background-color: var(--primary);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ========================================
+   CARDS
+   ======================================== */
+.aksi-card {
+  background: var(--card-gradient);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.dark .aksi-card {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03);
+}
+
+/* ========================================
+   BADGES
+   ======================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.badge-primary { background-color: var(--primary-bg); color: var(--primary); }
+.dark .badge-primary { background-color: var(--primary-bg); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+.badge-gray { background-color: var(--accent); color: var(--text-muted); }
+.badge-red { background-color: #fee2e2; color: #ef4444; }
+.dark .badge-red { background-color: rgba(220,38,38,0.15); color: #fca5a5; border: 1px solid rgba(220,38,38,0.25); }
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }

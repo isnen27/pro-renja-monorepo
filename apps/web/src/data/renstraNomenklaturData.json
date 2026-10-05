@@ -1,0 +1,23 @@
+{
+  "visi": "Bersinergi Membangun Indonesia Tanpa Pencucian Uang dalam rangka mewujudkan Indonesia Maju Menuju Indonesia Emas 2045",
+  "misi": [
+    "Memperkuat kebijakan pengelolaan laporan transaksi keuangan",
+    "Meningkatkan produk intelijen keuangan yang berkualitas",
+    "Memperkuat kerja sama di tingkat domestik, regional, dan internasional",
+    "Memperkuat tata kelola PPATK dalam pencegahan dan pemberantasan pencucian uang"
+  ],
+  "tujuan": [
+    "Terwujudnya efektivitas kinerja rezim Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme (APU PPT) dan Pencegahan Pendanaan Proliferasi Senjata Pemusnah Massal (PPSPM) yang Terintegrasi dan Inklusif"
+  ],
+  "indikatorTujuan": [
+    {
+      "nama": "Indeks Efektivitas Rezim Anti Pencucian Uang, TPPT, dan PPSPM.",
+      "t2025": 5.52,
+      "t2026": 5.6,
+      "t2027": 5.6,
+      "t2028": 5.6,
+      "t2029": 5.83,
+      "satuan": "Indeks"
+    }
+  ]
+}

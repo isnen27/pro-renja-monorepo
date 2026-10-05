@@ -1,0 +1,2108 @@
+[
+  {
+    "id": "RSR-3",
+    "no": 1,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "01-Meningkatnya Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pembertantasan TPPU, TPPT dan PPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pemberantasan TPPU, TPPT dan PPSPM",
+    "target": {
+      "2025": "3",
+      "2026": "4",
+      "2027": "4",
+      "2028": "5",
+      "2029": "5"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-4",
+    "no": 2,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "02-Meningkatnya Tindak Lanjut Produk Intelijen Keuangan PPATK (PIK)",
+    "ro": "",
+    "indikator": "01-Persentase Produk Inteligen Keuangan yang Berkontribusi pada Penerimaan Negara",
+    "target": {
+      "2025": "25",
+      "2026": "27,5",
+      "2027": "30",
+      "2028": "32,5",
+      "2029": "35"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-5",
+    "no": 3,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "03-Meningkatnya Efektivitas Strategi, Kebijakan dan Regulasi APU PPT dan PPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Pemanfaatan Rekomendasi yang dihasilkan PPATK",
+    "target": {
+      "2025": "66,7",
+      "2026": "69,0",
+      "2027": "71,4",
+      "2028": "74,0",
+      "2029": "75,8"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-6",
+    "no": 4,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "",
+    "ro": "",
+    "indikator": "02-Indeks Efektivitas Strategi Regulasi dan Layanan Hukum PPATK",
+    "target": {
+      "2025": "4,5",
+      "2026": "4,5",
+      "2027": "4,625",
+      "2028": "4,625",
+      "2029": "4,625"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-7",
+    "no": 5,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "04-Meningkatnya Efektivitas Kerjasama APU PPT dan PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase Pemenuhan Kewajiban Kontribusi Tenaga Ahli untuk FATF",
+    "target": {
+      "2025": "23",
+      "2026": "44",
+      "2027": "82",
+      "2028": "91",
+      "2029": "100"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-8",
+    "no": 6,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "",
+    "ro": "",
+    "indikator": "02-Persentase Penyampaian Intervensi Indonesia yang Diterima di Forum Internasional APU PPT PPSPM",
+    "target": {
+      "2025": "20",
+      "2026": "30",
+      "2027": "30",
+      "2028": "40",
+      "2029": "50"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-9",
+    "no": 7,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "",
+    "ro": "",
+    "indikator": "03-Indeks Kerja Sama Dalam Negeri",
+    "target": {
+      "2025": "68",
+      "2026": "70",
+      "2027": "73",
+      "2028": "75",
+      "2029": "78"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-10",
+    "no": 8,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "",
+    "sasaran_kro": "05-Terwujudnya Transformasi Digital dan Integrasi SIstem Informasi PPATK",
+    "ro": "",
+    "indikator": "01-Indeks Tata Kelola Teknologi Informasi",
+    "target": {
+      "2025": "3,29",
+      "2026": "3,30",
+      "2027": "3,32",
+      "2028": "3,34",
+      "2029": "3,36"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_PROGRAM"
+  },
+  {
+    "id": "RSR-11",
+    "no": 9,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3365-Pendidikan dan Pelatihan Anti Pencucian Uang PPATK",
+    "sasaran_kro": "01-Meningkatnya Kompetensi SDM APU PPT dan PPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Efektivitas Pengembangan Kompetensi SDM APU PPT",
+    "target": {
+      "2025": "4,35",
+      "2026": "4,39",
+      "2027": "4,43",
+      "2028": "4,48",
+      "2029": "4,53"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-12",
+    "no": 10,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3365-Pendidikan dan Pelatihan Anti Pencucian Uang PPATK",
+    "sasaran_kro": "02-Meningkatnya Kompetensi Aparat Penegak Hukum APU PPT PPPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Efektivitas Pengembangan Kompetensi Aparat Penegak Hukum APU PPT PPPSPM",
+    "target": {
+      "2025": "4,40",
+      "2026": "4,44",
+      "2027": "4,48",
+      "2028": "4,53",
+      "2029": "4,58"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-13",
+    "no": 11,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3365-Pendidikan dan Pelatihan Anti Pencucian Uang PPATK",
+    "sasaran_kro": "DCF-Pelatihan Bidang Ekonomi dan Keuangan",
+    "ro": "001-Pelatihan bidang APU PPT dan PPSPM",
+    "indikator": "01-Jumlah pihak pelapor yang mengikuti diklat",
+    "target": {
+      "2025": "23",
+      "2026": "23",
+      "2027": "23",
+      "2028": "23",
+      "2029": "23"
+    },
+    "satuan": "Kegiatan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-14",
+    "no": 12,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3365-Pendidikan dan Pelatihan Anti Pencucian Uang PPATK",
+    "sasaran_kro": "DCG-Pelatihan Bidang Politik, Hukum, Pertahanan dan Keamanan",
+    "ro": "001-Pelatihan bagi Aparat Penegak Hukum TPPU TPPT PPSPM",
+    "indikator": "01-Jumlah Aparat Penegak Hukum TPPU yang mengikuti pelatihan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Orang",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-15",
+    "no": 13,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3379-Pengelolaan Bidang Hukum dan Regulasi PPATK",
+    "sasaran_kro": "01-Meningkatnya efektivitas strategi dalam bidang regulasi nasional terkait APUPPT PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase Pemenuhan Permintaan Penyusunan Regulasi PPATK",
+    "target": {
+      "2025": "85",
+      "2026": "86",
+      "2027": "87",
+      "2028": "88",
+      "2029": "90"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-16",
+    "no": 14,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3379-Pengelolaan Bidang Hukum dan Regulasi PPATK",
+    "sasaran_kro": "01-Meningkatnya efektivitas strategi dalam bidang regulasi nasional terkait APUPPT PPSPM",
+    "ro": "",
+    "indikator": "02-Persentase Pemenuhan Layanan Hukum PPATK",
+    "target": {
+      "2025": "90",
+      "2026": "90",
+      "2027": "95",
+      "2028": "95",
+      "2029": "95"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-17",
+    "no": 15,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3379-Pengelolaan Bidang Hukum dan Regulasi PPATK",
+    "sasaran_kro": "AAH-Peraturan lainnya",
+    "ro": "001-Penyusunan Regulasi PPATK",
+    "indikator": "01-Jumlah peraturan regulasi PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Peraturan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-18",
+    "no": 16,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3379-Pengelolaan Bidang Hukum dan Regulasi PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "001-Pemberian Layanan Hukum",
+    "indikator": "01-Jumlah pemberian layanan hukum",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-19",
+    "no": 17,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "01-Peningkatan kontribusi PPATK dalam forum APU PPT PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase Penyampaian Intervensi Indonesia yang Diterima di Forum Teknis FATF dan FSRB",
+    "target": {
+      "2025": "30",
+      "2026": "40",
+      "2027": "50",
+      "2028": "60",
+      "2029": "70"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-20",
+    "no": 18,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "01-Peningkatan kontribusi PPATK dalam forum APU PPT PPSPM",
+    "ro": "",
+    "indikator": "02-Persentase Pemenuhan Kajian Implementasi Standar Internasional",
+    "target": {
+      "2025": "30",
+      "2026": "40",
+      "2027": "50",
+      "2028": "60",
+      "2029": "70"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-21",
+    "no": 19,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "02-Meningkatnya Implementasi Standar dan Konvensi Internasional di bidang pencegahan dan pemberantasan TPPU, TPPT, dan PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase implementasi rekomendasi standar dan konvensi internasional di bidang pencegahan dan pemberantasan TPPU, TPPT dan PPSPM",
+    "target": {
+      "2025": "60",
+      "2026": "65",
+      "2027": "70",
+      "2028": "75",
+      "2029": "80"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-22",
+    "no": 20,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "03-Meningkatnya Efektivitas Kerjasama Internasional",
+    "ro": "",
+    "indikator": "01-Indeks Efektivitas Kerja Sama Internasional",
+    "target": {
+      "2025": "3,0",
+      "2026": "3,5",
+      "2027": "4,0",
+      "2028": "4,0",
+      "2029": "4,5"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-23",
+    "no": 21,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "04-Meningkatnya Efektivitas Implementasi Kerjasama Dalam Negeri",
+    "ro": "",
+    "indikator": "01-Persentase implementasi perjanjian kerja sama dalam negeri di bidang pencegahan dan pemberantasan TPPU, TPPT dan PPSPM",
+    "target": {
+      "2025": "50",
+      "2026": "53",
+      "2027": "55",
+      "2028": "58",
+      "2029": "60"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-24",
+    "no": 22,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "04-Meningkatnya Efektivitas Implementasi Kerjasama Dalam Negeri",
+    "ro": "",
+    "indikator": "02-Persentase Penerapan indikator Operational Alert (OA) dari Kebijakan Public Private Partnership",
+    "target": {
+      "2025": "-",
+      "2026": "60",
+      "2027": "65",
+      "2028": "70",
+      "2029": "75"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-25",
+    "no": 23,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "AEC-Kerja sama",
+    "ro": "001-Laporan Hasil Intervensi dan Implementasi Pelaksanaan Kerja Sama Internasioal",
+    "indikator": "01-Jumlah laporan intervensi aktif dalam organisasi internasional non FATF",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Kesepakatan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-26",
+    "no": 24,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "AEC-Kerja sama",
+    "ro": "002-Pelaksanaan Implementasi Standar dan Konvensi Internasional Dalam Negeri",
+    "indikator": "01-Jumlah Dokumen Kerja Sama Implementasi Standar dan Konvensi Internasional Dalam Negeri",
+    "target": {
+      "2025": "0",
+      "2026": "4",
+      "2027": "4",
+      "2028": "4",
+      "2029": "4"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-27",
+    "no": 25,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "AEC-Kerja sama",
+    "ro": "003-Pelaksanaan Kerjasama dalam Public Private Partnership",
+    "indikator": "01-Jumlah laporan pelaksanaan kerjasama dalam public private partnership",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Laporan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-28",
+    "no": 26,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "AEC-Kerja sama",
+    "ro": "004-Kerja Sama Dalam Negeri",
+    "indikator": "01-Jumlah Kerjasama Dalam Negeri - Kerjasama Bilateral Dalam Negeri",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Kesepakatan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-29",
+    "no": 27,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "PEC-Kerja sama",
+    "ro": "001-Kontribusi Indonesia dalam Keanggotaan FATF",
+    "indikator": "01-Jumlah Dokumen Kerja Sama Kontribusi Indonesia dalam Keanggotaan FATF",
+    "target": {
+      "2025": "31",
+      "2026": "20",
+      "2027": "72",
+      "2028": "72",
+      "2029": "72"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-30",
+    "no": 28,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3380-Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+    "sasaran_kro": "PEC-Kerja sama",
+    "ro": "001-Kontribusi Indonesia dalam Keanggotaan FATF",
+    "indikator": "02-Jumlah Kajian Implementasi Standar Internasional",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-31",
+    "no": 29,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3381-Pengelolaan Teknologi Informasi PPATK",
+    "sasaran_kro": "01-Meningkatnya Pengelolaan Teknologi Informasi yang Berkualitas, Sistematis dan Terintegrasi",
+    "ro": "",
+    "indikator": "01-Persentase implementasi roadmap IT Masterplan",
+    "target": {
+      "2025": "90,00",
+      "2026": "90,50",
+      "2027": "91,00",
+      "2028": "92,00",
+      "2029": "93,00"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-32",
+    "no": 30,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3381-Pengelolaan Teknologi Informasi PPATK",
+    "sasaran_kro": "01-Meningkatnya Pengelolaan Teknologi Informasi yang Berkualitas, Sistematis dan Terintegrasi",
+    "ro": "",
+    "indikator": "02-Persentase Uptime Sistem Core",
+    "target": {
+      "2025": "95,00",
+      "2026": "96,00",
+      "2027": "96,50",
+      "2028": "96,75",
+      "2029": "97,00"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-33",
+    "no": 31,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3381-Pengelolaan Teknologi Informasi PPATK",
+    "sasaran_kro": "CAN-Sarana Bidang Teknologi Informasi dan Komunikasi",
+    "ro": "001-Sarana Bidang Teknologi Informasi",
+    "indikator": "01-Jumlah Sarana Bidang Teknologi Informasi",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Unit",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-34",
+    "no": 32,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3381-Pengelolaan Teknologi Informasi PPATK",
+    "sasaran_kro": "CCL-OP Sarana Bidang Teknologi Informasi dan Komunikasi",
+    "ro": "001-OM Sarana Bidang TI",
+    "indikator": "01-Jumlah Pemeliharaan sarana PTI",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Unit",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-35",
+    "no": 33,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3381-Pengelolaan Teknologi Informasi PPATK",
+    "sasaran_kro": "RAN-Sarana Bidang Teknologi Informasi dan Komunikasi",
+    "ro": "001-Sarana TI",
+    "indikator": "01-Meningkatnya Pengelolaan Teknologi Informasi yang Berkualitas, Sistematis dan Terintegrasi",
+    "target": {
+      "2025": "0",
+      "2026": "1",
+      "2027": "1",
+      "2028": "1",
+      "2029": "1"
+    },
+    "satuan": "Unit",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-36",
+    "no": 34,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "01-Penguatan kebijakan pelaporan guna peningkatan tata kelola pelaporan yang adaptif dalam mendukung pencegahan dan pemberantasan TPPU, TPPT, dan PPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Evaluasi Kebijakan Pelaporan",
+    "target": {
+      "2025": "76",
+      "2026": "80",
+      "2027": "84",
+      "2028": "88",
+      "2029": "92"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-37",
+    "no": 35,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "02-Meningkatnya registrasi Pihak Pelapor Berdasarkan Tingkat Risiko Pihak Pelapor",
+    "ro": "",
+    "indikator": "01-Persentase Pihak Pelapor yang melakukan registrasi goAML berdasarkan kategori risiko tinggi - menengah",
+    "target": {
+      "2025": "75",
+      "2026": "75",
+      "2027": "80",
+      "2028": "85",
+      "2029": "90"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-38",
+    "no": 36,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "03-Meningkatnya Kualitas Data Pelaporan PPATK",
+    "ro": "",
+    "indikator": "01-Indeks Peningkatan Kualitas Data Pelaporan PPATK",
+    "target": {
+      "2025": "8,0",
+      "2026": "8,2",
+      "2027": "8,4",
+      "2028": "8,6",
+      "2029": "8,8"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-39",
+    "no": 37,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "04-Meningkatnya kepatuhan Pihak Pelapor berbasis risiko",
+    "ro": "",
+    "indikator": "01-Indeks Efektivitas Pengawasan Kepatuhan Pihak Pelapor berbasis risiko (Penyedia Jasa Keuangan)",
+    "target": {
+      "2025": "4",
+      "2026": "4",
+      "2027": "5",
+      "2028": "5",
+      "2029": "5"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-40",
+    "no": 38,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "04-Meningkatnya kepatuhan Pihak Pelapor berbasis risiko",
+    "ro": "",
+    "indikator": "02-Indeks Efektivitas Pengawasan Kepatuhan Pihak Pelapor berbasis risiko (Penyedia barang dan jasa)",
+    "target": {
+      "2025": "4",
+      "2026": "4",
+      "2027": "5",
+      "2028": "5",
+      "2029": "5"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-41",
+    "no": 39,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "05-Tersedianya Pengolahan Data Makro",
+    "ro": "",
+    "indikator": "01-Persentase Pengolahan Data Makro",
+    "target": {
+      "2025": "100",
+      "2026": "100",
+      "2027": "100",
+      "2028": "100",
+      "2029": "100"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-42",
+    "no": 40,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "06-Meningkatnya Efektivitas Pengelolaan Data, Informasi dan Statistik",
+    "ro": "",
+    "indikator": "01-Indeks Efektivitas Pengelolaan Data, Informasi dan Statistik",
+    "target": {
+      "2025": "6,8",
+      "2026": "7,1",
+      "2027": "7,5",
+      "2028": "7,8",
+      "2029": "8,1"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-43",
+    "no": 41,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "001-Penilaian Integritas Pihak Pelapor",
+    "indikator": "01-Jumlah laporan penilaian integritas pihak pelapor",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Laporan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-44",
+    "no": 42,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "002-Penyusunan Kebijakan di Bidang Pelaporan",
+    "indikator": "01-Jumlah Kebijakan di Bidang Pelaporan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Rekomendasi Kajian",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-45",
+    "no": 43,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BDB-Fasilitasi dan Pembinaan Lembaga",
+    "ro": "001-Pengelolaan Pihak Pelapor dan Pemutakhiran Data Direktori Pihak Pelapor",
+    "indikator": "01-Jumlah Pengelolaan Pihak Pelapor dan Pemutakhiran Data Direktori Pihak Pelapor",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Lembaga",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-46",
+    "no": 44,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BDB-Fasilitasi dan Pembinaan Lembaga",
+    "ro": "002-Pengelolaan Kualitas Data Pelaporan",
+    "indikator": "01-Jumlah Pengelolaan Kualitas Data Pelaporan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Lembaga",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-47",
+    "no": 45,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BKC-Pemantauan lembaga",
+    "ro": "001-Pengawasan Kepatuhan Pihak Pelapor Penyedia Jasa Keuangan",
+    "indikator": "00-Jumlah Hasil Audit Kepatuhan dan Audit Khusus Penyedia Jasa Keuangan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-48",
+    "no": 46,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BKC-Pemantauan lembaga",
+    "ro": "002-Pengawasan Kepatuhan Pihak Pelapor Penyedia Barang dan Jasa dan Profesi",
+    "indikator": "00-Jumlah hasil Audit Kepatuhan dan Audit Khusus Penyedia Barang dan Jasa dan Profesi",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Laporan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-49",
+    "no": 47,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BMA-Data dan Informasi Publik",
+    "ro": "001-Penyusunan Laporan Statistik APU PPT PPSPM",
+    "indikator": "01-Jumlah Dokumen Satu Data APUPPT PPSPM",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-50",
+    "no": 48,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3382-Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+    "sasaran_kro": "BMA-Data dan Informasi Publik",
+    "ro": "002-Penyusunan Laporan Pengolahan Data Makro PPATK",
+    "indikator": "01-Jumlah Laporan Pengolahan Data Makro PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-51",
+    "no": 49,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "01-Meningkatnya Produk Intelijen Keuangan PPATK (PIK) Proaktif yang ditindaklanjuti oleh Penyidik dan Instansi Lainnya",
+    "ro": "",
+    "indikator": "01-Persentase pemanfaatan Produk Intelijen Keuangan Proaktif",
+    "target": {
+      "2025": "30",
+      "2026": "35",
+      "2027": "40",
+      "2028": "45",
+      "2029": "50"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-52",
+    "no": 50,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "02-Terpenuhinya Permintaan Data dan Informasi Intelijen PPATK",
+    "ro": "",
+    "indikator": "01-Persentase pemenuhan permintaan informasi terkait kelayakan dan kepatuhan pengisian jabatan pejabat negara dan/atau jabatan strategis yang memenuhi jangka waktu sesuai dengan Standar Layanan Minimal",
+    "target": {
+      "2025": "75",
+      "2026": "80",
+      "2027": "85",
+      "2028": "90",
+      "2029": "95"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-53",
+    "no": 51,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "02-Terpenuhinya Permintaan Data dan Informasi Intelijen PPATK",
+    "ro": "",
+    "indikator": "02-Persentase pemenuhan permintaan data dan informasi intelijen oleh PPATK",
+    "target": {
+      "2025": "45",
+      "2026": "55",
+      "2027": "65",
+      "2028": "75",
+      "2029": "85"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-54",
+    "no": 52,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "02-Terpenuhinya Permintaan Data dan Informasi Intelijen PPATK",
+    "ro": "",
+    "indikator": "03-Persentase pemanfaatan atas Produk Intelijen Keuangan Reaktif",
+    "target": {
+      "2025": "30",
+      "2026": "35",
+      "2027": "40",
+      "2028": "45",
+      "2029": "50"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-55",
+    "no": 53,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "03-Meningkatnya penegakan hukum TPPU, TPPT dan PPSPM yang berasal dari produk intelijen keuangan PPATK",
+    "ro": "",
+    "indikator": "01-Indeks Kualitas Dukungan Penanganan Kasus TPPU/TPPT",
+    "target": {
+      "2025": "0",
+      "2026": "6,0",
+      "2027": "6,3",
+      "2028": "6,7",
+      "2029": "7,0"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-56",
+    "no": 54,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "03-Meningkatnya penegakan hukum TPPU, TPPT dan PPSPM yang berasal dari produk intelijen keuangan PPATK",
+    "ro": "",
+    "indikator": "02-Persentase Pemantauan Tindak Lanjut Produk Intelijen Keuangan (PIK) PPATK",
+    "target": {
+      "2025": "75",
+      "2026": "78",
+      "2027": "80",
+      "2028": "83",
+      "2029": "85"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-57",
+    "no": 55,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "001-Laporan Hasil Analisis dan Pemeriksaan Proaktif PPATK",
+    "indikator": "01-Jumlah Hasil Analisis dan Pemeriksaan Proaktif PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-58",
+    "no": 56,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "002-Laporan atas Informasi Intelijen (Fit Pro)",
+    "indikator": "01-Jumlah Laporan atas Informasi Intelijen",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-59",
+    "no": 57,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "003-Laporan Hasil Analisis dan Pemeriksaan Reaktif PPATK",
+    "indikator": "01-Jumlah Laporan Hasil Analisis dan Pemeriksaan Reaktif PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-60",
+    "no": 58,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "004-Pelaksanaan Asistensi dan Pemantauan Produk Intelijen Keuangan PPATK",
+    "indikator": "01-Jumlah Dokumen Pelaksanaan Asistensi",
+    "target": {
+      "2025": "12",
+      "2026": "10",
+      "2027": "10",
+      "2028": "10",
+      "2029": "10"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-61",
+    "no": 59,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "BCE-Penanganan Perkara",
+    "ro": "004-Pelaksanaan Asistensi dan Pemantauan Produk Intelijen Keuangan PPATK",
+    "indikator": "02-Jumlah Pemantauan Tindak Lanjut Produk Intelijen Keuangan PPATK",
+    "target": {
+      "2025": "4",
+      "2026": "4",
+      "2027": "4",
+      "2028": "4",
+      "2029": "4"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-62",
+    "no": 60,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "QCE-Penanganan Perkara",
+    "ro": "001-Hasil Analisis dan Hasil Pemeriksaan Sektor Korupsi",
+    "indikator": "01-Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Korupsi yang Terdapat Identifikasi Aset Tracing",
+    "target": {
+      "2025": "94",
+      "2026": "54",
+      "2027": "54",
+      "2028": "54",
+      "2029": "54"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-63",
+    "no": 61,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "QCE-Penanganan Perkara",
+    "ro": "002-Hasil Analisis dan Hasil Pemeriksaan Sektor Narkotika",
+    "indikator": "01-Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Narkotika yang Terdapat Identifikasi Aset Tracing",
+    "target": {
+      "2025": "5",
+      "2026": "35",
+      "2027": "35",
+      "2028": "35",
+      "2029": "35"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-64",
+    "no": 62,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "QCE-Penanganan Perkara",
+    "ro": "003-Hasil Analisis dan Hasil Pemeriksaan Sektor Pejudian",
+    "indikator": "01-Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Perjudian yang Terdapat Identifikasi Aset Tracing",
+    "target": {
+      "2025": "2",
+      "2026": "3",
+      "2027": "5",
+      "2028": "5",
+      "2029": "-"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-65",
+    "no": 63,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "QCE-Penanganan Perkara",
+    "ro": "004-Hasil Analisis dan Hasil Pemeriksaan Sektor Lingkungan Hidup",
+    "indikator": "01-Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Lingkungan Hidup yang Terdapat Identifikasi Aset Tracing",
+    "target": {
+      "2025": "5",
+      "2026": "6",
+      "2027": "7",
+      "2028": "7",
+      "2029": "7"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-66",
+    "no": 64,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "3384-Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+    "sasaran_kro": "QCE-Penanganan Perkara",
+    "ro": "005-Hasil Analisis dan Pemeriksaan Proaktif Sektor Perpajakan",
+    "indikator": "01-Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Perpajakan yang Terdapat Identifikasi Aset Tracing",
+    "target": {
+      "2025": "0",
+      "2026": "29",
+      "2027": "29",
+      "2028": "29",
+      "2029": "29"
+    },
+    "satuan": "Perkara",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-67",
+    "no": 65,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "01-Meningkatnya Implementasi Hasil Rekomendasi Koordinasi Nasional TPPU TPPT PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase Tindak Lanjut Hasil Rekomendasi Koordinasi Nasional TPPU TPPT PPSPM",
+    "target": {
+      "2025": "40",
+      "2026": "50",
+      "2027": "60",
+      "2028": "70",
+      "2029": "80"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-68",
+    "no": 66,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "01-Meningkatnya Implementasi Hasil Rekomendasi Koordinasi Nasional TPPU TPPT PPSPM",
+    "ro": "",
+    "indikator": "02-Persentase Capaian Implementasi STRANAS TPPU, TPPT dan PPSPM",
+    "target": {
+      "2025": "80",
+      "2026": "85",
+      "2027": "90",
+      "2028": "95",
+      "2029": "100"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-69",
+    "no": 67,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "02-Meningkatnya Pemanfaatan Penilaian Risiko Nasional dan Sektoral",
+    "ro": "",
+    "indikator": "01-Persentase Tindak Lanjut Rekomendasi NRA SRA",
+    "target": {
+      "2025": "60",
+      "2026": "65",
+      "2027": "70",
+      "2028": "75",
+      "2029": "80"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-70",
+    "no": 68,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "03-Meningkatnya Pemanfaatan Hasil Analisis Strategis",
+    "ro": "",
+    "indikator": "01-Persentase Pemanfaatan Hasil Analisis Strategis",
+    "target": {
+      "2025": "100",
+      "2026": "100",
+      "2027": "100",
+      "2028": "100",
+      "2029": "100"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-71",
+    "no": 69,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "04-Meningkatnya Efektivitas Kinerja PPATK dalam Mendukung Penegakan Rezim APUPPT PPSPM",
+    "ro": "",
+    "indikator": "01-Persentase Pemenuhan Tindak Lanjut Rekomendasi Hasil Indeks Efektivitas Kinerja Rezim APUPPT PPSPM untuk PPATK",
+    "target": {
+      "2025": "66,7",
+      "2026": "70,3",
+      "2027": "73,3",
+      "2028": "76,7",
+      "2029": "80,3"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-72",
+    "no": 70,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "05-Meningkatnya Pemanfaatan Kajian Hukum",
+    "ro": "",
+    "indikator": "01-Persentase Tindak Lanjut Rekomendasi Kajian Hukum",
+    "target": {
+      "2025": "0",
+      "2026": "50",
+      "2027": "65",
+      "2028": "70",
+      "2029": "75"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-73",
+    "no": 71,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "001-Rekomendasi Hasil Pokja Koordinasi Nasional",
+    "indikator": "01-Jumlah Rekomendasi Hasil Pokja Koordinasi Nasional",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Rekomendasi Kebijakan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-74",
+    "no": 72,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "002-Penyusunan Dokumen Penilaian Risiko TPPU TPPT PPSPM",
+    "indikator": "01-Jumlah Dokumen Penyusunan NRA dan SRA",
+    "target": {
+      "2025": "5",
+      "2026": "5",
+      "2027": "4",
+      "2028": "4",
+      "2029": "4"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-75",
+    "no": 73,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "003-Penyusunan Analisis Strategis dan Tipologi TPPU TPPT dan PPSPM",
+    "indikator": "01-Jumlah Dokumen Analisis Strategis dan Tipologi",
+    "target": {
+      "2025": "3",
+      "2026": "2",
+      "2027": "3",
+      "2028": "3",
+      "2029": "3"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-76",
+    "no": 74,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "ABA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "004-Penyusunan Rekomendasi Kajian Hukum",
+    "indikator": "01-Jumlah Dokumen Kajian Hukum",
+    "target": {
+      "2025": "7",
+      "2026": "7",
+      "2027": "10",
+      "2028": "10",
+      "2029": "10"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-77",
+    "no": 75,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "PBA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "001-Pelaksanaan Implementasi Strategi dan Rencana Aksi Nasional APU PPT dan PPSPM",
+    "indikator": "01-Jumlah Dokumen Pelaksanaan Implementasi Strategi dan Rencana Aksi Nasional APU PPT dan PPSPM",
+    "target": {
+      "2025": "4",
+      "2026": "4",
+      "2027": "4",
+      "2028": "4",
+      "2029": "4"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-78",
+    "no": 76,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "PBA-Kebijakan Bidang Ekonomi dan Keuangan",
+    "ro": "002-Penyusunan Dokumen Penilaian Indeks Rezim APUPPT",
+    "indikator": "01-Jumlah Dokumen Penilaian Indeks Rezim APUPPT",
+    "target": {
+      "2025": "1",
+      "2026": "1",
+      "2027": "3",
+      "2028": "3",
+      "2029": "3"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-79",
+    "no": 77,
+    "program": "BE-Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "kegiatan": "8003-Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+    "sasaran_kro": "01-Meningkatnya Tata Kelola Internal PPATK",
+    "ro": "",
+    "indikator": "01-Nilai Reformasi Birokrasi General",
+    "target": {
+      "2025": "75",
+      "2026": "76",
+      "2027": "77",
+      "2028": "78",
+      "2029": "79"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-80",
+    "no": 78,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3374-Pengawasan Internal PPATK",
+    "sasaran_kro": "01-Meningkatnya efektivitas pengawasan internal PPATK",
+    "ro": "",
+    "indikator": "01-Tingkat Kapabilitas APIP",
+    "target": {
+      "2025": "3,744",
+      "2026": "3,808",
+      "2027": "3,872",
+      "2028": "3,936",
+      "2029": "4,000"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-81",
+    "no": 79,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3374-Pengawasan Internal PPATK",
+    "sasaran_kro": "01-Meningkatnya efektivitas pengawasan internal PPATK",
+    "ro": "",
+    "indikator": "02-Tingkat Kepatuhan terhadap SAIPI",
+    "target": {
+      "2025": "86,8",
+      "2026": "88,6",
+      "2027": "90,4",
+      "2028": "92,2",
+      "2029": "94,0"
+    },
+    "satuan": "Persentase",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-82",
+    "no": 80,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3374-Pengawasan Internal PPATK",
+    "sasaran_kro": "01-Meningkatnya efektivitas pengawasan internal PPATK",
+    "ro": "",
+    "indikator": "03-Persentase penyelesaian tindak lanjut rekomendasi hasil pengawasan dan pemeriksaan Inspektorat dan BPK",
+    "target": {
+      "2025": "74",
+      "2026": "78",
+      "2027": "81",
+      "2028": "85",
+      "2029": "88"
+    },
+    "satuan": "Persentase",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-83",
+    "no": 81,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3374-Pengawasan Internal PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "965-Layanan Audit Internal",
+    "indikator": "01-Jumlah Dokumen Audit Internal",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-84",
+    "no": 82,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas sistem Perencanaan, Penganggaran, dan pengelolaan Kinerja PPATK",
+    "ro": "",
+    "indikator": "01-Nilai Indeks Perencanaan dan Pembangunan Nasional",
+    "target": {
+      "2025": "81",
+      "2026": "82",
+      "2027": "85",
+      "2028": "87",
+      "2029": "91"
+    },
+    "satuan": "Nilai",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-85",
+    "no": 83,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas sistem Perencanaan, Penganggaran, dan pengelolaan Kinerja PPATK",
+    "ro": "",
+    "indikator": "02-Nilai kualitas pengelolaan akuntabilitas kinerja PPATK",
+    "target": {
+      "2025": "75",
+      "2026": "77",
+      "2027": "80",
+      "2028": "82",
+      "2029": "84"
+    },
+    "satuan": "Nilai",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-86",
+    "no": 84,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "02-Terlaksananya pengelolaan keuangan yang akuntabel",
+    "ro": "",
+    "indikator": "01-Persentase pemenuhan kriteria laporan keuangan PPATK yang berkualitas",
+    "target": {
+      "2025": "80",
+      "2026": "82",
+      "2027": "85",
+      "2028": "87",
+      "2029": "90"
+    },
+    "satuan": "Persentase",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-87",
+    "no": 85,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "02-Terlaksananya pengelolaan keuangan yang akuntabel",
+    "ro": "",
+    "indikator": "02-Persentase akurasi penerbitan Surat Perintah Membayar",
+    "target": {
+      "2025": "91",
+      "2026": "92",
+      "2027": "93",
+      "2028": "94",
+      "2029": "95"
+    },
+    "satuan": "Persentase",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-88",
+    "no": 86,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "994-Layanan Perkantoran",
+    "indikator": "01-Jumlah Layanan Perkantoran",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-89",
+    "no": 87,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "952-Layanan Perencanaan dan Penganggaran",
+    "indikator": "01-Jumlah Dokumen Layanan Perencanaan dan Penganggaran",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-90",
+    "no": 88,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "955-Layanan Manajemen Keuangan",
+    "indikator": "01-Jumlah Layanan Manajemen Keuangan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-91",
+    "no": 89,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "955-Layanan Manajemen Keuangan",
+    "indikator": "02-Dokumen SPM yang akurat",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-92",
+    "no": 90,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3375-Pengelolaan Perencanaan dan Keuangan PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "961-Layanan Reformasi Kinerja",
+    "indikator": "01-Jumlah Layanan Reformasi Kinerja",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-93",
+    "no": 91,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas layanan Sumber Daya Manusia",
+    "ro": "",
+    "indikator": "01-Indeks Kualitas Layanan Sumber Daya Manusia",
+    "target": {
+      "2025": "3,10",
+      "2026": "3,15",
+      "2027": "3,20",
+      "2028": "3,25",
+      "2029": "3,30"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-94",
+    "no": 92,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "02-Meningkatnya Kompetensi dan Kinerja Pegawai",
+    "ro": "",
+    "indikator": "01-Indeks Pengembangan Kompetensi dan Kinerja Pegawai",
+    "target": {
+      "2025": "80",
+      "2026": "82",
+      "2027": "83",
+      "2028": "84",
+      "2029": "85"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-95",
+    "no": 93,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "03-Terwujudnya Tata Kelola Manajemen Internal yang berkualitas",
+    "ro": "",
+    "indikator": "01-Persentase capaian Rencana Aksi Reformasi Birokrasi",
+    "target": {
+      "2025": "90",
+      "2026": "91",
+      "2027": "92",
+      "2028": "93",
+      "2029": "94"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-96",
+    "no": 94,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "960-Layanan Organisasi dan Tata Kelola Internal",
+    "indikator": "01-Jumlah Layanan Organisasi dan Tata Kelola Internal",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-97",
+    "no": 95,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "EBC-Layanan Manajemen SDM Internal",
+    "ro": "954-Layanan Manajemen SDM",
+    "indikator": "01-Jumlah Layanan Manajemen SDM",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-98",
+    "no": 96,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3376-Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+    "sasaran_kro": "EBC-Layanan Manajemen SDM Internal",
+    "ro": "996-Layanan Pendidikan dan Pelatihan",
+    "indikator": "01-Jumlah Pegawai yang Mengikuti Pendidikan dan Pelatihan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Orang",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-99",
+    "no": 97,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas pengelolaan Layanan Umum PPATK",
+    "ro": "",
+    "indikator": "01-Indeks Kinerja Layanan Kerumahtanggaan PPATK",
+    "target": {
+      "2025": "3,50",
+      "2026": "3,65",
+      "2027": "3,75",
+      "2028": "3,85",
+      "2029": "3,95"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-100",
+    "no": 98,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas pengelolaan Layanan Umum PPATK",
+    "ro": "",
+    "indikator": "02-Indeks Kinerja Pengelolaan BMN PPATK",
+    "target": {
+      "2025": "3,65",
+      "2026": "3,70",
+      "2027": "3,74",
+      "2028": "3,77",
+      "2029": "3,80"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-101",
+    "no": 99,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas pengelolaan Layanan Umum PPATK",
+    "ro": "",
+    "indikator": "03-Indeks Layanan Pengadaan Barang/Jasa",
+    "target": {
+      "2025": "3,50",
+      "2026": "3,65",
+      "2027": "3,80",
+      "2028": "3,90",
+      "2029": "4,00"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-102",
+    "no": 100,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas pengelolaan Layanan Umum PPATK",
+    "ro": "",
+    "indikator": "04-Indeks Kinerja Layanan Ketatausahaan Pimpinan",
+    "target": {
+      "2025": "3,40",
+      "2026": "3,45",
+      "2027": "3,50",
+      "2028": "3,55",
+      "2029": "3,60"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-103",
+    "no": 101,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "01-Meningkatnya kualitas pengelolaan Layanan Umum PPATK",
+    "ro": "",
+    "indikator": "05-Indeks Kepuasan Layanan Menejemen internal Pusdiklat",
+    "target": {
+      "2025": "4,3",
+      "2026": "4,4",
+      "2027": "4,5",
+      "2028": "4,6",
+      "2029": "4,7"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-104",
+    "no": 102,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "02-Meningkatnya efektivitas pengelolaan Arsip PPATK",
+    "ro": "",
+    "indikator": "01-Persentase Tindak Lanjut Rekomendasi Hasil Pengawasan Kearsipan",
+    "target": {
+      "2025": "90,0",
+      "2026": "90,5",
+      "2027": "91,0",
+      "2028": "91,5",
+      "2029": "92,0"
+    },
+    "satuan": "Persen",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-105",
+    "no": 103,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "955-Layanan Protokoler",
+    "indikator": "01-Jumlah Layanan Protokoler",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-106",
+    "no": 104,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "956-Layanan BMN",
+    "indikator": "01-Jumlah Layanan Pengelolaan BMN PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-107",
+    "no": 105,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "962-Layanan Umum",
+    "indikator": "01-Jumlah layanan umum",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-108",
+    "no": 106,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "994-Layanan Perkantoran",
+    "indikator": "01-Jumlah Layanan Perkantoran",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Layanan",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-109",
+    "no": 107,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBB-Layanan Sarana dan Prasarana Internal",
+    "ro": "951- Layanan Sarana Internal",
+    "indikator": "01-Jumlah Layanan Sarana Internal",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Unit",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-110",
+    "no": 108,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBB-Layanan Sarana dan Prasarana Internal",
+    "ro": "971-Layanan Prasarana Internal",
+    "indikator": "01-Jumlah Layanan Prasarana Internal",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Unit",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-111",
+    "no": 109,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "3377-Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+    "sasaran_kro": "EBD-Layanan Manajemen Kinerja Internal",
+    "ro": "951-Layanan Kearsipan PPATK 5 Laporan",
+    "indikator": "01-Jumlah Layanan Penyelenggaraan Kearsipan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-112",
+    "no": 110,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "01-Meningkatnya efektivitas Layanan Hubungan Masyarakat dan Informasi APUPPT PPSPM",
+    "ro": "",
+    "indikator": "01-Indeks Layanan Hubungan Masyarakat dan Informasi",
+    "target": {
+      "2025": "3.4",
+      "2026": "3.45",
+      "2027": "3.5",
+      "2028": "3.55",
+      "2029": "3.6"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-113",
+    "no": 111,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "02-Meningkatnya Kualitas Pemberdayaan Kemitraan APU PPT",
+    "ro": "",
+    "indikator": "01-Indeks Ekosistem Kemitraan",
+    "target": {
+      "2025": "75",
+      "2026": "78",
+      "2027": "80",
+      "2028": "83",
+      "2029": "87"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-114",
+    "no": 112,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "02-Meningkatnya Kualitas Pemberdayaan Kemitraan APU PPT",
+    "ro": "",
+    "indikator": "02-Skor Pemenuhan Layanan Bantuan dan Pengaduan Masyarakat (SPLBPM)",
+    "target": {
+      "2025": "79,3",
+      "2026": "83,9",
+      "2027": "87",
+      "2028": "89",
+      "2029": "92,47"
+    },
+    "satuan": "Nilai",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-115",
+    "no": 113,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "02-Meningkatnya Kualitas Pemberdayaan Kemitraan APU PPT",
+    "ro": "",
+    "indikator": "03-Indeks Literasi APUPPT",
+    "target": {
+      "2025": "74,79",
+      "2026": "82,29",
+      "2027": "88,16",
+      "2028": "92,92",
+      "2029": "95,14"
+    },
+    "satuan": "Indeks",
+    "type": "SASARAN_KEGIATAN"
+  },
+  {
+    "id": "RSR-116",
+    "no": 114,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "001-Pelaksanaan Pemberdayaan Kemitraan APU PPT PPATK",
+    "indikator": "01-Jumlah Dokumen Informasi Pelaksanaan Edukasi Publik",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-117",
+    "no": 115,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "",
+    "indikator": "02-Jumlah Pelaksanaan Layanan Perpustakaan",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-118",
+    "no": 116,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "",
+    "indikator": "03-Jumlah Pelaksanaan Layanan Bantuan dan Pengaduan Masyarakat APU PPT PPSPM",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  },
+  {
+    "id": "RSR-119",
+    "no": 117,
+    "program": "WA-Program Dukungan Manajemen",
+    "kegiatan": "8004-Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+    "sasaran_kro": "EBA-Layanan Dukungan Manajemen Internal",
+    "ro": "958-Layanan Hubungan Masyarakat dan Informasi",
+    "indikator": "01-Jumlah Dokumen Bantuan dan Dumas PPATK",
+    "target": {
+      "2025": "-",
+      "2026": "-",
+      "2027": "-",
+      "2028": "-",
+      "2029": "-"
+    },
+    "satuan": "Dokumen",
+    "type": "KRO_RO"
+  }
+]

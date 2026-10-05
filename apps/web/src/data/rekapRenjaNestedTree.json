@@ -1,0 +1,1620 @@
+[
+  {
+    "nama": "BE - Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+    "sasaran_program": [
+      {
+        "nama": "01 - Meningkatnya Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pembertantasan TPPU, TPPT dan PPSPM",
+        "indikator": [
+          {
+            "nama": "01 - Indeks Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pemberantasan TPPU, TPPT dan PPSPM",
+            "target_2027": "4",
+            "target_2028": "5",
+            "target_2029": "5",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          }
+        ]
+      },
+      {
+        "nama": "02 - Meningkatnya Tindak Lanjut Produk Intelijen Keuangan PPATK (PIK)",
+        "indikator": [
+          {
+            "nama": "01 - Persentase Produk Inteligen Keuangan yang Berkontribusi pada Penerimaan Negara",
+            "target_2027": "30",
+            "target_2028": "32,5",
+            "target_2029": "35",
+            "target_2030": "-",
+            "satuan": "Persen"
+          }
+        ]
+      },
+      {
+        "nama": "03 - Meningkatnya Efektivitas Strategi, Kebijakan dan Regulasi APU PPT dan PPSPM",
+        "indikator": [
+          {
+            "nama": "01 - Indeks Efektivitas Strategi Regulasi dan Layanan Hukum PPATK",
+            "target_2027": "4,625",
+            "target_2028": "4,625",
+            "target_2029": "4,625",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          },
+          {
+            "nama": "02 - Indeks Pemanfaatan Rekomendasi yang dihasilkan PPATK",
+            "target_2027": "71,4",
+            "target_2028": "74,0",
+            "target_2029": "75,8",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          }
+        ]
+      },
+      {
+        "nama": "04 - Meningkatnya Efektivitas Kerjasama APU PPT dan PPSPM",
+        "indikator": [
+          {
+            "nama": "01 - Persentase Pemenuhan Kewajiban Kontribusi Tenaga Ahli untuk FATF",
+            "target_2027": "82",
+            "target_2028": "91",
+            "target_2029": "100",
+            "target_2030": "-",
+            "satuan": "Persen"
+          },
+          {
+            "nama": "02 - Persentase Penyampaian Intervensi Indonesia yang Diterima di Forum Internasional APU PPT PPSPM",
+            "target_2027": "30",
+            "target_2028": "40",
+            "target_2029": "50",
+            "target_2030": "-",
+            "satuan": "Persen"
+          },
+          {
+            "nama": "03 - Indeks Kerja Sama Dalam Negeri",
+            "target_2027": "73",
+            "target_2028": "75",
+            "target_2029": "78",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          }
+        ]
+      },
+      {
+        "nama": "05 - Terwujudnya Transformasi Digital dan Integrasi SIstem Informasi PPATK",
+        "indikator": [
+          {
+            "nama": "01 - Indeks Tata Kelola Teknologi Informasi",
+            "target_2027": "3,32",
+            "target_2028": "3,34",
+            "target_2029": "3,36",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          }
+        ]
+      }
+    ],
+    "kegiatan": [
+      {
+        "kode_nama": "3365 - Pendidikan dan Pelatihan Anti Pencucian Uang PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Kompetensi SDM APU PPT dan PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Efektivitas Pengembangan Kompetensi SDM APU PPT dan PPSPM",
+                "target_2027": "4,43",
+                "target_2028": "4,48",
+                "target_2029": "4,53",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Kompetensi Aparat Penegak Hukum APU PPT PPPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Efektivitas Pengembangan Kompetensi Aparat Penegak Hukum APU PPT PPSPM",
+                "target_2027": "4,48",
+                "target_2028": "4,53",
+                "target_2029": "4,58",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "DCF - Pelatihan Bidang Ekonomi dan Keuangan",
+            "ro": [
+              {
+                "nama": "BE.3365.DCF.001 - Pelatihan bidang APU PPT PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah kegiata pelatihan bidang APU PPT PPSPM",
+                    "target_2027": "26",
+                    "target_2028": "23",
+                    "target_2029": "23",
+                    "target_2030": "-",
+                    "satuan": "Kegiatan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "DCG - Pelatihan Bidang Politik, Hukum, Pertahanan dan Keamanan",
+            "ro": [
+              {
+                "nama": "BE.3365.DCG.001 - Pendidikan dan Pelatihan bagi Aparat Penegak Hukum TPPU TPPT PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Kegiatan Pelatihan bagi Aparat Penegak Hukum TPPU",
+                    "target_2027": "13",
+                    "target_2028": "13",
+                    "target_2029": "13",
+                    "target_2030": "-",
+                    "satuan": "Kegiatan"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3379 - Pengelolaan Bidang Hukum dan Regulasi PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Efektivitas Strategi dalam Bidang Regulasi Nasional terkait APUPPT PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemenuhan Permintaan Penyusunan Regulasi PPATK",
+                "target_2027": "87",
+                "target_2028": "88",
+                "target_2029": "90",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Pemenuhan Layanan Hukum PPATK",
+                "target_2027": "95",
+                "target_2028": "95",
+                "target_2029": "95",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "AAH - Peraturan lainnya",
+            "ro": [
+              {
+                "nama": "BE.3379.AAH.001 - Penyusunan Regulasi PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah peraturan regulasi PPATK",
+                    "target_2027": "19",
+                    "target_2028": "21",
+                    "target_2029": "21",
+                    "target_2030": "-",
+                    "satuan": "Peraturan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "BCE - Penanganan Perkara",
+            "ro": [
+              {
+                "nama": "BE.3379.BCE.001 - Pemberian Layanan Hukum",
+                "indikator": [
+                  {
+                    "nama": "01 - Pemberian Layanan Hukum",
+                    "target_2027": "185",
+                    "target_2028": "224",
+                    "target_2029": "224",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3380 - Pelaksanaan Kerjasama Dalam Negeri dan Internasional TPPU TPPT dan PPSPM",
+        "sasaran": [
+          {
+            "nama": "02 - Peningkatan Kontribusi PPATK dalam Forum APU PPT PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Penyampaian Intervensi Indonesia yang Diterima di Forum Teknis FATF dan FSRB",
+                "target_2027": "50",
+                "target_2028": "60",
+                "target_2029": "70",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Pemenuhan Kajian Implementasi Standar Internasional",
+                "target_2027": "50",
+                "target_2028": "60",
+                "target_2029": "70",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "03 - Meningkatnya Efektivitas Implementasi Kerjasama Dalam Negeri",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Implementasi Perjanjian Kerja sama Dalam Negeri di Bidang Pencegahan dan Pemberantasan TPPU, TPPT dan PPSPM",
+                "target_2027": "55",
+                "target_2028": "58",
+                "target_2029": "60",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Penerapan Indikator Operational Alert (OA) dari Kebijakan Public Private Partnership",
+                "target_2027": "65",
+                "target_2028": "70",
+                "target_2029": "75",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "04 - Meningkatnya Efektivitas Kerjasama Internasional",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Efektivitas Kerja Sama Internasional",
+                "target_2027": "4,0",
+                "target_2028": "4,0",
+                "target_2029": "4,5",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "05 - Meningkatnya Implementasi Standar dan Konvensi Internasional di Bidang Pencegahan dan Pemberantasan TPPU, TPPT, dan PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Implementasi Rekomendasi Standar dan Konvensi Internasional di Bidang Pencegahan dan Pemberantasan TPPU, TPPT dan PPSPM",
+                "target_2027": "70",
+                "target_2028": "75",
+                "target_2029": "80",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "AEC - Kerja sama",
+            "ro": [
+              {
+                "nama": "BE.3380.AEC.001 - Laporan Hasil Intervensi dan Implementasi Pelaksanaan Kerja Sama Internasional",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah laporan intervensi aktif dalam organisasi internasional non FATF",
+                    "target_2027": "17",
+                    "target_2028": "21",
+                    "target_2029": "21",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3380.AEC.002 - Pelaksanaan Implementasi Standar dan Konvensi Internasional Dalam Negeri",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Pelaksanaan implementasi standar dan konvensi internasional dalam negeri",
+                    "target_2027": "4",
+                    "target_2028": "4",
+                    "target_2029": "4",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3380.AEC.003 - Pelaksanaan Kerjasama dalam Public Private Partnership",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah laporan pelaksanaan kerjasama dalam public private partnership",
+                    "target_2027": "1",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3380.AEC.004 - Kerjasama Dalam Negeri",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Kerjasama Dalam Negeri - Kerjasama Bilateral Dalam Negeri",
+                    "target_2027": "15",
+                    "target_2028": "8",
+                    "target_2029": "8",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "PBA - Kebijakan Bidang Ekonomi dan Keuangan",
+            "ro": [
+              {
+                "nama": "BE.3380.PBA.003 - Kontribusi Indonesia dalam Keanggotaan FATF",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Rekomendasi Kebijakan Kontribusi Indonesia dalam Keanggotaan FATF",
+                    "target_2027": "12",
+                    "target_2028": "12",
+                    "target_2029": "12",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "PEC - Kerja sama",
+            "ro": [
+              {
+                "nama": "BE.3380.PEC.003 - Kontribusi Indonesia dalam Keanggotaan FATF",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Kontribusi Indonesia dalam Keanggotaan FATF",
+                    "target_2027": "12",
+                    "target_2028": "12",
+                    "target_2029": "12",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3381 - Pengelolaan Teknologi Informasi PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Pengelolaan Teknologi Informasi yang Berkualitas, Sistematis dan Terintegrasi",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Implementasi Roadmap IT Masterplan",
+                "target_2027": "91,00",
+                "target_2028": "92,00",
+                "target_2029": "93,00",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Uptime Sistem Core",
+                "target_2027": "96,50",
+                "target_2028": "96,75",
+                "target_2029": "97,00",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "CAN - Sarana Bidang Teknologi Informasi dan Komunikasi",
+            "ro": [
+              {
+                "nama": "BE.3381.CAN.001 - Sarana PTI",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Sarana PTI",
+                    "target_2027": "26",
+                    "target_2028": "96",
+                    "target_2029": "96",
+                    "target_2030": "-",
+                    "satuan": "Unit"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "CCL - OP Sarana Bidang Teknologi Informasi dan Komunikasi",
+            "ro": [
+              {
+                "nama": "BE.3381.CCL.001 - OP Sarana PTI",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Pemeliharaan sarana PTI",
+                    "target_2027": "51",
+                    "target_2028": "70",
+                    "target_2029": "70",
+                    "target_2030": "-",
+                    "satuan": "Unit"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "RAN - Sarana Bidang Teknologi Informasi dan Komunikasi",
+            "ro": [
+              {
+                "nama": "BE.3381.RAN.001 - Sarana PTI",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Unit Sarana PTI",
+                    "target_2027": "-",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Unit"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3382 - Pengelolaan Data Pelaporan dan Pengawasan Kepatuhan Pihak Pelapor PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Kualitas Data Pelaporan PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Peningkatan Kualitas Data Pelaporan PPATK",
+                "target_2027": "8,4",
+                "target_2028": "8,6",
+                "target_2029": "8,8",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Efektivitas Pengelolaan Data, Informasi dan Statistik",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Efektivitas Pengelolaan Data, Informasi dan Statistik",
+                "target_2027": "7,5",
+                "target_2028": "7,8",
+                "target_2029": "8,1",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "03 - Meningkatnya Kepatuhan Pihak Pelapor Berbasis Risiko",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Efektivitas Pengawasan Kepatuhan Pihak Pelapor Berbasis Risiko (Penyedia Jasa Keuangan)",
+                "target_2027": "5",
+                "target_2028": "5",
+                "target_2029": "5",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "02 - Indeks Efektivitas Pengawasan Kepatuhan Pihak Pelapor Berbasis Risiko (Penyedia Barang dan Jasa)",
+                "target_2027": "5",
+                "target_2028": "5",
+                "target_2029": "5",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "04 - Meningkatnya Registrasi Pihak Pelapor Berdasarkan Tingkat Risiko Pihak Pelapor",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pihak Pelapor yang Melakukan Registrasi GoAML Berdasarkan Kategori Risiko Tinggi-Menengah",
+                "target_2027": "80",
+                "target_2028": "85",
+                "target_2029": "90",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "05 - Penguatan Kebijakan Pelaporan Guna Peningkatan Tata Kelola Pelaporan yang Adaptif dalam Mendukung Pencegahan dan Pemberantasan TPPU, TPPT, dan PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Evaluasi Kebijakan Pelaporan",
+                "target_2027": "84",
+                "target_2028": "88",
+                "target_2029": "92",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "06 - Tersedianya Pengolahan Data Makro",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pengolahan Data Makro",
+                "target_2027": "100",
+                "target_2028": "100",
+                "target_2029": "100",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "ABA - Kebijakan Bidang Ekonomi dan Keuangan",
+            "ro": [
+              {
+                "nama": "BE.3382.ABA.001 - Penilaian Integritas Pihak Pelapor",
+                "indikator": [
+                  {
+                    "nama": "01 - Penilaian Integritas Pihak Pelapor",
+                    "target_2027": "1",
+                    "target_2028": "6",
+                    "target_2029": "6",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3382.ABA.002 - Penyusunan Kebijakan di Bidang Pelaporan",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Kebijakan di Bidang Pelaporan",
+                    "target_2027": "20",
+                    "target_2028": "14",
+                    "target_2029": "14",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "BDB - Fasilitasi dan Pembinaan Lembaga",
+            "ro": [
+              {
+                "nama": "BE.3382.BDB.001 - Pengelolaan Pihak Pelapor dan Pemutakhiran Data Direktori Pihak Pelapor",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Pengelolaan Pihak Pelapor dan Pemutakhiran Data Direktori Pihak Pelapor",
+                    "target_2027": "2800",
+                    "target_2028": "3200",
+                    "target_2029": "3500",
+                    "target_2030": "-",
+                    "satuan": "Lembaga"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3382.BDB.002 - Pengelolaan Kualitas Data Pelaporan",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Pengelolaan Kualitas Data Pelaporan",
+                    "target_2027": "170",
+                    "target_2028": "175",
+                    "target_2029": "180",
+                    "target_2030": "-",
+                    "satuan": "Lembaga"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "BKC - Pemantauan lembaga",
+            "ro": [
+              {
+                "nama": "BE.3382.BKC.001 - Pengawasan Kepatuhan Pihak Pelapor Penyedia Jasa Keuangan",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Audit Kepatuhan dan Audit Khusus Penyedia Jasa Keuangan",
+                    "target_2027": "75",
+                    "target_2028": "75",
+                    "target_2029": "75",
+                    "target_2030": "-",
+                    "satuan": "Laporan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3382.BKC.002 - Pengawasan Kepatuhan Pihak Pelapor Penyedia Barang dan Jasa dan Profesi",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah hasil Audit Kepatuhan dan Audit Khusus Penyedia Barang dan Jasa dan Profesi",
+                    "target_2027": "224",
+                    "target_2028": "145",
+                    "target_2029": "145",
+                    "target_2030": "-",
+                    "satuan": "Laporan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "BMA - Data dan Informasi Publik",
+            "ro": [
+              {
+                "nama": "BE.3382.BMA.001 - Penyusunan Laporan Statistik APU PPT PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Satu Data APUPPT PPSPM",
+                    "target_2027": "14",
+                    "target_2028": "14",
+                    "target_2029": "14",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3382.BMA.002 - Penyusunan Laporan Pengolahan Data Makro PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Laporan Pengolahan Data Makro PPATK",
+                    "target_2027": "5",
+                    "target_2028": "4",
+                    "target_2029": "4",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3384 - Pelaksanaan Analisis Transaksi dan Pemeriksaan PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Produk Intelijen Keuangan PPATK (PIK) Proaktif yang ditindaklanjuti oleh Penyidik dan Instansi Lainnya",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemanfaatan Produk Intelijen Keuangan Proaktif",
+                "target_2027": "45",
+                "target_2028": "47,5",
+                "target_2029": "50",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Terpenuhinya Permintaan Data dan Informasi Intelijen PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemenuhan Permintaan Informasi terkait Kelayakan dan Kepatuhan Pengisian Jabatan Pejabat Negara dan/atau Jabatan Strategis yang Memenuhi Jangka Waktu sesuai dengan Standar Layanan Minimal",
+                "target_2027": "85",
+                "target_2028": "90",
+                "target_2029": "95",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Pemenuhan Permintaan Data dan Informasi Intelijen oleh PPATK",
+                "target_2027": "65",
+                "target_2028": "75",
+                "target_2029": "85",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "03 - Persentase Pemanfaatan atas Produk Intelijen Keuangan Reaktif",
+                "target_2027": "30",
+                "target_2028": "32,5",
+                "target_2029": "35",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "03 - Meningkatnya Penegakan Hukum TPPU, TPPT dan PPSPM yang Berasal dari Produk Intelijen Keuangan PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Kualitas Dukungan Penanganan Kasus TPPU/TPPT",
+                "target_2027": "6,3",
+                "target_2028": "6,7",
+                "target_2029": "7,0",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "02 - Persentase Pemantauan Tindak Lanjut Produk Intelijen Keuangan (PIK) PPATK",
+                "target_2027": "80",
+                "target_2028": "83",
+                "target_2029": "85",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "BCE - Penanganan Perkara",
+            "ro": [
+              {
+                "nama": "BE.3384.BCE.001 - Hasil Analisis dan Hasil Pemeriksaan Prokatif PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Pemeriksaan Proaktif PPATK",
+                    "target_2027": "133",
+                    "target_2028": "644",
+                    "target_2029": "644",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.BCE.002 - Laporan Informasi Intelijen (Fit Pro)",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Laporan atas Informasi Intelijen",
+                    "target_2027": "120",
+                    "target_2028": "100",
+                    "target_2029": "100",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.BCE.003 - Hasil Analisis dan Hasil Pemeriksaan Reaktif PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Laporan Hasil Analisis dan Pemeriksaan Reaktif PPATK",
+                    "target_2027": "517",
+                    "target_2028": "474",
+                    "target_2029": "474",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.BCE.004 - Pelaksanaan Asistensi dan Pemantauan Produk Intelijen Keuangan PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Pelaksanaan Asistensi dan Pemantauan Produk Intelijen Keuangan PPATK",
+                    "target_2027": "19",
+                    "target_2028": "12",
+                    "target_2029": "12",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "QCE - Penanganan Perkara",
+            "ro": [
+              {
+                "nama": "BE.3384.QCE.001 - Hasil Analisis dan Pemeriksaan Proaktif Sektor Korupsi",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Hasil Pemeriksaan Proaktif Sektor Korupsi",
+                    "target_2027": "80",
+                    "target_2028": "54",
+                    "target_2029": "54",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.QCE.002 - Hasil Analisis dan Pemeriksaan Proaktif Sektor Narkotika",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Hasil Pemeriksaan Proaktif Sektor Narkotika",
+                    "target_2027": "25",
+                    "target_2028": "35",
+                    "target_2029": "35",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.QCE.003 - Hasil Analisis dan Pemeriksaan Proaktif Sektor Perjudian",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Hasil Pemeriksaan Proaktif Sektor Perjudian",
+                    "target_2027": "8",
+                    "target_2028": "5",
+                    "target_2029": "5",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.QCE.004 - Hasil Analisis dan Pemeriksaan Sektor Lingkungan Hidup",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Hasil Pemeriksaan Sektor Lingkungan Hidup yang Terdapat Identifikasi Aset Tracing",
+                    "target_2027": "-",
+                    "target_2028": "7",
+                    "target_2029": "7",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.QCE.005 - Hasil Analisis dan Pemeriksaan Proaktif Sektor Perpajakan",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Hasil Analisis dan Hasil Pemeriksaan Proaktif Sektor Perpajakan",
+                    "target_2027": "66",
+                    "target_2028": "29",
+                    "target_2029": "29",
+                    "target_2030": "-",
+                    "satuan": "Perkara"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.3384.QCE.006 - Pelaksanaan Tindak Lanjut Produk Intelijen Keuangan PPATK",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Produk Intelijen Keuangan PPATK yang Ditindak Lanjuti",
+                    "target_2027": "30",
+                    "target_2028": "30",
+                    "target_2029": "30",
+                    "target_2030": "30",
+                    "satuan": "Perkara"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "8003 - Penyusunan Strategi dan Kebijakan APU, PPT, dan PPSPM",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Implementasi Hasil Rekomendasi Koordinasi Nasional TPPU TPPT PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Tindak Lanjut Hasil Rekomendasi Koordinasi Nasional TPPU TPPT PPSPM",
+                "target_2027": "60",
+                "target_2028": "70",
+                "target_2029": "80",
+                "target_2030": "-",
+                "satuan": "Persen"
+              },
+              {
+                "nama": "02 - Persentase Capaian Implementasi STRANAS TPPU, TPPT dan PPSPM",
+                "target_2027": "90",
+                "target_2028": "95",
+                "target_2029": "100",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Pemanfaatan Penilaian Risiko Nasional dan Sektoral",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Tindak Lanjut Rekomendasi NRA SRA",
+                "target_2027": "70",
+                "target_2028": "75",
+                "target_2029": "80",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "03 - Meningkatnya Pemanfaatan Hasil Analisis Strategis",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemanfaatan Hasil Analisis Strategis",
+                "target_2027": "100",
+                "target_2028": "100",
+                "target_2029": "100",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "04 - Meningkatnya Efektivitas Kinerja PPATK dalam Mendukung Penegakan Rezim APUPPT PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemenuhan Tindak Lanjut Rekomendasi Hasil Indeks Efektivitas Kinerja Rezim APUPPT PPSPM untuk PPATK",
+                "target_2027": "73,3",
+                "target_2028": "76,7",
+                "target_2029": "80,3",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          },
+          {
+            "nama": "05 - Meningkatnya Pemanfaatan Kajian Hukum",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Tindak Lanjut Rekomendasi Kajian Hukum",
+                "target_2027": "65",
+                "target_2028": "70",
+                "target_2029": "75",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "ABA - Kebijakan Bidang Ekonomi dan Keuangan",
+            "ro": [
+              {
+                "nama": "BE.8003.ABA.002 - Penyusunan Dokumen Penilaian Risiko TPPU TPPT PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Penyusunan Dokumen Penilaian Risiko TPPU TPPT PPSPM",
+                    "target_2027": "2",
+                    "target_2028": "4",
+                    "target_2029": "4",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.8003.ABA.003 - Penyusunan Analisis Strategis dan Tipologi TPPU TPPT dan PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Penyusunan Analisis Strategis dan Tipologi TPPU TPPT dan PPSPM",
+                    "target_2027": "5",
+                    "target_2028": "3",
+                    "target_2029": "3",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.8003.ABA.004 - Penyusunan Rekomendasi Kajian Hukum",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Penyusunan Rekomendasi Kajian Hukum",
+                    "target_2027": "7",
+                    "target_2028": "10",
+                    "target_2029": "10",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.8003.ABA.005 - Pemantauan Tindak Lanjut Rekomendasi Hasil Penilaian Indeks Rezim APUPPT",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Hasil Penilaian Indeks Rezim APU PPT",
+                    "target_2027": "1",
+                    "target_2028": "3",
+                    "target_2029": "3",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "PBA - Kebijakan Bidang Ekonomi dan Keuangan",
+            "ro": [
+              {
+                "nama": "BE.8003.PBA.001 - Pelaksanaan Implementasi Strategi dan Rencana Aksi Nasional APU PPT dan PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Pelaksanaan Implementasi Strategi dan Rencana Aksi Nasional APU PPT dan PPSPM",
+                    "target_2027": "3",
+                    "target_2028": "4",
+                    "target_2029": "4",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              },
+              {
+                "nama": "BE.8003.PBA.002 - Penyusunan Dokumen Penilaian Indeks Rezim APUPPT",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Penilaian Indeks Rezim APUPPT",
+                    "target_2027": "-",
+                    "target_2028": "3",
+                    "target_2029": "3",
+                    "target_2030": "-",
+                    "satuan": "Rekomendasi Kebijakan"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "nama": "WA - Program Dukungan Manajemen",
+    "sasaran_program": [
+      {
+        "nama": "01 - Meningkatnya Tata Kelola Internal PPATK",
+        "indikator": [
+          {
+            "nama": "01 - Nilai Reformasi Birokrasi General",
+            "target_2027": "77",
+            "target_2028": "78",
+            "target_2029": "79",
+            "target_2030": "-",
+            "satuan": "Indeks"
+          }
+        ]
+      }
+    ],
+    "kegiatan": [
+      {
+        "kode_nama": "3374 - Pengawasan Internal PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Tata Kelola Internal PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Nilai Reformasi Birokrasi General",
+                "target_2027": "77",
+                "target_2028": "78",
+                "target_2029": "79",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Efektivitas Pengawasan Internal PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Tingkat Kapabilitas APIP",
+                "target_2027": "3,104",
+                "target_2028": "3,936",
+                "target_2029": "4,000",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "02 - Tingkat Kepatuhan terhadap SAIPI",
+                "target_2027": "90,4",
+                "target_2028": "92,2",
+                "target_2029": "94,0",
+                "target_2030": "-",
+                "satuan": "Persentase"
+              },
+              {
+                "nama": "03 - Persentase Penyelesaian Tindak Lanjut Rekomendasi Hasil Pengawasan dan Pemeriksaan Inspektorat dan BPK",
+                "target_2027": "81",
+                "target_2028": "85",
+                "target_2029": "88",
+                "target_2030": "-",
+                "satuan": "Persentase"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "EBD - Layanan Manajemen Kinerja Internal",
+            "ro": [
+              {
+                "nama": "WA.3374.EBD.965 - Layanan Audit Internal",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Audit Internal",
+                    "target_2027": "78",
+                    "target_2028": "78",
+                    "target_2029": "78",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3375 - Pengelolaan Perencanaan dan Keuangan PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Kualitas Sistem Perencanaan, Penganggaran, dan Pengelolaan Kinerja PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Nilai Indeks Perencanaan dan Pembangunan Nasional",
+                "target_2027": "85",
+                "target_2028": "87",
+                "target_2029": "91",
+                "target_2030": "-",
+                "satuan": "Nilai"
+              },
+              {
+                "nama": "02 - Nilai Kualitas Pengelolaan Akuntabilitas Kinerja PPATK",
+                "target_2027": "80",
+                "target_2028": "82",
+                "target_2029": "84",
+                "target_2030": "-",
+                "satuan": "Nilai"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Terlaksananya Pengelolaan Keuangan yang Akuntabel",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Pemenuhan Kriteria Laporan Keuangan PPATK yang Berkualitas",
+                "target_2027": "85",
+                "target_2028": "87",
+                "target_2029": "90",
+                "target_2030": "-",
+                "satuan": "Persentase"
+              },
+              {
+                "nama": "02 - Persentase Akurasi Penerbitan Surat Perintah Membayar",
+                "target_2027": "93",
+                "target_2028": "94",
+                "target_2029": "95",
+                "target_2030": "-",
+                "satuan": "Persentase"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "EBA - Layanan Dukungan Manajemen Internal",
+            "ro": [
+              {
+                "nama": "WA.3375.EBA.994 - Layanan Perkantoran",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Perkantoran",
+                    "target_2027": "2",
+                    "target_2028": "2",
+                    "target_2029": "2",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "EBD - Layanan Manajemen Kinerja Internal",
+            "ro": [
+              {
+                "nama": "WA.3375.EBD.Z23 - Layanan Perencanaan dan Penganggaran",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Layanan Perencanaan dan Penganggaran",
+                    "target_2027": "1",
+                    "target_2028": "2",
+                    "target_2029": "2",
+                    "target_2030": "2",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3375.EBD.Z26 - Layanan Manajemen Keuangan pada Tingkat K/L",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Layanan Manajemen Keuangan",
+                    "target_2027": "2",
+                    "target_2028": "4",
+                    "target_2029": "4",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3375.EBD.Z31 - Layanan Reformasi Kinerja pada Tingkat K/L",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Reformasi Kinerja",
+                    "target_2027": "1",
+                    "target_2028": "3",
+                    "target_2029": "3",
+                    "target_2030": "-",
+                    "satuan": "Dokumen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3376 - Pengelolaan Sumber Daya Manusia, Organisasi, dan Ketatalaksanaan PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Kualitas Layanan Sumber Daya Manusia",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Kualitas Layanan Sumber Daya Manusia",
+                "target_2027": "3,20",
+                "target_2028": "3,25",
+                "target_2029": "3,30",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Kompetensi dan Kinerja Pegawai",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Pengembangan Kompetensi dan Kinerja Pegawai",
+                "target_2027": "83",
+                "target_2028": "84",
+                "target_2029": "85",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "03 - Terwujudnya Tata Kelola Manajemen Internal yang Berkualitas",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Capaian Rencana Aksi Reformasi Birokrasi",
+                "target_2027": "92",
+                "target_2028": "93",
+                "target_2029": "94",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "EBA - Layanan Dukungan Manajemen Internal",
+            "ro": [
+              {
+                "nama": "WA.3376.EBA.Z08 - Layanan Organisasi dan Tata Kelola Internal",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Organisasi dan Tata Kelola Internal",
+                    "target_2027": "1",
+                    "target_2028": "15",
+                    "target_2029": "15",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "EBC - Layanan Manajemen SDM Internal",
+            "ro": [
+              {
+                "nama": "WA.3376.EBC.996 - Layanan Pendidikan dan Pelatihan",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Pendidikan dan Pelatihan",
+                    "target_2027": "450",
+                    "target_2028": "500",
+                    "target_2029": "500",
+                    "target_2030": "-",
+                    "satuan": "Orang"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3376.EBC.Z10 - Layanan Manajemen SDM Lingkup Kementerian/Lembaga tanpa satker vertikal dan tanpa UPT",
+                "indikator": [
+                  {
+                    "nama": "01 - Layanan Manajemen SDM",
+                    "target_2027": "400",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Orang"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "3377 - Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Kualitas Pengelolaan Layanan Umum PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Kinerja Layanan Kerumahtanggaan PPATK",
+                "target_2027": "3,75",
+                "target_2028": "3,85",
+                "target_2029": "3,95",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "02 - Indeks Kinerja Pengelolaan BMN PPATK",
+                "target_2027": "3,74",
+                "target_2028": "3,77",
+                "target_2029": "3,80",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "03 - Indeks Layanan Pengadaan Barang/Jasa",
+                "target_2027": "3,80",
+                "target_2028": "3,90",
+                "target_2029": "4,00",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "04 - Indeks Kinerja Layanan Ketatausahaan Pimpinan",
+                "target_2027": "3,50",
+                "target_2028": "3,55",
+                "target_2029": "3,60",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "05 - Indeks Kepuasan Layanan Menejemen internal Pusdiklat",
+                "target_2027": "4,5",
+                "target_2028": "4,6",
+                "target_2029": "4,7",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Efektivitas Pengelolaan Arsip PPATK",
+            "indikator": [
+              {
+                "nama": "01 - Persentase Tindak Lanjut Rekomendasi Hasil Pengawasan Kearsipan",
+                "target_2027": "91,0",
+                "target_2028": "91,5",
+                "target_2029": "92,0",
+                "target_2030": "-",
+                "satuan": "Persen"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "EBA - Layanan Dukungan Manajemen Internal",
+            "ro": [
+              {
+                "nama": "WA.3377.EBA.959 - Layanan Protokoler",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Protokoler",
+                    "target_2027": "1",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3377.EBA.962 - Layanan Umum",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah layanan umum",
+                    "target_2027": "2",
+                    "target_2028": "2",
+                    "target_2029": "2",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3377.EBA.994 - Layanan Perkantoran",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Perkantoran",
+                    "target_2027": "2",
+                    "target_2028": "2",
+                    "target_2029": "2",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3377.EBA.Z06 - Layanan BMN pada Tingkat K/L",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Pengelolaan BMN PPATK",
+                    "target_2027": "1",
+                    "target_2028": "6",
+                    "target_2029": "6",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "EBB - Layanan Sarana dan Prasarana Internal",
+            "ro": [
+              {
+                "nama": "WA.3377.EBB.951 - Layanan Sarana Internal",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Sarana Internal",
+                    "target_2027": "401",
+                    "target_2028": "286",
+                    "target_2029": "286",
+                    "target_2030": "-",
+                    "satuan": "Unit"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.3377.EBB.971 - Layanan Prasarana Internal",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Prasarana Internal",
+                    "target_2027": "3",
+                    "target_2028": "8",
+                    "target_2029": "8",
+                    "target_2030": "-",
+                    "satuan": "Paket"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nama": "EBD - Layanan Manajemen Kinerja Internal",
+            "ro": [
+              {
+                "nama": "WA.3377.EBD.Z33 - Layanan Penyelenggaraan Kearsipan pada Tingkat K/L",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Layanan Penyelenggaraan Kearsipan",
+                    "target_2027": "1",
+                    "target_2028": "5",
+                    "target_2029": "5",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kode_nama": "8004 - Pelaksanaan Hubungan Masyarakat dan Pemberdayaan Kemitraan APU, PPT, dan PPSPM",
+        "sasaran": [
+          {
+            "nama": "01 - Meningkatnya Efektivitas Layanan Hubungan Masyarakat dan Informasi APUPPT PPSPM",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Layanan Hubungan Masyarakat dan Informasi APUPPT PPSPM",
+                "target_2027": "3.5",
+                "target_2028": "3.55",
+                "target_2029": "3.6",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          },
+          {
+            "nama": "02 - Meningkatnya Kualitas Pemberdayaan Kemitraan APU PPT",
+            "indikator": [
+              {
+                "nama": "01 - Indeks Ekosistem Kemitraan",
+                "target_2027": "80",
+                "target_2028": "83",
+                "target_2029": "87",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              },
+              {
+                "nama": "02 - Skor Pemenuhan Layanan Bantuan dan Pengaduan Masyarakat (SPLBPM)",
+                "target_2027": "87",
+                "target_2028": "89",
+                "target_2029": "92,47",
+                "target_2030": "-",
+                "satuan": "Nilai"
+              },
+              {
+                "nama": "03 - Indeks Literasi APUPPT",
+                "target_2027": "88,16",
+                "target_2028": "92,92",
+                "target_2029": "95,14",
+                "target_2030": "-",
+                "satuan": "Indeks"
+              }
+            ]
+          }
+        ],
+        "kro": [
+          {
+            "nama": "EBA - Layanan Dukungan Manajemen Internal",
+            "ro": [
+              {
+                "nama": "WA.8004.EBA.001 - Pelaksanaan Pemberdayaan Kemitraan APU PPT PPSPM",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Dokumen Informasi Pelaksanaan Edukasi Publik",
+                    "target_2027": "1",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              },
+              {
+                "nama": "WA.8004.EBA.Z02 - Layanan Hubungan Masyarakat dan Informasi pada Tingkat K/L",
+                "indikator": [
+                  {
+                    "nama": "01 - Jumlah Layanan Bantuan dan Dumas PPATK",
+                    "target_2027": "1",
+                    "target_2028": "1",
+                    "target_2029": "1",
+                    "target_2030": "-",
+                    "satuan": "Layanan"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
