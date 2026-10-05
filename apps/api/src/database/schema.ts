@@ -208,3 +208,155 @@ export const users = pgTable('users', {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. RENJA ESELON I - HISTORI
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const statusHistoriEnum = pgEnum('status_histori_enum', [
+  'Pagu Indikatif',
+  'Pagu Anggaran',
+  'Alokasi Anggaran',
+]);
+
+export const renjaEselon1Histori = pgTable('renja_eselon1_histori', {
+  id: serial('id').primaryKey(),
+  kdsatker: varchar('kdsatker', { length: 50 }).notNull(),
+  kodeStsHistory: varchar('kode_sts_history', { length: 10 }).notNull(),
+  statusHistori: statusHistoriEnum('status_histori').notNull(),
+  tglPengajuan: timestamp('tgl_pengajuan').defaultNow().notNull(),
+  dibuatOleh: varchar('dibuat_oleh', { length: 50 }),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: timestamp('tgl_approved'),
+  approvedOleh: varchar('approved_oleh', { length: 50 }),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  sumber: varchar('sumber', { length: 10 }).default('D00'),
+  revKe: integer('rev_ke').default(0).notNull(),
+  keterangan: text('keterangan'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Histori = typeof renjaEselon1Histori.$inferSelect;
+export type NewRenjaEselon1Histori = typeof renjaEselon1Histori.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. RENJA ESELON I - ISIAN BAB I
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab1 = pgTable('renja_eselon1_bab1', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon1Histori.id, { onDelete: 'cascade' }).notNull().unique(),
+  gambaranSasaran: text('gambaran_sasaran'),
+  gambaranProgramKerja: text('gambaran_program_kerja'),
+  capaianNarasiThMin1: text('capaian_narasi_th_min1'),
+  capaianNarasiThMin2: text('capaian_narasi_th_min2'),
+  arahNarasiRenstra: text('arah_narasi_renstra'),
+  analisisMomentum: text('analisis_momentum'),
+  analisisTantangan: text('analisis_tantangan'),
+  disimpanBagianA: boolean('disimpan_bagian_a').default(false),
+  disimpanBagianB: boolean('disimpan_bagian_b').default(false),
+  disimpanBagianC: boolean('disimpan_bagian_c').default(false),
+  disimpanBagianD: boolean('disimpan_bagian_d').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab1 = typeof renjaEselon1Bab1.$inferSelect;
+export type NewRenjaEselon1Bab1 = typeof renjaEselon1Bab1.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11. RENJA ESELON I - BAB I CAPAIAN KINERJA
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab1Capaian = pgTable('renja_eselon1_bab1_capaian', {
+  id: serial('id').primaryKey(),
+  bab1Id: integer('bab1_id').references(() => renjaEselon1Bab1.id, { onDelete: 'cascade' }).notNull(),
+  urutan: integer('urutan').default(1).notNull(),
+  sasaranProgram: text('sasaran_program'),
+  ikp: text('ikp'),
+  tahun: integer('tahun'),
+  target: text('target'),
+  realisasi: text('realisasi'),
+  capaianPct: text('capaian_pct'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab1Capaian = typeof renjaEselon1Bab1Capaian.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 12. RENJA ESELON I - BAB I TARGET KINERJA
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab1TargetKinerja = pgTable('renja_eselon1_bab1_target_kinerja', {
+  id: serial('id').primaryKey(),
+  bab1Id: integer('bab1_id').references(() => renjaEselon1Bab1.id, { onDelete: 'cascade' }).notNull(),
+  urutan: integer('urutan').default(1).notNull(),
+  kode: varchar('kode', { length: 50 }),
+  sasaranIndikator: text('sasaran_indikator'),
+  targetT1: text('target_t1'),
+  satuan: varchar('satuan', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab1TargetKinerja = typeof renjaEselon1Bab1TargetKinerja.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 13. RENJA ESELON I - ISIAN BAB II
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab2 = pgTable('renja_eselon1_bab2', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon1Histori.id, { onDelete: 'cascade' }).notNull().unique(),
+  pengantarProgramKerja: text('pengantar_program_kerja'),
+  adaProkerLintasUnit: boolean('ada_proker_lintas_unit').default(false).notNull(),
+  jumlahProkerLintasUnit: integer('jumlah_proker_lintas_unit').default(0).notNull(),
+  jumlahProkerUnitKerja: integer('jumlah_proker_unit_kerja').default(0).notNull(),
+  disimpanBagian1: boolean('disimpan_bagian_1').default(false),
+  disimpanBagian2: boolean('disimpan_bagian_2').default(false),
+  disimpanBagian3: boolean('disimpan_bagian_3').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab2 = typeof renjaEselon1Bab2.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 14. RENJA ESELON I - BAB II PROGRAM KERJA LINTAS UNIT KERJA
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab2ProkerLintas = pgTable('renja_eselon1_bab2_proker_lintas', {
+  id: serial('id').primaryKey(),
+  bab2Id: integer('bab2_id').references(() => renjaEselon1Bab2.id, { onDelete: 'cascade' }).notNull(),
+  noPaket: integer('no_paket').notNull(),
+  nomenklatur: text('nomenklatur').notNull(),
+  uraian: text('uraian'),
+  tujuan: text('tujuan'),
+  outcome: text('outcome'),
+  jenisProgramKerja: text('jenis_program_kerja'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab2ProkerLintas = typeof renjaEselon1Bab2ProkerLintas.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 15. RENJA ESELON I - BAB II PROGRAM KERJA UNIT KERJA
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Bab2ProkerUnit = pgTable('renja_eselon1_bab2_proker_unit', {
+  id: serial('id').primaryKey(),
+  bab2Id: integer('bab2_id').references(() => renjaEselon1Bab2.id, { onDelete: 'cascade' }).notNull(),
+  noPaket: integer('no_paket').notNull(),
+  nomenklatur: text('nomenklatur').notNull(),
+  uraian: text('uraian'),
+  tujuan: text('tujuan'),
+  outcome: text('outcome'),
+  jenisProgramKerja: text('jenis_program_kerja'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Bab2ProkerUnit = typeof renjaEselon1Bab2ProkerUnit.$inferSelect;
