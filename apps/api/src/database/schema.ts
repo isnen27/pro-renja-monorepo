@@ -43,10 +43,10 @@ export type BaganAkunStandar = typeof baganAkunStandar.$inferSelect;
 export type NewBaganAkunStandar = typeof baganAkunStandar.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. DATA PEJABAT
+// 2. DATA PEJABAT (nama table.xlsx: pejabat)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const dataPejabat = pgTable('data_pejabat', {
+export const dataPejabat = pgTable('pejabat', {
   id: serial('id').primaryKey(),
   kodePejabat: varchar('kode_pejabat', { length: 20 }).notNull().unique(),
   nama: text('nama').notNull(),
@@ -88,10 +88,10 @@ export type StandarBiayaKeluaran = typeof standarBiayaKeluaran.$inferSelect;
 export type NewStandarBiayaKeluaran = typeof standarBiayaKeluaran.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 4. PROGRAM KEGIATAN
+// 4. PROGRAM KEGIATAN & ANGGARAN (nama table.xlsx: dataAng)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const programKegiatan = pgTable('program_kegiatan', {
+export const programKegiatan = pgTable('data_ang', {
   id: serial('id').primaryKey(),
   kodeProgram: varchar('kode_program', { length: 20 }),
   namaProgram: text('nama_program').notNull(),
@@ -140,10 +140,10 @@ export type UrusanPemerintah = typeof urusanPemerintah.$inferSelect;
 export type NewUrusanPemerintah = typeof urusanPemerintah.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 6. DATA OPD (ORGANISASI PERANGKAT DAERAH)
+// 6. REFERENSI ADMINISTRASI SATKER (nama table.xlsx: refAdmin)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const dataOpd = pgTable('data_opd', {
+export const dataOpd = pgTable('ref_admin', {
   id: serial('id').primaryKey(),
   kodeOpd: varchar('kode_opd', { length: 20 }).notNull().unique(),
   namaOpd: text('nama_opd').notNull(),
@@ -168,10 +168,10 @@ export type DataOpd = typeof dataOpd.$inferSelect;
 export type NewDataOpd = typeof dataOpd.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 7. NOMENKLATUR ANGGARAN
+// 7. REFERENSI URAIAN NOMENKLATUR (nama table.xlsx: refUraian)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const nomenklaturAnggaran = pgTable('nomenklatur_anggaran', {
+export const nomenklaturAnggaran = pgTable('ref_uraian', {
   id: serial('id').primaryKey(),
   kode: varchar('kode', { length: 50 }).notNull().unique(),
   jenis: varchar('jenis', { length: 50 }).notNull(), // 'KRO', 'RO', 'Komponen', 'SubKomponen'
@@ -210,7 +210,7 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 9. RENJA ESELON I - HISTORI
+// 9. RENJA ESELON I - HISTORI (nama table.xlsx: refSts)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const statusHistoriEnum = pgEnum('status_histori_enum', [
@@ -219,7 +219,7 @@ export const statusHistoriEnum = pgEnum('status_histori_enum', [
   'Alokasi Anggaran',
 ]);
 
-export const renjaEselon1Histori = pgTable('renja_eselon1_histori', {
+export const renjaEselon1Histori = pgTable('ref_sts', {
   id: serial('id').primaryKey(),
   kdsatker: varchar('kdsatker', { length: 50 }).notNull(),
   kodeStsHistory: varchar('kode_sts_history', { length: 10 }).notNull(),
@@ -266,10 +266,10 @@ export type RenjaEselon1Bab1 = typeof renjaEselon1Bab1.$inferSelect;
 export type NewRenjaEselon1Bab1 = typeof renjaEselon1Bab1.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 11. RENJA ESELON I - BAB I CAPAIAN KINERJA
+// 11. RENJA ESELON I - BAB I CAPAIAN KINERJA (nama table.xlsx: capaianRO)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const renjaEselon1Bab1Capaian = pgTable('renja_eselon1_bab1_capaian', {
+export const renjaEselon1Bab1Capaian = pgTable('capaian_ro', {
   id: serial('id').primaryKey(),
   bab1Id: integer('bab1_id').references(() => renjaEselon1Bab1.id, { onDelete: 'cascade' }).notNull(),
   urutan: integer('urutan').default(1).notNull(),
