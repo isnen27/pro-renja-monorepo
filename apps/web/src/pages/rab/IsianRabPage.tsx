@@ -98,6 +98,9 @@ export interface WorksheetRow {
   k3Sat?: string;
   parentAkunKode?: string;
   parentSubkompKode?: string;
+  // Metadata Komponen
+  jenisBiaya?: string;
+  sifatBiaya?: string;
   // Metadata SBK
   isSbk?: boolean;
   sbkKelompok?: "SBKU" | "SBKK" | string;
@@ -106,6 +109,13 @@ export interface WorksheetRow {
   sbkBesaran?: number;
   sbkSatuan?: string;
   maxAnggaranRo?: number;
+}
+
+// Helper untuk mendeteksi apakah RO termasuk Layanan Perkantoran Operasional (3377.EBA.994 atau 3375.EBA.994)
+function isOperasionalRo(roKodeOrUraian?: string): boolean {
+  if (!roKodeOrUraian) return false;
+  const s = String(roKodeOrUraian).toUpperCase().replace(/\s+/g, "");
+  return s.includes("3377.EBA.994") || s.includes("3375.EBA.994");
 }
 
 
@@ -589,10 +599,11 @@ export default function IsianRabPage() {
   // Form Rekam Komponen (Persis Gambar 3)
   const [formKomponen, setFormKomponen] = useState(() => {
     const p = parseInformasiKinerjaRow(filteredInformasiKinerja[0]);
+    const isOp = isOperasionalRo(p.fullRoKode || p.roKode);
     return {
       kode: p.kompKode,
       uraian: p.kompNama,
-      jenisBiaya: "OPERASIONAL",
+      jenisBiaya: isOp ? "OPERASIONAL" : "NON OPERASIONAL",
       sifatBiaya: "UTAMA",
     };
   });
@@ -667,10 +678,11 @@ export default function IsianRabPage() {
       sbkBesaran: 0,
       sbkSatuan: "",
     });
+    const isOp = isOperasionalRo(p.fullRoKode || p.roKode);
     setFormKomponen({
       kode: p.kompKode,
       uraian: p.kompNama,
-      jenisBiaya: "OPERASIONAL",
+      jenisBiaya: isOp ? "OPERASIONAL" : "NON OPERASIONAL",
       sifatBiaya: "UTAMA",
     });
   }, [filteredInformasiKinerja]);
@@ -1313,6 +1325,25 @@ export default function IsianRabPage() {
     return filteredSbkList.slice(start, start + sbkPageSize);
   }, [filteredSbkList, sbkPage, sbkPageSize]);
 
+  // RO aktif yang menaungi baris komponen yang sedang ditambah/diedit
+  const activeRoForKomponen = useMemo(() => {
+    if (editingRowId) {
+      const idx = worksheetRows.findIndex((r) => r.id === editingRowId);
+      return findParentRoForRow(worksheetRows, idx);
+    }
+    const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+    if (selIdx >= 0) {
+      return findParentRoForRow(worksheetRows, selIdx);
+    }
+    return [...worksheetRows].reverse().find((r) => r.type === "ro") || null;
+  }, [editingRowId, selectedRowId, worksheetRows]);
+
+  // Cek apakah RO aktif merupakan operasional perkantoran (3377.EBA.994 atau 3375.EBA.994)
+  const isCurrentRoOperasional = useMemo(() => {
+    const roRef = (activeRoForKomponen?.kode || formRo.roKode || "").trim();
+    return isOperasionalRo(roRef);
+  }, [activeRoForKomponen, formRo.roKode]);
+
   // List Komponen yang tersedia untuk RO aktif (difilter Unit Kerja aktif & RO yang dipilih)
   const availableKomponensForRo = useMemo(() => {
     const list: Array<{
@@ -1323,10 +1354,8 @@ export default function IsianRabPage() {
     }> = [];
     const seen = new Set<string>();
 
-    // Dapatkan RO aktif: utamakan baris RO yang dipilih di kertas kerja, jika belum ada ambil RO terakhir di worksheet, lalu formRo
-    const selectedRoInWorksheet = worksheetRows.find((r) => r.id === selectedRowId && r.type === "ro");
-    const lastRoInWorksheet = [...worksheetRows].reverse().find((r) => r.type === "ro");
-    const activeRoRow = selectedRoInWorksheet || lastRoInWorksheet;
+    // Dapatkan RO aktif: utamakan baris RO yang menaungi kursor aktif, lalu formRo
+    const activeRoRow = activeRoForKomponen || [...worksheetRows].reverse().find((r) => r.type === "ro");
 
     const targetRoKode = (activeRoRow?.kode || formRo.roKode || "").trim();
     const targetRoNama = (activeRoRow?.uraian || formRo.roNama || "").toLowerCase().trim();
@@ -1482,6 +1511,11 @@ export default function IsianRabPage() {
         triggerAlert("Baris baru level Komponen hanya dapat ditambahkan di bawah baris level RO.");
         return;
       }
+      const isOp = isOperasionalRo(selectedRow.kode);
+      setFormKomponen((prev) => ({
+        ...prev,
+        jenisBiaya: isOp ? "OPERASIONAL" : "NON OPERASIONAL",
+      }));
       setModalMode("komponen");
       return;
     }
@@ -1737,6 +1771,8 @@ export default function IsianRabPage() {
   function handleSaveKomponen() {
     if (!formKomponen.uraian.trim()) return;
 
+    const finalJenisBiaya = isCurrentRoOperasional ? formKomponen.jenisBiaya : "NON OPERASIONAL";
+
     if (editingRowId) {
       setWorksheetRows((prev) => {
         const next = prev.map((r) => {
@@ -1745,6 +1781,8 @@ export default function IsianRabPage() {
               ...r,
               kode: formKomponen.kode,
               uraian: formKomponen.uraian,
+              jenisBiaya: finalJenisBiaya,
+              sifatBiaya: formKomponen.sifatBiaya,
               badge: `[${formKomponen.sifatBiaya}]`,
             };
           }
@@ -1763,6 +1801,8 @@ export default function IsianRabPage() {
       type: "komponen",
       kode: formKomponen.kode,
       uraian: formKomponen.uraian,
+      jenisBiaya: finalJenisBiaya,
+      sifatBiaya: formKomponen.sifatBiaya,
       badge: `[${formKomponen.sifatBiaya}]`,
       vol: 0,
       jumlah: 578910000,
@@ -2567,12 +2607,16 @@ export default function IsianRabPage() {
     if (target.type === "komponen") {
       setEditingRowId(target.id);
       // Populasi form Komponen
+      const targetIdx = worksheetRows.findIndex((r) => r.id === target.id);
+      const parentRo = findParentRoForRow(worksheetRows, targetIdx);
+      const isOp = isOperasionalRo(parentRo?.kode);
       const badgeMatch = target.badge?.match(/\[(.*?)\]/);
       const sifat = badgeMatch ? badgeMatch[1] : "UTAMA";
       setFormKomponen((prev) => ({
         ...prev,
         kode: target.kode,
         uraian: target.uraian,
+        jenisBiaya: isOp ? (target.jenisBiaya || prev.jenisBiaya || "OPERASIONAL") : "NON OPERASIONAL",
         sifatBiaya: sifat === "PENDUKUNG" ? "PENDUKUNG" : "UTAMA",
       }));
       setModalMode("komponen");
@@ -4919,13 +4963,28 @@ export default function IsianRabPage() {
               <div>
                 <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jenis Biaya</span>
                 <select
-                  value={formKomponen.jenisBiaya}
+                  value={!isCurrentRoOperasional ? "NON OPERASIONAL" : formKomponen.jenisBiaya}
                   onChange={(e) => setFormKomponen({ ...formKomponen, jenisBiaya: e.target.value })}
-                  className="w-56 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-bold"
+                  disabled={!isCurrentRoOperasional}
+                  className={`w-56 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-bold ${
+                    !isCurrentRoOperasional
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                      : "bg-white dark:bg-slate-900"
+                  }`}
+                  title={
+                    !isCurrentRoOperasional
+                      ? "Hanya RO 3377.EBA.994 dan 3375.EBA.994 yang dapat memilih jenis biaya OPERASIONAL"
+                      : undefined
+                  }
                 >
-                  <option value="OPERASIONAL">OPERASIONAL</option>
+                  {isCurrentRoOperasional && <option value="OPERASIONAL">OPERASIONAL</option>}
                   <option value="NON OPERASIONAL">NON OPERASIONAL</option>
                 </select>
+                {!isCurrentRoOperasional && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    * Otomatis terisi <strong>NON OPERASIONAL</strong> (selain RO 3377.EBA.994 / 3375.EBA.994).
+                  </p>
+                )}
               </div>
 
               {/* Baris Sifat Biaya */}
@@ -4941,12 +5000,13 @@ export default function IsianRabPage() {
                 </select>
               </div>
 
-              {/* Tombol Hitung Gaji (Persis Gambar 3) */}
+              {/* Tombol Hitung Gaji (Persis Gambar 3 - Dinonaktifkan) */}
               <div className="pt-1">
                 <button
                   type="button"
-                  onClick={() => triggerAlert("Modul Hitung Gaji otomatis disesuaikan.")}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200 rounded font-semibold text-xs cursor-pointer transition-colors"
+                  disabled
+                  className="px-4 py-2 bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 rounded font-semibold text-xs cursor-not-allowed opacity-60 shadow-none transition-colors"
+                  title="Tombol Hitung Gaji dinonaktifkan"
                 >
                   Hitung Gaji
                 </button>
@@ -5067,6 +5127,7 @@ export default function IsianRabPage() {
                       ...prev,
                       kode: selectedKomponenPicker.shortKode,
                       uraian: selectedKomponenPicker.deskripsi,
+                      jenisBiaya: isCurrentRoOperasional ? (selectedKomponenPicker.jenis || prev.jenisBiaya) : "NON OPERASIONAL",
                     }));
                   }
                   setShowKomponenPicker(false);
