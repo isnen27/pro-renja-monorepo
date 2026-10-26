@@ -98,6 +98,14 @@ export interface WorksheetRow {
   k3Sat?: string;
   parentAkunKode?: string;
   parentSubkompKode?: string;
+  // Metadata SBK
+  isSbk?: boolean;
+  sbkKelompok?: "SBKU" | "SBKK" | string;
+  sbkKode?: string;
+  sbkUraian?: string;
+  sbkBesaran?: number;
+  sbkSatuan?: string;
+  maxAnggaranRo?: number;
 }
 
 
@@ -244,6 +252,32 @@ function formatRupiah(num: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(num);
+}
+
+// Helper untuk menemukan parent RO dari suatu baris (index) dalam tabel hierarki
+function findParentRoForRow(rows: WorksheetRow[], targetIdx: number): WorksheetRow | null {
+  if (targetIdx < 0 || targetIdx >= rows.length) return null;
+  const targetRow = rows[targetIdx];
+  if (targetRow.type === "ro") return targetRow;
+
+  const targetLvl = getRowHierarchyLevel(targetRow);
+  const roLvl = HIERARCHY_LEVEL_ORDER.indexOf("ro");
+
+  // Jika baris berada di atas level RO (program, kegiatan, kro), tidak ada parent RO
+  if (targetLvl <= roLvl) return null;
+
+  for (let i = targetIdx - 1; i >= 0; i--) {
+    const cur = rows[i];
+    if (cur.type === "ro") {
+      return cur;
+    }
+    const curLvl = getRowHierarchyLevel(cur);
+    if (curLvl < roLvl) {
+      // Melewati batas KRO ke atas tanpa menemukan RO
+      break;
+    }
+  }
+  return null;
 }
 
 export default function IsianRabPage() {
@@ -543,6 +577,12 @@ export default function IsianRabPage() {
       roNama: p.roNama,
       volume: 19,
       uic: "",
+      isSbk: false,
+      sbkKelompok: "",
+      sbkKode: "",
+      sbkUraian: "",
+      sbkBesaran: 0,
+      sbkSatuan: "",
     };
   });
 
@@ -620,6 +660,12 @@ export default function IsianRabPage() {
       roNama: p.roNama,
       volume: 19,
       uic: "",
+      isSbk: false,
+      sbkKelompok: "",
+      sbkKode: "",
+      sbkUraian: "",
+      sbkBesaran: 0,
+      sbkSatuan: "",
     });
     setFormKomponen({
       kode: p.kompKode,
@@ -1420,6 +1466,12 @@ export default function IsianRabPage() {
         ...prev,
         kroKode: selectedRow.kode,
         kroNama: selectedRow.uraian,
+        isSbk: false,
+        sbkKelompok: "",
+        sbkKode: "",
+        sbkUraian: "",
+        sbkBesaran: 0,
+        sbkSatuan: "",
       }));
       setModalMode("ro");
       return;
@@ -1597,6 +1649,8 @@ export default function IsianRabPage() {
   function handleSaveRo() {
     if (!formRo.roNama.trim()) return;
     const cleanRoKode = formRo.roKode.includes(".") ? formRo.roKode : `${formRo.kroKode}.${formRo.roKode}`;
+    const volNum = Number(formRo.volume) || 1;
+    const maxAnggaran = formRo.isSbk && formRo.sbkBesaran ? volNum * formRo.sbkBesaran : undefined;
 
     if (editingRowId) {
       setWorksheetRows((prev) => {
@@ -1607,6 +1661,13 @@ export default function IsianRabPage() {
               kode: cleanRoKode,
               uraian: formRo.roNama,
               vol: Number(formRo.volume) || r.vol,
+              isSbk: formRo.isSbk,
+              sbkKelompok: formRo.sbkKelompok,
+              sbkKode: formRo.sbkKode,
+              sbkUraian: formRo.sbkUraian,
+              sbkBesaran: formRo.sbkBesaran,
+              sbkSatuan: formRo.sbkSatuan,
+              maxAnggaranRo: maxAnggaran,
             };
           }
           return r;
@@ -1615,7 +1676,11 @@ export default function IsianRabPage() {
       });
       setEditingRowId(null);
       setModalMode(null);
-      triggerAlert(`RO ${cleanRoKode} - ${formRo.roNama} berhasil diperbarui!`);
+      triggerAlert(
+        formRo.isSbk
+          ? `RO ${cleanRoKode} - ${formRo.roNama} berhasil diperbarui dengan batasan ${formRo.sbkKelompok} (Batas Pagu: Rp ${formatRupiah(maxAnggaran || 0)})`
+          : `RO ${cleanRoKode} - ${formRo.roNama} berhasil diperbarui!`
+      );
       return;
     }
 
@@ -1624,11 +1689,20 @@ export default function IsianRabPage() {
       type: "ro",
       kode: cleanRoKode,
       uraian: formRo.roNama,
-      badge: "[Kerangka Regulasi 7%]",
-      subUraian: "Jumlah Komponen Utama [100.00%]",
-      vol: Number(formRo.volume) || 19,
-      sat: "peraturan",
-      jumlah: 743651000,
+      badge: formRo.isSbk ? `[${formRo.sbkKelompok}]` : "[Kerangka Regulasi 7%]",
+      subUraian: formRo.isSbk
+        ? `Batas SBK: Rp ${formatRupiah(formRo.sbkBesaran)}/${formRo.sbkSatuan || "output"} (Maks. Rp ${formatRupiah(maxAnggaran || 0)})`
+        : "Jumlah Komponen Utama [100.00%]",
+      vol: volNum,
+      sat: formRo.sbkSatuan || "peraturan",
+      jumlah: 0,
+      isSbk: formRo.isSbk,
+      sbkKelompok: formRo.sbkKelompok,
+      sbkKode: formRo.sbkKode,
+      sbkUraian: formRo.sbkUraian,
+      sbkBesaran: formRo.sbkBesaran,
+      sbkSatuan: formRo.sbkSatuan,
+      maxAnggaranRo: maxAnggaran,
       cO: false,
       cS: false,
       cU: false,
@@ -1938,6 +2012,18 @@ export default function IsianRabPage() {
     const volTotal = k1 * k2 * k3;
     const subtotal = volTotal * formDetail.satuanBiaya;
 
+    // Validasi pagu maksimal RO jika RO menggunakan batasan SBK
+    const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+    const parentRo = findParentRoForRow(worksheetRows, selIdx >= 0 ? selIdx : worksheetRows.length - 1);
+    if (parentRo && parentRo.isSbk && parentRo.maxAnggaranRo) {
+      const currentRoTotal = Number(parentRo.jumlah) || 0;
+      if (currentRoTotal + subtotal > parentRo.maxAnggaranRo) {
+        triggerAlert(
+          `Peringatan SBK: Penambahan anggaran sebesar Rp ${formatRupiah(subtotal)} akan melebihi batas maksimal anggaran RO (Rp ${formatRupiah(parentRo.maxAnggaranRo)}). Total anggaran RO saat ini: Rp ${formatRupiah(currentRoTotal)}.`
+        );
+      }
+    }
+
     const newRow: WorksheetRow = {
       id: `row-det-${Date.now()}`,
       type: "detail",
@@ -1996,6 +2082,19 @@ export default function IsianRabPage() {
 
     const volTotal = (wizardVol1 || 1) * (wizardVol2 || 1);
     const subtotal = volTotal * (wizardHargaSatuan || 0);
+
+    // Validasi pagu maksimal RO jika RO menggunakan batasan SBK
+    const targetId = targetSubkompRowId || selectedRowId;
+    const targetIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    const parentRo = findParentRoForRow(worksheetRows, targetIdx >= 0 ? targetIdx : worksheetRows.length - 1);
+    if (parentRo && parentRo.isSbk && parentRo.maxAnggaranRo) {
+      const currentRoTotal = Number(parentRo.jumlah) || 0;
+      if (currentRoTotal + subtotal > parentRo.maxAnggaranRo) {
+        triggerAlert(
+          `Peringatan SBK: Penambahan anggaran sebesar Rp ${formatRupiah(subtotal)} akan melebihi batas maksimal anggaran RO (Rp ${formatRupiah(parentRo.maxAnggaranRo)}). Total anggaran RO saat ini: Rp ${formatRupiah(currentRoTotal)}.`
+        );
+      }
+    }
 
     const akunRow: WorksheetRow = {
       id: `row-akun-${Date.now()}`,
@@ -2196,6 +2295,19 @@ export default function IsianRabPage() {
     if (uploadPreview.length === 0) {
       triggerAlert("Tidak ada data valid yang dapat diimpor dari file.");
       return;
+    }
+
+    const totalImport = uploadPreview.reduce((sum, item) => sum + (Number(item.jumlah) || 0), 0);
+    const targetId = targetSubkompRowId || selectedRowId;
+    const targetIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    const parentRo = findParentRoForRow(worksheetRows, targetIdx >= 0 ? targetIdx : worksheetRows.length - 1);
+    if (parentRo && parentRo.isSbk && parentRo.maxAnggaranRo) {
+      const currentRoTotal = Number(parentRo.jumlah) || 0;
+      if (currentRoTotal + totalImport > parentRo.maxAnggaranRo) {
+        triggerAlert(
+          `Peringatan SBK: Total impor sebesar Rp ${formatRupiah(totalImport)} akan melebihi batas maksimal anggaran RO (Rp ${formatRupiah(parentRo.maxAnggaranRo)}). Total anggaran RO saat ini: Rp ${formatRupiah(currentRoTotal)}.`
+        );
+      }
     }
 
     // Kelompokkan per akun
@@ -2440,7 +2552,13 @@ export default function IsianRabPage() {
         ...prev,
         roKode: target.kode,
         roNama: target.uraian,
-        volume: target.vol || 19,
+        volume: Number(target.vol) || 19,
+        isSbk: !!target.isSbk,
+        sbkKelompok: target.sbkKelompok || "",
+        sbkKode: target.sbkKode || "",
+        sbkUraian: target.sbkUraian || "",
+        sbkBesaran: target.sbkBesaran || 0,
+        sbkSatuan: target.sbkSatuan || "",
       }));
       setModalMode("ro");
       return;
@@ -3561,29 +3679,47 @@ export default function IsianRabPage() {
 
                 // 4. Tipe: RO
                 if (row.type === "ro") {
+                  const isOverLimit = row.isSbk && row.maxAnggaranRo && Number(row.jumlah) > row.maxAnggaranRo;
                   return (
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-amber-50/40"}`}
+                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : isOverLimit ? "bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100/80" : "hover:bg-amber-50/40"}`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${isSelected ? "bg-[#006bbd] text-white" : "bg-[#fef08a] dark:bg-yellow-950/60 text-slate-900 dark:text-yellow-200 font-bold"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${isSelected ? "bg-[#006bbd] text-white" : isOverLimit ? "bg-rose-200 dark:bg-rose-900/80 text-rose-900 dark:text-rose-100 font-bold" : "bg-[#fef08a] dark:bg-yellow-950/60 text-slate-900 dark:text-yellow-200 font-bold"}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold text-center")}
                       </td>
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${isSelected ? "" : "bg-[#fef9c3] dark:bg-yellow-950/40 font-bold text-slate-900 dark:text-yellow-100"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${isSelected ? "" : isOverLimit ? "bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-100 font-bold" : "bg-[#fef9c3] dark:bg-yellow-950/40 font-bold text-slate-900 dark:text-yellow-100"}`}>
                         <div className="font-semibold flex items-center gap-1.5 flex-wrap">
                           <span className="flex-1">
                             {renderEditableCell(row, "uraian", row.uraian, "font-semibold text-left")}
                           </span>
-                          {row.badge && (
+                          {row.isSbk && (
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.62rem] font-bold shadow-xs ${
+                              isSelected
+                                ? "bg-amber-300 text-slate-900"
+                                : row.sbkKelompok === "SBKK"
+                                ? "bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-700"
+                                : "bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-700"
+                            }`}>
+                              <span>● {row.sbkKelompok || "SBK"}</span>
+                              {row.sbkKode && <span className="font-mono text-[0.6rem] opacity-75">({row.sbkKode})</span>}
+                            </span>
+                          )}
+                          {row.badge && !row.isSbk && (
                             <span className={`font-bold text-xs ${isSelected ? "text-yellow-200" : "text-fuchsia-700 dark:text-fuchsia-400"}`}>
                               {row.badge}
                             </span>
                           )}
                         </div>
                         {row.subUraian && (
-                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : "text-slate-500 dark:text-slate-400 font-normal"}`}>
+                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : isOverLimit ? "text-rose-700 dark:text-rose-300 font-semibold" : "text-slate-500 dark:text-slate-400 font-normal"}`}>
                             {renderEditableCell(row, "subUraian", row.subUraian, "text-[0.65rem] text-left")}
+                          </div>
+                        )}
+                        {isOverLimit && (
+                          <div className="text-[0.65rem] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-0.5">
+                            ⚠️ Melebihi Batas SBK Maksimal: Rp {formatRupiah(row.maxAnggaranRo || 0)} (Selisih: +Rp {formatRupiah(Number(row.jumlah) - (row.maxAnggaranRo || 0))})
                           </div>
                         )}
                       </td>
@@ -3600,7 +3736,7 @@ export default function IsianRabPage() {
                         {renderEditableCell(row, "sat", row.sat, "text-center")}
                       </td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right"></td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums">
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums ${isOverLimit && !isSelected ? "text-rose-600 dark:text-rose-400" : ""}`}>
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                       </td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -4327,7 +4463,9 @@ export default function IsianRabPage() {
 
               {/* Baris Volume */}
               <div>
-                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Volume</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Volume {formRo.isSbk && formRo.sbkSatuan ? `(${formRo.sbkSatuan})` : ""}
+                </span>
                 <input
                   type="number"
                   value={formRo.volume}
@@ -4335,6 +4473,60 @@ export default function IsianRabPage() {
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-bold"
                 />
               </div>
+
+              {/* Box Keterangan Penggunaan SBK */}
+              {formRo.isSbk ? (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg space-y-1.5 animate-in fade-in">
+                  <div className="flex items-center justify-between text-amber-900 dark:text-amber-200">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded text-[0.65rem] bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 font-mono">
+                        {formRo.sbkKelompok}
+                      </span>
+                      <span>{formRo.sbkUraian}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormRo((prev) => ({
+                        ...prev,
+                        isSbk: false,
+                        sbkKelompok: "",
+                        sbkKode: "",
+                        sbkUraian: "",
+                        sbkBesaran: 0,
+                        sbkSatuan: "",
+                      }))}
+                      className="text-amber-700 hover:text-rose-600 text-[0.7rem] underline cursor-pointer"
+                    >
+                      Batal SBK
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[0.7rem] text-slate-600 dark:text-slate-300 pt-1 border-t border-amber-200 dark:border-amber-800">
+                    <div>
+                      <span className="text-slate-400 block">Besaran Standar Satuan:</span>
+                      <strong className="font-mono text-emerald-700 dark:text-emerald-400">
+                        Rp {formatRupiah(formRo.sbkBesaran)} / {formRo.sbkSatuan || "output"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Batas Maksimal Anggaran RO ({formRo.volume || 1} {formRo.sbkSatuan || "output"}):</span>
+                      <strong className="font-mono text-amber-800 dark:text-amber-300 text-xs">
+                        Rp {formatRupiah((Number(formRo.volume) || 1) * formRo.sbkBesaran)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 bg-slate-50 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex items-center justify-between text-slate-500">
+                  <span>RO ini tidak menggunakan batasan Standar Biaya Keluaran (Non-SBK).</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSbkPicker(true)}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-bold underline cursor-pointer"
+                  >
+                    + Terapkan SBK
+                  </button>
+                </div>
+              )}
 
               {/* Baris UIC */}
               <div>
@@ -4648,12 +4840,21 @@ export default function IsianRabPage() {
                   <button
                     onClick={() => {
                       if (selectedSbkPicker) {
+                        const besaranNum = Number(selectedSbkPicker.besaran) || 0;
                         setFormRo((prev) => ({
                           ...prev,
-                          roNama: selectedSbkPicker.uraian,
-                          volume: Number(selectedSbkPicker.volume) || prev.volume,
+                          isSbk: true,
+                          sbkKelompok: selectedSbkPicker.kelompok,
+                          sbkKode: selectedSbkPicker.kode,
+                          sbkUraian: selectedSbkPicker.uraian,
+                          sbkBesaran: besaranNum,
+                          sbkSatuan: selectedSbkPicker.satuan || "output",
+                          // Bila belum ada uraian RO atau user memilih SBK, simpan info SBK
+                          roNama: prev.roNama?.trim() ? prev.roNama : selectedSbkPicker.uraian,
                         }));
-                        triggerAlert(`SBK "${selectedSbkPicker.uraian}" berhasil dipilih.`);
+                        triggerAlert(
+                          `SBK "${selectedSbkPicker.uraian}" berhasil dipilih (Besaran: Rp ${formatRupiah(besaranNum)} / ${selectedSbkPicker.satuan || "output"}).`
+                        );
                       }
                       setShowSbkPicker(false);
                     }}

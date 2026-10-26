@@ -14,6 +14,7 @@ import {
   informasiKinerjaService,
   sasaranKinerjaService,
   sbmService,
+  seriesAnggaranService,
 } from './referensi.service.js';
 
 @Controller('api/referensi')
@@ -468,6 +469,57 @@ export class ReferensiController {
     return {
       success: true,
       message: 'Data Sasaran Kinerja berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SERIES ANGGARAN ENDPOINTS (2020-2025)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/series-anggaran
+   * Get series anggaran with filters & pagination
+   */
+  @Get('series-anggaran')
+  async getSeriesAnggaran(
+    @Query('tahun') tahun?: string,
+    @Query('program') program?: string,
+    @Query('kegiatan') kegiatan?: string,
+    @Query('akun2') akun2?: string,
+    @Query('akun6') akun6?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const result = await seriesAnggaranService.getAll({
+      tahun: tahun ? parseInt(tahun, 10) : undefined,
+      program,
+      kegiatan,
+      akun2,
+      akun6,
+      search,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 100,
+    });
+
+    return {
+      success: true,
+      message: 'Data Series Anggaran berhasil diambil',
+      ...result,
+    };
+  }
+
+  /**
+   * GET /api/referensi/series-anggaran/summary
+   * Get aggregate summary of series anggaran by year
+   */
+  @Get('series-anggaran/summary')
+  async getSeriesAnggaranSummary() {
+    const result = await seriesAnggaranService.getSummary();
+    return {
+      success: true,
+      message: 'Ringkasan Series Anggaran berhasil diambil',
       data: result,
     };
   }

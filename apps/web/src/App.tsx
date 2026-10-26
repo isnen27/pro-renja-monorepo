@@ -42,6 +42,9 @@ const MonitoringBlokirPage = lazy(() => import("./pages/rab/MonitoringBlokirPage
 const MonitoringRpdPage = lazy(() => import("./pages/rab/MonitoringRpdPage"));
 const MonitoringSubmitApproveRabPage = lazy(() => import("./pages/rab/MonitoringSubmitApproveRabPage"));
 
+// Referensi
+const SeriesAnggaranPage = lazy(() => import("./pages/referensi/SeriesAnggaranPage"));
+
 // Minimal loading placeholder for fast transitions
 function PageLoading() {
   return (
@@ -98,6 +101,9 @@ export default function App() {
             <Route path="/rab/monitoring-blokir" element={<MonitoringBlokirPage />} />
             <Route path="/rab/monitoring-rpd" element={<MonitoringRpdPage />} />
             <Route path="/rab/monitoring" element={<MonitoringSubmitApproveRabPage />} />
+
+            {/* Referensi - Series Anggaran (2020-2025) */}
+            <Route path="/referensi/series-anggaran" element={<SeriesAnggaranPage />} />
 
             {/* Seluruh sub-modul perencanaan, penganggaran, monev, referensi, dan administrasi */}
             <Route path="*" element={<ModulePage />} />

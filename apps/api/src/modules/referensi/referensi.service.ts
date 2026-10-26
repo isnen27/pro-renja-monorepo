@@ -12,6 +12,7 @@ import {
   refInformasiKinerja,
   refSasaranKinerja,
   standarBiayaMasukan,
+  seriesAnggaran,
 } from '../../database/schema.js';
 import { eq, like, or, desc, asc, sql, count, and } from 'drizzle-orm';
 
@@ -436,6 +437,97 @@ export class SbmService {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SERIES ANGGARAN SERVICE (2020-2025)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GetSeriesAnggaranParams {
+  tahun?: number;
+  program?: string;
+  kegiatan?: string;
+  akun2?: string;
+  akun6?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export class SeriesAnggaranService {
+  async getAll(params: GetSeriesAnggaranParams = {}) {
+    const { tahun, program, kegiatan, akun2, akun6, search, page = 1, limit = 100 } = params;
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+
+    if (tahun) {
+      conditions.push(eq(seriesAnggaran.tahun, tahun));
+    }
+    if (program) {
+      conditions.push(like(seriesAnggaran.program, `%${program}%`));
+    }
+    if (kegiatan) {
+      conditions.push(like(seriesAnggaran.kegiatan, `%${kegiatan}%`));
+    }
+    if (akun2) {
+      conditions.push(like(seriesAnggaran.akun2, `%${akun2}%`));
+    }
+    if (akun6) {
+      conditions.push(like(seriesAnggaran.akun6, `%${akun6}%`));
+    }
+    if (search) {
+      conditions.push(
+        or(
+          like(seriesAnggaran.program, `%${search}%`),
+          like(seriesAnggaran.kegiatan, `%${search}%`),
+          like(seriesAnggaran.kro, `%${search}%`),
+          like(seriesAnggaran.ro, `%${search}%`),
+          like(seriesAnggaran.komponen, `%${search}%`),
+          like(seriesAnggaran.akun6, `%${search}%`)
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(seriesAnggaran)
+      .where(whereClause);
+
+    const data = await db
+      .select()
+      .from(seriesAnggaran)
+      .where(whereClause)
+      .orderBy(desc(seriesAnggaran.tahun), asc(seriesAnggaran.id))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      data,
+      total: totalResult?.count || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((totalResult?.count || 0) / limit),
+    };
+  }
+
+  async getSummary() {
+    const summary = await db
+      .select({
+        tahun: seriesAnggaran.tahun,
+        totalRows: count(),
+        totalPagu: sql<number>`COALESCE(SUM(${seriesAnggaran.pagu}), 0)`,
+        totalBlokir: sql<number>`COALESCE(SUM(${seriesAnggaran.blokir}), 0)`,
+        totalRealisasi: sql<number>`COALESCE(SUM(${seriesAnggaran.realisasi}), 0)`,
+      })
+      .from(seriesAnggaran)
+      .groupBy(seriesAnggaran.tahun)
+      .orderBy(asc(seriesAnggaran.tahun));
+
+    return summary;
+  }
+}
+
 // Export singleton instances
 export const baganAkunService = new BaganAkunService();
 export const pejabatService = new PejabatService();
@@ -447,3 +539,4 @@ export const satkerService = new SatkerService();
 export const informasiKinerjaService = new InformasiKinerjaService();
 export const sasaranKinerjaService = new SasaranKinerjaService();
 export const sbmService = new SbmService();
+export const seriesAnggaranService = new SeriesAnggaranService();

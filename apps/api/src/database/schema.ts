@@ -920,4 +920,31 @@ export const standarBiayaMasukan = pgTable('standar_biaya_masukan', {
 export type StandarBiayaMasukan = typeof standarBiayaMasukan.$inferSelect;
 export type NewStandarBiayaMasukan = typeof standarBiayaMasukan.$inferInsert;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 42. SERIES ANGGARAN (2020-2025)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const seriesAnggaran = pgTable('series_anggaran', {
+  id: serial('id').primaryKey(),
+  tahun: integer('tahun').notNull(),
+  kl: varchar('kl', { length: 100 }),
+  satker: text('satker'),
+  program: text('program'),
+  kegiatan: text('kegiatan'),
+  kro: text('kro'),
+  ro: text('ro'),
+  komponen: text('komponen'),
+  akun2: text('akun2'),
+  akun3: text('akun3'),
+  akun6: text('akun6'),
+  pagu: numeric('pagu', { precision: 20, scale: 2 }).default('0'),
+  blokir: numeric('blokir', { precision: 20, scale: 2 }).default('0'),
+  realisasi: numeric('realisasi', { precision: 20, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type SeriesAnggaran = typeof seriesAnggaran.$inferSelect;
+export type NewSeriesAnggaran = typeof seriesAnggaran.$inferInsert;
+
+
 
