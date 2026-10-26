@@ -606,29 +606,30 @@ export default function PilihHistoriPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-full p-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header & Role Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--primary-bg)] flex items-center justify-center flex-shrink-0">
-            <History className="h-5 w-5 text-[var(--primary)]" />
+          <div className="w-11 h-11 rounded-xl bg-[var(--primary-bg)] flex items-center justify-center flex-shrink-0">
+            <History className="h-6 w-6 text-[var(--primary)]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[var(--text)]">Pilih Histori</h1>
+            <h1 className="text-xl font-bold text-[var(--text)]">Pilih Histori Renja Eselon I</h1>
             <p className="text-xs text-[var(--text-muted)]">
-              Renja Eselon I — Manajemen Histori Dokumen
+              Manajemen Histori Dokumen, Penetapan Status Active &amp; Ekstraksi Data Dokumen
             </p>
           </div>
         </div>
 
         {/* Role Switcher */}
-        <div className="flex items-center gap-1 bg-[var(--accent)] p-1 rounded-xl border border-[var(--border)] self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 bg-[var(--accent)] p-1.5 rounded-xl border border-[var(--border)] self-start sm:self-auto">
+          <span className="text-[0.68rem] font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 hidden md:inline">Role:</span>
           {(["Operator", "Approver", "BINCANG", "Super Admin"] as const).map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => setCurrentUserRole(r)}
-              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all cursor-pointer ${
                 currentUserRole === r
                   ? "bg-[var(--primary)] text-white shadow-sm font-semibold"
                   : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card)]"
@@ -642,7 +643,7 @@ export default function PilihHistoriPage() {
 
       {/* Success Notification Banner Ekstraksi */}
       {extractionSuccessMsg && (
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in duration-300">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in duration-300">
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
             <div>
@@ -671,7 +672,7 @@ export default function PilihHistoriPage() {
             </Link>
             <button
               onClick={() => setExtractionSuccessMsg(null)}
-              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300"
+              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 cursor-pointer"
               title="Tutup Notifikasi"
             >
               <X className="h-4 w-4" />
@@ -680,215 +681,101 @@ export default function PilihHistoriPage() {
         </div>
       )}
 
-      {/* Card Form */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-sm">
-        {/* ── Baris 1: Revisi Terakhir ── */}
-        <div className="flex items-stretch border-b border-[var(--border)]">
-          <div className="w-48 flex-shrink-0 bg-[var(--accent)] px-4 py-4 flex items-center">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
-              Revisi Terakhir
-            </span>
-          </div>
-          <div className="flex-1 px-4 py-4 flex items-center gap-6">
-            <div>
-              <p className="text-[0.7rem] text-[var(--text-muted)] mb-0.5">
-                Status & Kodifikasi Histori Terakhir
-              </p>
-              <p className="text-sm font-semibold text-[var(--primary)]">
-                {revisiTerakhirHistori}
-              </p>
+      {/* Main Grid Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Panel: Status Info & Guide (col-span-5) */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Card 1: Informasional Status Terakhir */}
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-[var(--primary)]" />
+                <h3 className="text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+                  Informasi Histori Terakhir
+                </h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[0.65rem] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                Aktif
+              </span>
             </div>
-            <div className="w-px h-8 bg-[var(--border)]" />
-            <div>
-              <p className="text-[0.7rem] text-[var(--text-muted)] mb-0.5">
-                Tanggal Pengajuan
-              </p>
-              <p className="text-sm font-semibold text-[var(--text)]">
-                {tanggalPengajuan}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        {/* ── Baris 2: Unit Kerja ── */}
-        <div className="flex items-stretch border-b border-[var(--border)]">
-          <div className="w-48 flex-shrink-0 bg-[var(--accent)] px-4 py-4 flex items-center">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
-              Unit Kerja
-            </span>
-          </div>
-          <div className="flex-1 px-4 py-3 flex items-center">
-            <div className="relative w-full">
-              <select
-                value={unitKerja}
-                onChange={(e) => setUnitKerja(e.target.value as UnitKerja)}
-                className="w-full appearance-none bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all cursor-pointer"
-              >
-                <option value="">— Pilih Unit Kerja —</option>
-                <option value="Deputi TEGAS">Deputi TEGAS</option>
-                <option value="Deputi ASA">Deputi ASA</option>
-                <option value="Deputi PENGASUH">Deputi PENGASUH</option>
-                <option value="SETIA">SETIA</option>
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] pointer-events-none" />
-            </div>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              <div className="p-3.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] space-y-1">
+                <p className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
+                  Revisi Terakhir
+                </p>
+                <p className="text-sm font-extrabold text-[var(--primary)]">
+                  {revisiTerakhirHistori}
+                </p>
+              </div>
 
-        {/* ── Baris 3: Status Histori ── */}
-        <div className="flex items-stretch border-b border-[var(--border)]">
-          <div className="w-48 flex-shrink-0 bg-[var(--accent)] px-4 py-4 flex items-start">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
-              Status Histori
-            </span>
-          </div>
-          <div className="flex-1 px-4 py-3 flex flex-col gap-2">
-            {(
-              [
-                "Pagu Indikatif",
-                "Pagu Anggaran",
-                "Alokasi Anggaran",
-              ] as StatusHistori[]
-            ).map((st) => (
-              <label
-                key={st}
-                className={
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all " +
-                  (statusHistori === st
-                    ? "border-[var(--primary)] bg-[var(--primary-bg)]"
-                    : "border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--accent)]")
-                }
-              >
-                <input
-                  type="radio"
-                  name="statusHistori"
-                  value={st}
-                  checked={statusHistori === st}
-                  onChange={() => setStatusHistori(st)}
-                  className="accent-[var(--primary)]"
-                  disabled={!unitKerja}
-                />
-                <div className="flex-1">
-                  <p
-                    className={
-                      "text-sm font-medium " +
-                      (statusHistori === st
-                        ? "text-[var(--primary)]"
-                        : "text-[var(--text)]")
-                    }
-                  >
-                    {st}
-                  </p>
-                  <p className="text-[0.65rem] text-[var(--text-muted)]">
-                    {st === "Pagu Indikatif" && "Kodifikasi: D00 – D0z"}
-                    {st === "Pagu Anggaran" && "Kodifikasi: D01 – D99 (Min. D01–D20)"}
-                    {st === "Alokasi Anggaran" && "Kodifikasi: E00 – E99 (Min. E00–E20)"}
-                  </p>
-                </div>
-              </label>
-            ))}
-            {!unitKerja && (
-              <p className="text-[0.65rem] text-[var(--text-muted)] italic pl-1">
-                Pilih Unit Kerja terlebih dahulu
-              </p>
+              <div className="p-3.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] space-y-1">
+                <p className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
+                  Tanggal Pengajuan
+                </p>
+                <p className="text-xs font-bold text-[var(--text)]">
+                  {tanggalPengajuan}
+                </p>
+              </div>
+            </div>
+
+            {unitKerja && (
+              <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-center justify-between text-xs">
+                <span className="text-blue-900 dark:text-blue-200 font-medium">Unit Kerja Terpilih:</span>
+                <span className="font-bold text-[var(--primary)]">{unitKerja}</span>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* ── Baris Tambahan: Migrasi Data (jika Pagu Anggaran / Alokasi Anggaran) ── */}
-        {(statusHistori === "Pagu Anggaran" || statusHistori === "Alokasi Anggaran") && (
-          <div className="flex items-stretch border-b border-[var(--border)] bg-blue-50/40 dark:bg-blue-950/20">
-            <div className="w-48 flex-shrink-0 bg-blue-100/50 dark:bg-blue-900/30 px-4 py-4 flex items-center">
-              <span className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wide flex items-center gap-1.5">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                Migrasi Data
-              </span>
-            </div>
-            <div className="flex-1 px-4 py-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-4">
+          {/* Card 2: Panduan & Aturan Kodifikasi */}
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-3">
+            <h3 className="text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--border)] pb-2.5">
+              <FileText className="h-4 w-4 text-[var(--primary)]" />
+              Aturan Kodifikasi Histori
+            </h3>
+            <div className="space-y-2.5 text-xs text-[var(--text-muted)]">
+              <div className="p-2.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] flex items-start gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-[var(--text)]">
-                    Migrasi dari Status Histori Tahap Sebelumnya (
-                    <span className="font-semibold text-[var(--primary)]">
-                      {statusHistori === "Pagu Anggaran"
-                        ? "Pagu Indikatif"
-                        : "Pagu Anggaran"}
-                    </span>
-                    )
-                  </p>
-                  <p className="text-[0.68rem] text-[var(--text-muted)] mt-0.5">
-                    Copy data histori{" "}
-                    <span className="font-semibold text-[var(--text)]">
-                      {statusHistori === "Pagu Anggaran"
-                        ? "Pagu Indikatif"
-                        : "Pagu Anggaran"}
-                    </span>{" "}
-                    terakhir yang dibuat user:{" "}
-                    <span className="font-mono font-bold text-[var(--primary)]">
-                      {lastSourceForMigration}
-                    </span>
-                  </p>
+                  <p className="font-semibold text-[var(--text)]">Pagu Indikatif</p>
+                  <p className="text-[0.7rem] text-[var(--text-muted)]">Kodifikasi otomatis: D00 – D0z</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleMigrasi}
-                  className={
-                    "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex-shrink-0 " +
-                    (isMigrated
-                      ? "bg-green-600 text-white shadow-sm"
-                      : "bg-[var(--primary)] text-white hover:opacity-90 shadow-sm")
-                  }
-                >
-                  {isMigrated ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      Data Berhasil Dimigrasi
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      Jalankan Migrasi Data
-                    </>
-                  )}
-                </button>
               </div>
-
-              {migrationNotice && (
-                <div className="mt-1 px-3 py-2 rounded-md bg-green-100/80 dark:bg-green-900/40 border border-green-200 dark:border-green-800 flex items-center gap-2 text-xs text-green-800 dark:text-green-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  <span>{migrationNotice}</span>
+              <div className="p-2.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] flex items-start gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-[var(--text)]">Pagu Anggaran</p>
+                  <p className="text-[0.7rem] text-[var(--text-muted)]">Kodifikasi otomatis: D01 – D99 (Revisi ke-1+)</p>
                 </div>
-              )}
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] flex items-start gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-[var(--text)]">Alokasi Anggaran</p>
+                  <p className="text-[0.7rem] text-[var(--text-muted)]">Kodifikasi otomatis: E00 – E99 (Revisi ke-0+)</p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* ── BARIS FITUR KHUSUS SUPER ADMIN: EKSTRAKSI FILE RENJA ESELON I (.docx / .pdf) ── */}
-        {currentUserRole === "Super Admin" && (
-          <div className="flex items-stretch border-b border-[var(--border)] bg-gradient-to-r from-purple-50/70 via-indigo-50/40 to-blue-50/60 dark:from-purple-950/30 dark:via-indigo-950/20 dark:to-blue-950/30">
-            <div className="w-48 flex-shrink-0 bg-purple-100/60 dark:bg-purple-900/40 px-4 py-4 flex flex-col justify-center">
-              <span className="text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wide flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                Ekstraksi File Renja
-              </span>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded text-[0.65rem] font-semibold bg-purple-600 text-white w-max shadow-sm">
-                Super Admin
-              </span>
-            </div>
-            <div className="flex-1 px-4 py-4 flex flex-col gap-3">
-              <div>
-                <p className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-purple-600" />
-                  Unggah Dokumen Renja Eselon I (.docx / .pdf)
-                </p>
-                <p className="text-[0.7rem] text-[var(--text-muted)] mt-0.5">
-                  Ekstraksi otomatis isi file untuk mengisi kotak input pada submenu <strong>Isian Bab I</strong> & <strong>Isian Bab II</strong>.
-                </p>
+          {/* Fitur Super Admin: Ekstraksi Dokumen File */}
+          {currentUserRole === "Super Admin" && (
+            <div className="bg-gradient-to-br from-purple-900/10 via-purple-500/5 to-indigo-900/10 border border-purple-500/30 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-purple-200 dark:border-purple-800 pb-2.5">
+                <span className="text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  Ekstraksi File Renja
+                </span>
+                <span className="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-purple-600 text-white shadow-sm">
+                  Super Admin
+                </span>
               </div>
+              <p className="text-[0.7rem] text-[var(--text-muted)] leading-relaxed">
+                Unggah dokumen Renja Eselon I (.docx / .pdf) untuk mengekstrak isi dokumen secara otomatis ke form <strong>Isian Bab I</strong> &amp; <strong>Isian Bab II</strong>.
+              </p>
 
-              {/* Upload Input & Dropzone Box */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <label className="flex-1 border-2 border-dashed border-purple-300 dark:border-purple-700/60 hover:border-purple-500 rounded-xl p-3 flex items-center justify-between bg-white/70 dark:bg-slate-900/50 cursor-pointer transition-colors">
+              <div className="space-y-3 pt-1">
+                <label className="border-2 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-500 rounded-xl p-3 flex items-center justify-between bg-[var(--card)] cursor-pointer transition-all">
                   <input
                     type="file"
                     accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -905,17 +792,17 @@ export default function PilihHistoriPage() {
                     <div className="truncate">
                       {uploadedFile ? (
                         <p className="text-xs font-semibold text-purple-900 dark:text-purple-200 truncate">
-                          {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                          {uploadedFile.name}
                         </p>
                       ) : (
                         <p className="text-xs text-[var(--text-muted)] truncate">
-                          Pilih atau seret file .docx atau .pdf ke sini...
+                          Pilih file .docx / .pdf...
                         </p>
                       )}
                     </div>
                   </div>
-                  <span className="text-[0.7rem] font-semibold px-2 py-1 rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
-                    {uploadedFile ? "Ganti File" : "Pilih File"}
+                  <span className="text-[0.7rem] font-semibold px-2.5 py-1 rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                    {uploadedFile ? "Ganti" : "Pilih"}
                   </span>
                 </label>
 
@@ -923,7 +810,7 @@ export default function PilihHistoriPage() {
                   type="button"
                   disabled={!uploadedFile || isExtracting}
                   onClick={handleExtractFile}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all flex-shrink-0 cursor-pointer ${
+                  className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
                     !uploadedFile || isExtracting
                       ? "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
                       : "bg-purple-600 hover:bg-purple-700 text-white hover:shadow-md"
@@ -932,111 +819,248 @@ export default function PilihHistoriPage() {
                   {isExtracting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Mengekstrak...</span>
+                      <span>Mengekstrak Dokumen...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 text-amber-300" />
-                      <span>Ekstraksi Dokumen</span>
+                      <span>Jalankan Ekstraksi Dokumen</span>
+                    </>
+                  )}
+                </button>
+
+                {extractionErrorMsg && (
+                  <div className="p-2.5 rounded-xl bg-red-100/90 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{extractionErrorMsg}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel: Form Transaksi Pilih Histori (col-span-7) */}
+        <div className="lg:col-span-7 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
+          <div className="border-b border-[var(--border)] pb-4">
+            <h2 className="text-base font-bold text-[var(--text)] flex items-center gap-2">
+              <History className="h-5 w-5 text-[var(--primary)]" />
+              Form Penetapan Status Histori
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Pilih Unit Kerja dan Status Histori untuk memperbarui status kerja dokumen aktif.
+            </p>
+          </div>
+
+          {/* Field 1: Unit Kerja */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+              1. Pilih Unit Kerja Eselon I <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <select
+                value={unitKerja}
+                onChange={(e) => setUnitKerja(e.target.value as UnitKerja)}
+                className="w-full appearance-none bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-xl px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all cursor-pointer font-semibold shadow-xs"
+              >
+                <option value="">— Pilih Unit Kerja Eselon I —</option>
+                <option value="Deputi TEGAS">Deputi TEGAS</option>
+                <option value="Deputi ASA">Deputi ASA</option>
+                <option value="Deputi PENGASUH">Deputi PENGASUH</option>
+                <option value="SETIA">SETIA</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)] pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Field 2: Status Histori Cards */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+              2. Pilih Status Histori <span className="text-red-500">*</span>
+            </label>
+
+            {!unitKerja ? (
+              <div className="p-4 rounded-xl bg-[var(--accent)] border border-dashed border-[var(--border)] text-center text-xs text-[var(--text-muted)] italic">
+                Pilih Unit Kerja terlebih dahulu untuk memilih status histori
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(
+                  [
+                    "Pagu Indikatif",
+                    "Pagu Anggaran",
+                    "Alokasi Anggaran",
+                  ] as StatusHistori[]
+                ).map((st) => {
+                  const isSelected = statusHistori === st;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setStatusHistori(st)}
+                      className={
+                        "p-3.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between space-y-2 " +
+                        (isSelected
+                          ? "border-[var(--primary)] bg-[var(--primary-bg)] shadow-sm ring-1 ring-[var(--primary)]"
+                          : "border-[var(--border)] bg-[var(--accent)] hover:border-[var(--primary)] hover:bg-[var(--card)]")
+                      }
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span
+                          className={
+                            "text-xs font-bold " +
+                            (isSelected ? "text-[var(--primary)]" : "text-[var(--text)]")
+                          }
+                        >
+                          {st}
+                        </span>
+                        <div
+                          className={
+                            "w-4 h-4 rounded-full border flex items-center justify-center " +
+                            (isSelected
+                              ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                              : "border-[var(--text-muted)]")
+                          }
+                        >
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <p className="text-[0.65rem] text-[var(--text-muted)] leading-tight">
+                        {st === "Pagu Indikatif" && "Kodifikasi D00 – D0z"}
+                        {st === "Pagu Anggaran" && "Kodifikasi D01 – D20"}
+                        {st === "Alokasi Anggaran" && "Kodifikasi E00 – E20"}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Migrasi Data (jika Pagu Anggaran / Alokasi Anggaran) */}
+          {(statusHistori === "Pagu Anggaran" || statusHistori === "Alokasi Anggaran") && (
+            <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wide flex items-center gap-1.5">
+                  <ArrowRightLeft className="h-4 w-4" />
+                  Fitur Migrasi Data Histori
+                </span>
+                <span className="text-[0.68rem] text-[var(--text-muted)]">
+                  Sumber: <strong className="text-[var(--primary)] font-mono">{lastSourceForMigration}</strong>
+                </span>
+              </div>
+              <p className="text-xs text-[var(--text)] leading-relaxed">
+                Salin seluruh data histori dari tahap{" "}
+                <strong className="text-[var(--primary)]">
+                  {statusHistori === "Pagu Anggaran" ? "Pagu Indikatif" : "Pagu Anggaran"}
+                </strong>{" "}
+                terakhir ke status histori baru ini.
+              </p>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleMigrasi}
+                  className={
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-2 " +
+                    (isMigrated
+                      ? "bg-emerald-600 text-white"
+                      : "bg-[var(--primary)] text-white hover:opacity-90")
+                  }
+                >
+                  {isMigrated ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Migrasi Berhasil Dijalankan
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Jalankan Migrasi Data
                     </>
                   )}
                 </button>
               </div>
 
-              {extractionErrorMsg && (
-                <div className="p-2 rounded-lg bg-red-100/90 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{extractionErrorMsg}</span>
+              {migrationNotice && (
+                <div className="mt-2 p-2.5 rounded-xl bg-emerald-100/90 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>{migrationNotice}</span>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Baris 4: Histori Awal ── */}
-        <div className="flex items-stretch border-b border-[var(--border)]">
-          <div className="w-48 flex-shrink-0 bg-[var(--accent)] px-4 py-4 flex items-center">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
-              Histori Awal
-            </span>
-          </div>
-          <div className="flex-1 px-4 py-3 flex items-center">
-            {statusHistori ? (
-              <div className="relative w-full">
-                <div className="flex items-center justify-between w-full bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg px-3 py-2 opacity-90">
-                  <span className="font-medium text-[var(--primary)]">{historiAwalDisplay}</span>
+          {/* Section 4: Pratinjau Alur Histori (Histori Awal -> Histori Tujuan) */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+              3. Pratinjau Transformasi Histori
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              {/* Histori Awal Box */}
+              <div className="p-3.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
+                    Histori Awal
+                  </span>
                   <Lock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                 </div>
+                <p className="text-xs font-bold text-[var(--primary)] truncate">
+                  {statusHistori ? historiAwalDisplay : "— Belum Dipilih —"}
+                </p>
               </div>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)] italic">
-                Pilih Status Histori terlebih dahulu
-              </p>
-            )}
-          </div>
-        </div>
 
-        {/* ── Baris 5: Histori Tujuan ── */}
-        <div className="flex items-stretch border-b border-[var(--border)]">
-          <div className="w-48 flex-shrink-0 bg-[var(--accent)] px-4 py-4 flex items-center">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
-              Histori Tujuan
-            </span>
-          </div>
-          <div className="flex-1 px-4 py-4 flex items-center gap-2">
-            {historiTujuan ? (
-              <>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary-bg)] border border-[var(--primary)] text-[var(--primary)] text-sm font-semibold">
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  {historiTujuan.label}
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  (Dibuat otomatis oleh sistem)
-                </span>
-              </>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)] italic">
-                {unitKerja && statusHistori
-                  ? "Pilihan histori sedang diproses..."
-                  : "Akan otomatis terisi setelah Unit Kerja & Status Histori dipilih"}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Callout Notice jika status histori sebelumnya sudah disetujui */}
-        {approvedNotice && (
-          <div className="p-4 bg-amber-50/90 dark:bg-amber-950/40 border-t border-b border-amber-300 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
-            <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-amber-900 dark:text-amber-300">Status Persetujuan Ditemukan:</p>
-              <p className="leading-relaxed">{approvedNotice}</p>
+              {/* Histori Tujuan Box */}
+              <div className="p-3.5 rounded-xl bg-[var(--primary-bg)] border border-[var(--primary)] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[0.68rem] font-bold text-[var(--primary)] uppercase tracking-wide flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3" />
+                    Histori Tujuan
+                  </span>
+                  <span className="text-[0.6rem] px-1.5 py-0.5 rounded bg-[var(--primary)] text-white font-semibold">
+                    Sistem
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-[var(--primary)] truncate">
+                  {historiTujuan ? historiTujuan.label : "— Menunggu Pilihan —"}
+                </p>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* ── Tombol OK & BATAL ── */}
-        <div className="flex items-center justify-end gap-3 px-4 py-4 bg-[var(--accent)]">
-          <button
-            onClick={handleBatal}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text)] hover:border-[var(--text-muted)] transition-all cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-            BATAL
-          </button>
-          <button
-            onClick={handleOk}
-            disabled={!isFormValid || !historiTujuan}
-            className={
-              (isFormValid && historiTujuan
-                ? "bg-[var(--primary)] text-white hover:opacity-90 cursor-pointer shadow-md"
-                : "bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)] cursor-not-allowed") +
-              " flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-all"
-            }
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            OK
-          </button>
+          {/* Callout Notice jika histori sebelumnya sudah approved */}
+          {approvedNotice && (
+            <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
+              <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-amber-900 dark:text-amber-300">Persetujuan Ditemukan:</p>
+                <p className="leading-relaxed">{approvedNotice}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={handleBatal}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border)] text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text)] transition-all cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+              BATAL
+            </button>
+            <button
+              onClick={handleOk}
+              disabled={!isFormValid || !historiTujuan}
+              className={
+                (isFormValid && historiTujuan
+                  ? "bg-[var(--primary)] text-white hover:opacity-90 cursor-pointer shadow-md"
+                  : "bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)] cursor-not-allowed") +
+                " flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all"
+              }
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              OK, TETAPKAN HISTORI
+            </button>
+          </div>
         </div>
       </div>
 

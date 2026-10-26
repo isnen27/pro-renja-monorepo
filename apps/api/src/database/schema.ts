@@ -2,7 +2,7 @@
 // Database Schema for Pro Renja - Referensi Tables
 // Using Drizzle ORM with PostgreSQL
 
-import { pgTable, serial, varchar, text, integer, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, bigint, timestamp, boolean, pgEnum, numeric, jsonb } from 'drizzle-orm/pg-core';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENUMS
@@ -360,3 +360,564 @@ export const renjaEselon1Bab2ProkerUnit = pgTable('renja_eselon1_bab2_proker_uni
 });
 
 export type RenjaEselon1Bab2ProkerUnit = typeof renjaEselon1Bab2ProkerUnit.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 16. RENJA ESELON I - MONITORING SUBMIT & APPROVE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon1Monitoring = pgTable('renja_eselon1_monitoring', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon1Histori.id, { onDelete: 'cascade' }),
+  unitKerja: varchar('unit_kerja', { length: 100 }).notNull(),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  kodifikasi: varchar('kodifikasi', { length: 20 }).default('D00').notNull(),
+  tahapStatus: varchar('tahap_status', { length: 50 }).default('Pagu Indikatif').notNull(),
+  revKe: integer('rev_ke').default(0).notNull(),
+  statusHistoriFull: varchar('status_histori_full', { length: 150 }),
+  sumber: varchar('sumber', { length: 20 }).default('D00'),
+  tglRevisi: varchar('tgl_revisi', { length: 50 }),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: varchar('tgl_approved', { length: 50 }),
+  approvedBy: varchar('approved_by', { length: 100 }),
+  isDocUploaded: boolean('is_doc_uploaded').default(false).notNull(),
+  signedDocName: text('signed_doc_name'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon1Monitoring = typeof renjaEselon1Monitoring.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 17. RENJA ESELON II - HISTORI (PILIH HISTORI ESELON II)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Histori = pgTable('renja_eselon2_histori', {
+  id: serial('id').primaryKey(),
+  unitKode: varchar('unit_kode', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }).notNull(),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }).notNull(),
+  kodeStsHistory: varchar('kode_sts_history', { length: 20 }).default('D00').notNull(),
+  statusHistori: varchar('status_histori', { length: 50 }).default('Pagu Indikatif').notNull(),
+  tahunAnggaran: integer('tahun_anggaran').default(2026).notNull(),
+  tglPengajuan: timestamp('tgl_pengajuan').defaultNow(),
+  dibuatOleh: varchar('dibuat_oleh', { length: 100 }).default('Operator'),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: timestamp('tgl_approved'),
+  approvedOleh: varchar('approved_oleh', { length: 100 }),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  sumber: varchar('sumber', { length: 20 }).default('D00'),
+  revKe: integer('rev_ke').default(0).notNull(),
+  keterangan: text('keterangan'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Histori = typeof renjaEselon2Histori.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 18. RENJA ESELON II - ISIAN BAB I
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab1 = pgTable('renja_eselon2_bab1', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon2Histori.id, { onDelete: 'cascade' }),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }),
+  kondisiUmumLatarBelakang: text('kondisi_umum_latar_belakang'),
+  kondisiUmumFaktorPendorong: text('kondisi_umum_faktor_pendorong'),
+  kebijakanTerkait: text('kebijakan_terkait'),
+  disimpanBagianA: boolean('disimpan_bagian_a').default(false),
+  disimpanBagianB: boolean('disimpan_bagian_b').default(false),
+  disimpanBagianC: boolean('disimpan_bagian_c').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab1 = typeof renjaEselon2Bab1.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 19. RENJA ESELON II - BAB I EVALUASI KINERJA (CAPAIAN)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab1EvaluasiKinerja = pgTable('renja_eselon2_bab1_evaluasi_kinerja', {
+  id: serial('id').primaryKey(),
+  bab1Id: integer('bab1_id').references(() => renjaEselon2Bab1.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  sasaranKegiatan: text('sasaran_kegiatan'),
+  ikk: text('ikk'),
+  tahun: integer('tahun').default(2025),
+  target: varchar('target', { length: 100 }),
+  capaianOutputPct: numeric('capaian_output_pct', { precision: 6, scale: 2 }),
+  capaianAnggaranPct: numeric('capaian_anggaran_pct', { precision: 6, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab1EvaluasiKinerja = typeof renjaEselon2Bab1EvaluasiKinerja.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 20. RENJA ESELON II - BAB I TARGET KINERJA
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab1TargetKinerja = pgTable('renja_eselon2_bab1_target_kinerja', {
+  id: serial('id').primaryKey(),
+  bab1Id: integer('bab1_id').references(() => renjaEselon2Bab1.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  kode: varchar('kode', { length: 50 }),
+  sasaranIndikator: text('sasaran_indikator'),
+  levelIndikator: varchar('level_indikator', { length: 50 }),
+  targetT1: varchar('target_t1', { length: 100 }),
+  satuan: varchar('satuan', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab1TargetKinerja = typeof renjaEselon2Bab1TargetKinerja.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 21. RENJA ESELON II - ISIAN BAB II
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab2 = pgTable('renja_eselon2_bab2', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon2Histori.id, { onDelete: 'cascade' }),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }),
+  pengantar: text('pengantar'),
+  totalPaket: integer('total_paket').default(1).notNull(),
+  disimpanSeluruhnya: boolean('disimpan_seluruhnya').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab2 = typeof renjaEselon2Bab2.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 22. RENJA ESELON II - BAB II RINCIAN PAKET RENCANA KERJA (RO)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab2Paket = pgTable('renja_eselon2_bab2_paket', {
+  id: serial('id').primaryKey(),
+  bab2Id: integer('bab2_id').references(() => renjaEselon2Bab2.id, { onDelete: 'cascade' }),
+  noPaket: integer('no_paket').notNull(),
+  kodeRo: varchar('kode_ro', { length: 50 }),
+  nomenklaturRo: text('nomenklatur_ro').notNull(),
+  uraian: text('uraian'),
+  tujuan: text('tujuan'),
+  tahapan: text('tahapan'),
+  output: text('output'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab2Paket = typeof renjaEselon2Bab2Paket.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 23. RENJA ESELON II - ISIAN BAB III
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab3 = pgTable('renja_eselon2_bab3', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon2Histori.id, { onDelete: 'cascade' }),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }),
+  kalimatPengantar: text('kalimat_pengantar').default('Berdasarkan Uraian Rencana Kerja pada BAB II dapat disampaikan Rekapitulasi Target Output dan Pendanaan sebagai berikut:').notNull(),
+  disimpanSeluruhnya: boolean('disimpan_seluruhnya').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab3 = typeof renjaEselon2Bab3.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 24. RENJA ESELON II - BAB III REKAPITULASI OUTPUT & PENDANAAN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab3Rekap = pgTable('renja_eselon2_bab3_rekap', {
+  id: serial('id').primaryKey(),
+  bab3Id: integer('bab3_id').references(() => renjaEselon2Bab3.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  kode: varchar('kode', { length: 50 }).notNull(),
+  level: varchar('level', { length: 50 }).notNull(), // 'Kegiatan' | 'KRO' | 'RO' | 'Komponen'
+  uraian: text('uraian').notNull(),
+  pagu: varchar('pagu', { length: 100 }),
+  target: varchar('target', { length: 100 }),
+  isAutoTarget: boolean('is_auto_target').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab3Rekap = typeof renjaEselon2Bab3Rekap.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 25. RENJA ESELON II - BAB III TARGET PNBP
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Bab3Pnbp = pgTable('renja_eselon2_bab3_pnbp', {
+  id: serial('id').primaryKey(),
+  bab3Id: integer('bab3_id').references(() => renjaEselon2Bab3.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  kode: varchar('kode', { length: 50 }).notNull(),
+  level: varchar('level', { length: 50 }).notNull(), // 'Kegiatan' | 'KRO' | 'Akun'
+  nomenklatur: text('nomenklatur').notNull(),
+  targetPnbp: varchar('target_pnbp', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Bab3Pnbp = typeof renjaEselon2Bab3Pnbp.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 26. RENJA ESELON II - ISIAN LAMPIRAN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Lampiran = pgTable('renja_eselon2_lampiran', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon2Histori.id, { onDelete: 'cascade' }),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }),
+  disimpanSeluruhnya: boolean('disimpan_seluruhnya').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Lampiran = typeof renjaEselon2Lampiran.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 27. RENJA ESELON II - LAMPIRAN KAMUS RO & KOMPONEN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2LampiranKamusRo = pgTable('renja_eselon2_lampiran_kamus_ro', {
+  id: serial('id').primaryKey(),
+  lampiranId: integer('lampiran_id').references(() => renjaEselon2Lampiran.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  kode: varchar('kode', { length: 50 }).notNull(),
+  level: varchar('level', { length: 50 }).notNull(), // 'RO' | 'Komponen'
+  uraian: text('uraian').notNull(),
+  jumlahTarget: varchar('jumlah_target', { length: 100 }),
+  satuanTarget: varchar('satuan_target', { length: 100 }),
+  definisi: text('definisi'),
+  rincianTarget: text('rincian_target'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2LampiranKamusRo = typeof renjaEselon2LampiranKamusRo.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 28. RENJA ESELON II - MONITORING SUBMIT & APPROVE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const renjaEselon2Monitoring = pgTable('renja_eselon2_monitoring', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => renjaEselon2Histori.id, { onDelete: 'cascade' }),
+  unitKerja: varchar('unit_kerja', { length: 150 }).notNull(),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  kodifikasi: varchar('kodifikasi', { length: 20 }).default('D00').notNull(),
+  tahapStatus: varchar('tahap_status', { length: 50 }).default('Pagu Indikatif').notNull(),
+  revKe: integer('rev_ke').default(0).notNull(),
+  statusHistoriFull: varchar('status_histori_full', { length: 150 }),
+  sumber: varchar('sumber', { length: 20 }).default('D00'),
+  tglRevisi: varchar('tgl_revisi', { length: 50 }),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: varchar('tgl_approved', { length: 50 }),
+  approvedBy: varchar('approved_by', { length: 100 }),
+  isDocUploaded: boolean('is_doc_uploaded').default(false).notNull(),
+  signedDocName: text('signed_doc_name'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RenjaEselon2Monitoring = typeof renjaEselon2Monitoring.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 29. KERANGKA ACUAN KERJA (TOR) - HISTORI
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakHistori = pgTable('kak_histori', {
+  id: serial('id').primaryKey(),
+  unitKode: varchar('unit_kode', { length: 50 }),
+  unitNama: varchar('unit_nama', { length: 255 }).notNull(),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }),
+  kodeStsHistory: varchar('kode_sts_history', { length: 20 }).default('B00').notNull(),
+  statusHistori: varchar('status_histori', { length: 50 }).default('DIPA Awal').notNull(),
+  tahunAnggaran: integer('tahun_anggaran').default(2027).notNull(),
+  tglPengajuan: timestamp('tgl_pengajuan').defaultNow(),
+  dibuatOleh: varchar('dibuat_oleh', { length: 100 }).default('Operator'),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: timestamp('tgl_approved'),
+  approvedOleh: varchar('approved_oleh', { length: 100 }),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  sumber: varchar('sumber', { length: 20 }).default('B00'),
+  revKe: integer('rev_ke').default(0).notNull(),
+  keterangan: text('keterangan'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakHistori = typeof kakHistori.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 30. KERANGKA ACUAN KERJA (TOR) - ISIAN DOKUMEN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakIsian = pgTable('kak_isian', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => kakHistori.id, { onDelete: 'cascade' }),
+  kementerianLembaga: text('kementerian_lembaga'),
+  unitEselon1: text('unit_eselon1'),
+  program: text('program'),
+  sasaranProgram: text('sasaran_program'),
+  ikp: text('ikp'),
+  kegiatan: text('kegiatan'),
+  sasaranKegiatan: text('sasaran_kegiatan'),
+  ikk: text('ikk'),
+  kro: text('kro'),
+  ro: text('ro'),
+  satuanRo: text('satuan_ro'),
+  dasarHukum: text('dasar_hukum'),
+  gambaranUmum: text('gambaran_umum'),
+  penerimaManfaat: text('penerima_manfaat'),
+  metodePelaksanaan: text('metode_pelaksanaan'),
+  totalBiaya: varchar('total_biaya', { length: 100 }),
+  terbilangBiaya: text('terbilang_biaya'),
+  tempatTanggalTtd: varchar('tempat_tanggal_ttd', { length: 100 }),
+  namaPenanggungjawab: varchar('nama_penanggungjawab', { length: 150 }),
+  jabatanPenanggungjawab: varchar('jabatan_penanggungjawab', { length: 150 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakIsian = typeof kakIsian.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 31. KERANGKA ACUAN KERJA (TOR) - SUBKOMPONEN & TAHAPAN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakIsianSubkomponen = pgTable('kak_isian_subkomponen', {
+  id: serial('id').primaryKey(),
+  kakId: integer('kak_id').references(() => kakIsian.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  namaSubkomponen: text('nama_subkomponen').notNull(),
+  uraianRangkaian: text('uraian_rangkaian'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakIsianSubkomponen = typeof kakIsianSubkomponen.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 32. KERANGKA ACUAN KERJA (TOR) - JADWAL BULANAN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakJadwalBulanan = pgTable('kak_jadwal_bulanan', {
+  id: serial('id').primaryKey(),
+  kakId: integer('kak_id').references(() => kakIsian.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  subkomponenNama: text('subkomponen_nama').notNull(),
+  volume: varchar('volume', { length: 50 }),
+  satuan: varchar('satuan', { length: 50 }),
+  jadwalJson: jsonb('jadwal_json'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakJadwalBulanan = typeof kakJadwalBulanan.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 33. KERANGKA ACUAN KERJA (TOR) - PENGADAAN (BARANG, JASA, KONSINYERING)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakPengadaan = pgTable('kak_pengadaan', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => kakHistori.id, { onDelete: 'cascade' }),
+  jenisPengadaan: varchar('jenis_pengadaan', { length: 50 }).notNull(), // 'Pengadaan Barang' | 'Pengadaan Jasa' | 'Konsinyering'
+  namaPaket: text('nama_paket').notNull(),
+  kodeRup: varchar('kode_rup', { length: 100 }),
+  lokasiPengadaan: text('lokasi_pengadaan'),
+  jangkaWaktu: varchar('jangka_waktu', { length: 100 }),
+  latarBelakang: text('latar_belakang'),
+  maksudTujuan: text('maksud_tujuan'),
+  temaKonsinyering: text('tema_konsinyering'),
+  jumlahPeserta: integer('jumlah_peserta'),
+  durasiKonsinyering: varchar('durasi_konsinyering', { length: 100 }),
+  kotaPenyelenggaraan: varchar('kota_penyelenggaraan', { length: 100 }),
+  grandTotal: numeric('grand_total', { precision: 15, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakPengadaan = typeof kakPengadaan.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 34. KERANGKA ACUAN KERJA (TOR) - DETAIL ITEM PENGADAAN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakPengadaanItems = pgTable('kak_pengadaan_items', {
+  id: serial('id').primaryKey(),
+  pengadaanId: integer('pengadaan_id').references(() => kakPengadaan.id, { onDelete: 'cascade' }),
+  urutan: integer('urutan').default(1).notNull(),
+  namaItem: text('nama_item').notNull(),
+  spesifikasiTeknis: text('spesifikasi_teknis'),
+  volume: numeric('volume', { precision: 10, scale: 2 }).default('1').notNull(),
+  satuan: varchar('satuan', { length: 50 }).notNull(),
+  hargaSatuan: numeric('harga_satuan', { precision: 15, scale: 2 }).default('0').notNull(),
+  totalHarga: numeric('total_harga', { precision: 15, scale: 2 }).default('0').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakPengadaanItems = typeof kakPengadaanItems.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 35. KERANGKA ACUAN KERJA (TOR) - MONITORING SUBMIT & APPROVE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const kakMonitoring = pgTable('kak_monitoring', {
+  id: serial('id').primaryKey(),
+  historiId: integer('histori_id').references(() => kakHistori.id, { onDelete: 'cascade' }),
+  unitKerja: varchar('unit_kerja', { length: 150 }).notNull(),
+  owner: varchar('owner', { length: 50 }).default('Operator').notNull(),
+  kodifikasi: varchar('kodifikasi', { length: 20 }).default('B00').notNull(),
+  tahapStatus: varchar('tahap_status', { length: 50 }).default('DIPA Awal').notNull(),
+  revKe: integer('rev_ke').default(0).notNull(),
+  statusHistoriFull: varchar('status_histori_full', { length: 150 }),
+  sumber: varchar('sumber', { length: 20 }).default('B00'),
+  tglRevisi: varchar('tgl_revisi', { length: 50 }),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  tglApproved: varchar('tgl_approved', { length: 50 }),
+  approvedBy: varchar('approved_by', { length: 100 }),
+  isDocUploaded: boolean('is_doc_uploaded').default(false).notNull(),
+  signedDocName: text('signed_doc_name'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type KakMonitoring = typeof kakMonitoring.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 36. REFERENSI VISI & MISI PPATK (RENSTRA)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refVisiMisi = pgTable('ref_visi_misi', {
+  id: serial('id').primaryKey(),
+  periode: varchar('periode', { length: 50 }).default('2025-2029').notNull(),
+  visi: text('visi').notNull(),
+  misi: jsonb('misi').notNull(),
+  tujuan: jsonb('tujuan').notNull(),
+  indikatorTujuan: jsonb('indikator_tujuan'),
+  status: varchar('status', { length: 20 }).default('Aktif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefVisiMisi = typeof refVisiMisi.$inferSelect;
+export type NewRefVisiMisi = typeof refVisiMisi.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 37. REFERENSI UNIT KERJA PPATK
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refUnitKerja = pgTable('ref_unit_kerja', {
+  id: serial('id').primaryKey(),
+  singkatan: varchar('singkatan', { length: 50 }).notNull().unique(),
+  initial: varchar('initial', { length: 10 }),
+  nama: varchar('nama', { length: 255 }).notNull(),
+  cluster: varchar('cluster', { length: 100 }),
+  subcluster: varchar('subcluster', { length: 255 }),
+  status: varchar('status', { length: 20 }).default('Aktif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefUnitKerja = typeof refUnitKerja.$inferSelect;
+export type NewRefUnitKerja = typeof refUnitKerja.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 38. REFERENSI SATUAN KERJA (SATKER)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refSatker = pgTable('ref_satker', {
+  id: serial('id').primaryKey(),
+  kode: varchar('kode', { length: 50 }).notNull().unique(),
+  nama: varchar('nama', { length: 255 }).notNull(),
+  jenis: varchar('jenis', { length: 100 }),
+  eselon: varchar('eselon', { length: 100 }),
+  lokasi: text('lokasi'),
+  keterangan: text('keterangan'),
+  status: varchar('status', { length: 20 }).default('Aktif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefSatker = typeof refSatker.$inferSelect;
+export type NewRefSatker = typeof refSatker.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 39. REFERENSI INFORMASI KINERJA (PROGRAM, KEGIATAN, KRO, RO, KOMPONEN)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refInformasiKinerja = pgTable('ref_informasi_kinerja', {
+  id: serial('id').primaryKey(),
+  kodeIk: varchar('kode_ik', { length: 50 }).unique(),
+  kl: varchar('kl', { length: 255 }).notNull(),
+  satker: varchar('satker', { length: 255 }).notNull(),
+  program: text('program').notNull(),
+  unitKerja: varchar('unit_kerja', { length: 50 }).notNull(),
+  kegiatan: text('kegiatan').notNull(),
+  kro: text('kro').notNull(),
+  ro: text('ro').notNull(),
+  komponen: text('komponen').notNull(),
+  status: varchar('status', { length: 20 }).default('Aktif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefInformasiKinerja = typeof refInformasiKinerja.$inferSelect;
+export type NewRefInformasiKinerja = typeof refInformasiKinerja.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 40. REFERENSI SASARAN KINERJA (CASCADING RENJA & RENSTRA)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refSasaranKinerja = pgTable('ref_sasaran_kinerja', {
+  id: serial('id').primaryKey(),
+  kodeSasaran: varchar('kode_sasaran', { length: 50 }).unique(),
+  no: integer('no'),
+  program: text('program').notNull(),
+  kegiatan: text('kegiatan'),
+  sasaranKro: text('sasaran_kro').notNull(),
+  ro: text('ro'),
+  indikator: text('indikator').notNull(),
+  target: jsonb('target'),
+  satuan: varchar('satuan', { length: 50 }),
+  type: varchar('50', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).default('Aktif'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefSasaranKinerja = typeof refSasaranKinerja.$inferSelect;
+export type NewRefSasaranKinerja = typeof refSasaranKinerja.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 41. STANDAR BIAYA MASUKAN (SBM)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const standarBiayaMasukan = pgTable('standar_biaya_masukan', {
+  id: serial('id').primaryKey(),
+  kodeTabel: varchar('kode_tabel', { length: 20 }).notNull(),
+  halaman: varchar('halaman', { length: 50 }),
+  lampiran: varchar('lampiran', { length: 50 }).notNull(),
+  jenisTabel: text('jenis_tabel').notNull(),
+  uraian: text('uraian').notNull(),
+  satuan: varchar('satuan', { length: 50 }),
+  besaran: bigint('besaran', { mode: 'number' }).notNull(),
+  dasarHukum: varchar('dasar_hukum', { length: 100 }).default('KMK Nomor 296 Tahun 2026'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type StandarBiayaMasukan = typeof standarBiayaMasukan.$inferSelect;
+export type NewStandarBiayaMasukan = typeof standarBiayaMasukan.$inferInsert;
+
+

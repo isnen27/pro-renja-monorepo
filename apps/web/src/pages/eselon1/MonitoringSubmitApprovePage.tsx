@@ -23,6 +23,7 @@ import {
   Upload,
   FileCheck,
   FileUp,
+  Download,
 } from "lucide-react";
 
 import { mockPejabat } from "../../data/ppatkData";
@@ -255,17 +256,30 @@ export default function MonitoringSubmitApprovePage() {
   const lastRevDate = latestRevisionItem?.tgl_revisi || "05 Oktober 2026";
   const activeTahapan = latestRevisionItem?.tahap_status || "Pagu Anggaran";
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // Handler untuk mengunduh ulang dokumen TTE (Operator, BINCANG, Super Admin)
+  function handleDownloadSignedDoc(item: MonitoringItem) {
+    if (!item.is_doc_uploaded) return;
+
+    const fileName =
+      item.signed_doc_name ||
+      `Draft_Renja_${item.unit_kerja.replace(/\s+/g, "_")}_${item.kodifikasi}_Signed.pdf`;
+
+    const content = `[DOKUMEN DRAFT RENJA ESELON I TTD DIGITAL]\nUnit Kerja: ${item.unit_kerja}\nStatus Histori: ${item.status_histori_full}\nTanggal Revisi: ${item.tgl_revisi}\nNama File: ${fileName}\n\nDokumen ini telah resmi ditandatangani secara elektronik (TTE) oleh Pejabat Penandatangan PPATK.`;
+    const blob = new Blob([content], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setNoticeModalMessage(`Dokumen TTE "${fileName}" berhasil diunduh.`);
+  }
+
   // Operator: Kirim Data ke Approver
   function handleSendByOperator(id: string) {
-    const targetItem = dataList.find((d) => d.id === id);
-    if (targetItem && !targetItem.is_doc_uploaded) {
-      setNoticeModalMessage(
-        "Pengiriman Gagal! Dokumen draft Renja Eselon I yang sudah ditandatangani secara elektronik (TTD Digital) WAJIB diunggah pada kolom Aksi terlebih dahulu."
-      );
-      return;
-    }
-
     setDataList((prev) =>
       prev.map((item) => {
         if (item.id === id) {
@@ -487,8 +501,15 @@ export default function MonitoringSubmitApprovePage() {
   }
 
   function handleRequestDelete(item: MonitoringItem) {
+    if (item.is_approved && ["Operator", "Approver", "BINCANG"].includes(currentUserRole)) {
+      setShowRoleNotice(
+        "Penghapusan Ditolak! Data dengan status 'Disetujui & Proses Kemenkeu' tidak dapat dihapus."
+      );
+      setTimeout(() => setShowRoleNotice(null), 4000);
+      return;
+    }
     if (currentUserRole === "Operator") {
-      setShowRoleNotice("Tombol Hapus hanya aktif untuk User Approval & Super Admin.");
+      setShowRoleNotice("Tombol Hapus hanya aktif untuk User Approval, BINCANG, & Super Admin.");
       setTimeout(() => setShowRoleNotice(null), 4000);
       return;
     }
@@ -548,7 +569,7 @@ export default function MonitoringSubmitApprovePage() {
       {/* ── Top Bar: Title & User Role Switcher ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[var(--primary-bg)] flex items-center justify-center text-[var(--primary)] shrink-0 shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0 shadow-sm font-bold">
             <ClipboardCheck className="h-6 w-6" />
           </div>
           <div>
@@ -556,9 +577,9 @@ export default function MonitoringSubmitApprovePage() {
               <span className="badge badge-primary text-[0.65rem] font-bold">RENJA ESELON I</span>
               <span className="text-xs text-[var(--text-muted)] font-mono">/eselon1/monitoring</span>
             </div>
-            <h1 className="text-lg font-bold text-[var(--text)]">Monitoring Submit & Approve Data</h1>
+            <h1 className="text-lg font-bold text-[var(--text)]">Monitoring Submit & Approve Data Eselon I</h1>
             <p className="text-xs text-[var(--text-muted)]">
-              Pemantauan status histori pengajuan, persetujuan checklist, dan pencetakan hasil input Bab I & Bab II.
+              Pemantauan status histori, persetujuan checklist, dan pencetakan hasil Renja Satker Eselon I.
             </p>
           </div>
         </div>
@@ -582,7 +603,7 @@ export default function MonitoringSubmitApprovePage() {
                     : r === "BINCANG"
                     ? "bg-amber-600 text-white shadow"
                     : "bg-purple-600 text-white shadow"
-                  : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
               }`}
             >
               {r}
@@ -591,92 +612,16 @@ export default function MonitoringSubmitApprovePage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════
-          1. INFORMASI PENTING TERATAS (INFO HEADER BARIS UTAMA)
-         ══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Tahun Anggaran */}
-        <div className="aksi-card p-4 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/20 via-[var(--card)] to-[var(--card)] dark:from-blue-950/20 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0 font-bold text-sm">
-            <Calendar className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
-              Tahun Anggaran
-            </span>
-            <div className="text-base font-black text-[var(--text)] flex items-center gap-1.5">
-              <span>{tahunAnggaran}</span>
-              <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                Aktif
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Unit Kerja Info */}
-        <div className="aksi-card p-4 border-l-4 border-l-emerald-500 bg-gradient-to-r from-emerald-50/20 via-[var(--card)] to-[var(--card)] dark:from-emerald-950/20 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 font-bold text-sm">
-            <Building className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
-              Unit Kerja Renja
-            </span>
-            <div className="text-sm font-bold text-[var(--text)] truncate max-w-[170px]">
-              {selectedUnitFilter === "Semua" ? "Seluruh Deputi / UK" : selectedUnitFilter}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Tahapan Status Histori */}
-        <div className="aksi-card p-4 border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/20 via-[var(--card)] to-[var(--card)] dark:from-purple-950/20 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0 font-bold text-sm">
-            <History className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
-              Tahapan Status Histori
-            </span>
-            <div className="text-sm font-bold text-purple-700 dark:text-purple-300">
-              {activeTahapan}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Tanggal Revisi Terakhir */}
-        <div className="aksi-card p-4 border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/20 via-[var(--card)] to-[var(--card)] dark:from-amber-950/20 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 font-bold text-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[0.68rem] font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
-              Tanggal Revisi Terakhir
-            </span>
-            <div className="text-xs font-bold text-[var(--text)]">
-              {lastRevDate}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════
-          2. FILTER TAMPILAN & BARIS PENCARIAN
-         ══════════════════════════════════════════════════════════════ */}
+      {/* ── Filter Tampilan (Single Line) ── */}
       <div className="aksi-card p-5 bg-[var(--card)] border border-[var(--border)] space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          {/* Radio Buttons Filter Mode */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mr-1 flex items-center gap-1">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full whitespace-nowrap shrink-0">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
               <Filter className="h-3.5 w-3.5" />
               Filter Tampilan:
             </span>
             {[
               { id: "all", label: "Seluruh Data", count: dataList.length },
-              {
-                id: "latest",
-                label: "Data Usulan Terakhir",
-                count: new Set(dataList.map((d) => d.unit_kerja)).size,
-              },
               {
                 id: "pending",
                 label: "Data Belum Disetujui",
@@ -691,84 +636,45 @@ export default function MonitoringSubmitApprovePage() {
               <button
                 key={f.id}
                 onClick={() => setFilterMode(f.id as FilterMode)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                   filterMode === f.id
-                    ? "bg-[var(--primary)] text-white shadow-sm ring-2 ring-[var(--primary)]/30"
-                    : "bg-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border)]"
+                    ? "bg-[var(--primary)] text-white shadow-sm"
+                    : "bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]"
                 }`}
               >
                 <span>{f.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[0.65rem] font-mono ${
-                    filterMode === f.id
-                      ? "bg-white/20 text-white"
-                      : "bg-[var(--card)] text-[var(--primary)]"
-                  }`}
-                >
+                <span className="px-1.5 py-0.2 rounded-full text-[0.65rem] font-mono bg-white/20">
                   {f.count}
                 </span>
               </button>
             ))}
           </div>
 
-          {/* Unit Kerja Dropdown & Search */}
           <div className="flex items-center gap-2 w-full lg:w-auto">
-            <div className="relative flex-1 lg:flex-initial">
-              <select
-                value={selectedUnitFilter}
-                onChange={(e) => setSelectedUnitFilter(e.target.value)}
-                className="w-full appearance-none bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-xs rounded-xl px-3 py-2 pr-8 font-semibold cursor-pointer focus:ring-2 focus:ring-[var(--primary)]"
-              >
-                <option value="Semua">Semua Unit Kerja</option>
-                <option value="Deputi TEGAS">Deputi TEGAS</option>
-                <option value="Deputi ASA">Deputi ASA</option>
-                <option value="Deputi PENGASUH">Deputi PENGASUH</option>
-                <option value="Sekretariat Utama">Sekretariat Utama</option>
-                <option value="SETIA">SETIA</option>
-              </select>
-            </div>
-
-            <div className="relative flex-1 lg:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                placeholder="Cari status / unit..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-[var(--accent)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] focus:outline-none"
-              />
-            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari Unit Kerja Eselon I..."
+              className="text-xs bg-[var(--accent)] border border-[var(--border)] rounded-xl px-3 py-2 text-[var(--text)] w-full lg:w-64"
+            />
           </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════
-          3. TABEL MONITORING & SUBMIT DATA
-         ══════════════════════════════════════════════════════════════ */}
+      {/* ── Tabel Monitoring ── */}
       <div className="aksi-card overflow-hidden border border-[var(--border)] bg-[var(--card)] shadow-sm">
-        <div className="p-4 border-b border-[var(--border)] bg-[var(--accent)]/40 flex justify-between items-center">
-          <h3 className="font-bold text-xs uppercase tracking-wider text-[var(--text)] flex items-center gap-2">
-            <FileText className="h-4 w-4 text-[var(--primary)]" />
-            Tabel Monitoring Submit & Approve ({filteredData.length} Dokumen)
-          </h3>
-          <span className="text-[0.68rem] font-semibold text-[var(--text-muted)]">
-            Role Aktif: <strong className="text-[var(--primary)]">{currentUserRole}</strong>
-          </span>
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[var(--accent)] border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider text-[0.65rem]">
-                <th className="p-3 font-bold">Unit Kerja</th>
+              <tr className="bg-[var(--accent)] border-b border-[var(--border)] text-[var(--text-muted)] uppercase text-[0.65rem]">
+                <th className="p-3 font-bold">Unit Kerja Eselon I</th>
                 <th className="p-3 font-bold">Owner</th>
                 <th className="p-3 font-bold">Status Histori</th>
                 <th className="p-3 font-bold text-center">Sumber</th>
                 <th className="p-3 font-bold">Tanggal Revisi</th>
-                <th className="p-3 font-bold text-center">AKSI</th>
-                <th className="p-3 font-bold text-center">
-                  {currentUserRole === "Operator" ? "Kirim Data" : "Persetujuan (Tolak / Setuju)"}
-                </th>
+                <th className="p-3 font-bold text-center whitespace-nowrap">AKSI</th>
+                <th className="p-3 font-bold text-center whitespace-nowrap">Persetujuan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -782,10 +688,10 @@ export default function MonitoringSubmitApprovePage() {
                 filteredData.map((item) => (
                   <tr
                     key={item.id}
-                    className="hover:bg-[var(--accent)]/40 transition-colors group"
+                    className="hover:bg-[var(--accent)]/30"
                   >
                     {/* 1. Unit Kerja */}
-                    <td className="p-3 font-bold text-[var(--text)]">
+                    <td className="p-3 font-bold text-[var(--text)] whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-[var(--primary)] shrink-0" />
                         <span>{item.unit_kerja}</span>
@@ -793,7 +699,7 @@ export default function MonitoringSubmitApprovePage() {
                     </td>
 
                     {/* 2. Owner */}
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[0.65rem] font-bold font-mono inline-flex items-center gap-1 ${
                           item.owner === "Operator"
@@ -809,274 +715,189 @@ export default function MonitoringSubmitApprovePage() {
                     </td>
 
                     {/* 3. Status Histori */}
-                    <td className="p-3">
-                      <div className="font-semibold text-[var(--text)] leading-tight">
-                        {item.status_histori_full}
-                      </div>
-                      <span className="text-[0.65rem] text-[var(--text-muted)] font-mono">
-                        Tahap: {item.tahap_status}
-                      </span>
-                    </td>
+                    <td className="p-3 whitespace-nowrap font-semibold">{item.status_histori_full}</td>
 
                     {/* 4. Sumber */}
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded bg-[var(--accent)] font-mono text-[0.7rem] font-bold text-[var(--primary)] border border-[var(--border)]">
-                        {item.sumber}
-                      </span>
-                    </td>
+                    <td className="p-3 text-center font-mono font-bold text-indigo-700">{item.sumber}</td>
 
                     {/* 5. Tanggal Revisi */}
-                    <td className="p-3 text-[var(--text-muted)] font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                        <span>{item.tgl_revisi}</span>
-                      </div>
-                    </td>
+                    <td className="p-3 text-slate-500 whitespace-nowrap">{item.tgl_revisi}</td>
 
                     {/* 6. Kolom AKSI (Cetak, Upload Dokumen TTD, Hapus) */}
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                        {/* Tombol Cetak */}
+                    <td className="p-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                        {/* Tombol Cetak - Indigo/Blue rounded pill */}
                         <button
                           onClick={() => setSelectedPrintItem(item)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[var(--primary)] text-white hover:opacity-90 transition-opacity text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-sm"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#2e1065] hover:bg-[#3b0764] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                           title="Cetak Dokumen Hasil Input Bab I & Bab II"
                         >
                           <Printer className="h-3.5 w-3.5" />
                           <span>Cetak</span>
                         </button>
 
-                        {/* Tombol Upload Dokumen TTD Digital */}
-                        {item.is_doc_uploaded ? (
-                          <button
-                            onClick={() => {
-                              setUploadingDocItem(item);
-                              setUploadFileName(
-                                item.signed_doc_name ||
+                        {/* Tombol Upload TTD / TTD Uploaded */}
+                        {currentUserRole === "Approver" || currentUserRole === "Super Admin" ? (
+                          item.is_doc_uploaded ? (
+                            <button
+                              onClick={() => {
+                                setUploadingDocItem(item);
+                                setUploadFileName(
+                                  item.signed_doc_name ||
+                                    `Draft_Renja_${item.unit_kerja.replace(/\s+/g, "_")}_${item.kodifikasi}_Signed.pdf`
+                                );
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-[#dcfce7] text-[#059669] border border-[#34d399] text-xs font-bold flex items-center gap-1.5 hover:bg-[#bbf7d0] transition-colors shadow-sm cursor-pointer"
+                              title={`Dokumen TTD Terunggah: ${item.signed_doc_name}. Klik untuk mengganti.`}
+                            >
+                              <FileCheck className="h-3.5 w-3.5 text-[#059669]" />
+                              <span>✓ TTD Uploaded</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setUploadingDocItem(item);
+                                setUploadFileName(
                                   `Draft_Renja_${item.unit_kerja.replace(/\s+/g, "_")}_${item.kodifikasi}_Signed.pdf`
-                              );
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors shadow-sm"
-                            title={`Dokumen TTD Terunggah: ${item.signed_doc_name}. Klik untuk mengganti.`}
-                          >
-                            <FileCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span className="truncate max-w-[100px]" title={item.signed_doc_name}>
-                              ✓ TTD Uploaded
-                            </span>
-                          </button>
-                        ) : (
+                                );
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#f59e0b] hover:bg-[#d97706] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                              title="Upload Draft Renja Eselon I TTD Elektronik (Wajib untuk Approve/Kirim ke BINCANG)"
+                            >
+                              <Upload className="h-3.5 w-3.5" />
+                              <span>Upload TTD *</span>
+                            </button>
+                          )
+                        ) : item.is_doc_uploaded ? (
                           <button
-                            onClick={() => {
-                              setUploadingDocItem(item);
-                              setUploadFileName(
-                                `Draft_Renja_${item.unit_kerja.replace(/\s+/g, "_")}_${item.kodifikasi}_Signed.pdf`
-                              );
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm animate-pulse"
-                            title="Upload Draft Renja Eselon I TTD Elektronik (Wajib untuk Approve/Kirim)"
+                            onClick={() => handleDownloadSignedDoc(item)}
+                            className="px-3 py-1.5 rounded-xl bg-[#dcfce7] text-[#059669] border border-[#34d399] text-xs font-bold flex items-center gap-1.5 hover:bg-[#bbf7d0] transition-colors shadow-sm cursor-pointer"
+                            title={`Unduh Dokumen TTE: ${item.signed_doc_name || "Draft_Renja_Signed.pdf"}`}
                           >
-                            <Upload className="h-3.5 w-3.5" />
-                            <span>Upload TTD *</span>
+                            <FileCheck className="h-3.5 w-3.5 text-[#059669]" />
+                            <span>✓ TTD Uploaded</span>
                           </button>
-                        )}
+                        ) : null}
 
-                        {/* Tombol Hapus */}
-                        <button
-                          onClick={() => handleRequestDelete(item)}
-                          disabled={currentUserRole === "Operator"}
-                          title={
-                            currentUserRole === "Operator"
-                              ? "Tombol Hapus hanya aktif untuk User Approval & Super Admin"
-                              : "Hapus data histori pengajuan"
+                        {/* Tombol Hapus - soft red square with red trash icon */}
+                        {(() => {
+                          const isApprovedKemenkeu = item.is_approved;
+                          const isRestrictedRole = ["Operator", "Approver", "BINCANG"].includes(currentUserRole);
+                          const isDeleteDisabled =
+                            (isApprovedKemenkeu && isRestrictedRole) || currentUserRole === "Operator";
+
+                          let deleteTitle = "Hapus data histori pengajuan";
+                          if (isApprovedKemenkeu && isRestrictedRole) {
+                            deleteTitle = "Data dengan status Disetujui & Proses Kemenkeu tidak dapat dihapus";
+                          } else if (currentUserRole === "Operator") {
+                            deleteTitle = "Tombol Hapus hanya aktif untuk User Approval, BINCANG, & Super Admin";
                           }
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            currentUserRole === "Operator"
-                              ? "opacity-40 cursor-not-allowed bg-[var(--accent)] text-[var(--text-muted)]"
-                              : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-900 cursor-pointer"
-                          }`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+
+                          return (
+                            <button
+                              onClick={() => handleRequestDelete(item)}
+                              disabled={isDeleteDisabled}
+                              title={deleteTitle}
+                              className={`p-2 rounded-xl transition-colors shrink-0 ${
+                                isDeleteDisabled
+                                  ? "opacity-30 cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200"
+                                  : "bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca] cursor-pointer"
+                              }`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
 
-                    {/* 7. Kolom Persetujuan / Kirim Data (Far Right) */}
-                    <td className="p-3 text-center">
+                    {/* 7. Kolom Persetujuan */}
+                    <td className="p-3 text-center whitespace-nowrap">
                       {item.is_approved ? (
-                        // Ketika sudah disetujui akhir oleh BINCANG / Super Admin
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-sm">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[#e6fffa] text-[#047857] border border-[#6ee7b7] shadow-sm">
+                          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
                           <span>Disetujui &amp; Proses Kemenkeu</span>
                         </span>
                       ) : currentUserRole === "Operator" ? (
-                        // Role OPERATOR
                         item.owner === "Operator" ? (
                           <div className="inline-flex flex-col items-center">
                             <button
                               onClick={() => handleSendByOperator(item.id)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-bold shadow-sm transition-all cursor-pointer ${
-                                !item.is_doc_uploaded ? "bg-slate-500 hover:bg-slate-600" : "bg-blue-600 hover:bg-blue-700"
-                              }`}
-                              title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Kirim data histori ke Approver"}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                              title="Kirim data histori ke Approver"
                             >
                               <Send className="h-3.5 w-3.5" />
                               <span>Kirim ke Approver</span>
                             </button>
-                            {!item.is_doc_uploaded && (
-                              <span className="text-[0.62rem] font-semibold text-amber-600 dark:text-amber-400 pt-0.5">
-                                ⚠️ Upload TTD dulu
-                              </span>
-                            )}
                           </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-                            <span>Sudah Dikirim ({item.owner})</span>
+                          <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
+                            <span>Menunggu Operator</span>
                           </span>
                         )
                       ) : currentUserRole === "Approver" ? (
-                        // Role APPROVER
                         item.owner === "Approver" ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="inline-flex items-center gap-1.5 justify-center">
-                              <button
-                                onClick={() => handleRejectByApprover(item.id)}
-                                className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                title="Tolak &amp; kembalikan ke Operator"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>TOLAK</span>
-                              </button>
-                              <button
-                                onClick={() => handleApproveByApprover(item.id)}
-                                className={`px-2.5 py-1 rounded-xl text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
-                                  !item.is_doc_uploaded ? "bg-slate-500 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-700"
-                                }`}
-                                title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; kirim data ke BINCANG"}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span>SETUJU</span>
-                              </button>
-                            </div>
-                            {!item.is_doc_uploaded && (
-                              <span className="text-[0.62rem] font-semibold text-amber-600 dark:text-amber-400">
-                                ⚠️ Upload TTD dulu
-                              </span>
-                            )}
+                          <div className="inline-flex items-center gap-2 justify-center">
+                            <button
+                              onClick={() => handleRejectByApprover(item.id)}
+                              className="px-3 py-1 rounded-full bg-[#fee2e2] text-[#dc2626] border border-[#fca5a5] hover:bg-[#fecaca] text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                              title="Tolak &amp; kembalikan ke Operator"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>TOLAK</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveByApprover(item.id)}
+                              className={`px-3 py-1 rounded-full text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                !item.is_doc_uploaded ? "bg-[#059669]/60 cursor-not-allowed" : "bg-[#059669] hover:bg-[#047857]"
+                              }`}
+                              title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; kirim data ke BINCANG"}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>SETUJU</span>
+                            </button>
                           </div>
                         ) : item.owner === "BINCANG" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                            <History className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
                             <span>Proses Approval BINCANG</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
+                          <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
                             <span>Menunggu Operator</span>
                           </span>
                         )
-                      ) : currentUserRole === "BINCANG" ? (
-                        // Role BINCANG
+                      ) : currentUserRole === "BINCANG" || currentUserRole === "Super Admin" ? (
                         item.owner === "BINCANG" ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="inline-flex items-center gap-1.5 justify-center">
-                              <button
-                                onClick={() => handleRejectByBincang(item.id)}
-                                className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                title="Tolak &amp; kembalikan histori ke Approver"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>TOLAK</span>
-                              </button>
-                              <button
-                                onClick={() => handleApproveByBincang(item.id)}
-                                className={`px-2.5 py-1 rounded-xl text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
-                                  !item.is_doc_uploaded ? "bg-slate-500 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-700"
-                                }`}
-                                title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; proses data ke Kemenkeu"}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span>SETUJU</span>
-                              </button>
-                            </div>
-                            {!item.is_doc_uploaded && (
-                              <span className="text-[0.62rem] font-semibold text-amber-600 dark:text-amber-400">
-                                ⚠️ Upload TTD dulu
-                              </span>
-                            )}
+                          <div className="inline-flex items-center gap-2 justify-center">
+                            <button
+                              onClick={() => handleRejectByBincang(item.id)}
+                              className="px-3 py-1 rounded-full bg-[#fee2e2] text-[#dc2626] border border-[#fca5a5] hover:bg-[#fecaca] text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                              title="Tolak &amp; kembalikan histori ke Approver"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>TOLAK</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveByBincang(item.id)}
+                              className={`px-3 py-1 rounded-full text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                !item.is_doc_uploaded ? "bg-[#059669]/60 cursor-not-allowed" : "bg-[#059669] hover:bg-[#047857]"
+                              }`}
+                              title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; proses data ke Kemenkeu"}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>SETUJU</span>
+                            </button>
                           </div>
                         ) : item.owner === "Approver" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
-                            <span>Proses Approver</span>
+                          <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
+                            <span>Proses Approval Satker</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
-                            <span>Proses Operator</span>
-                          </span>
-                        )
-                      ) : (
-                        // Role SUPER ADMIN (Akses Penuh ke Aksi Approver & BINCANG)
-                        item.owner === "BINCANG" ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="inline-flex items-center gap-1.5 justify-center">
-                              <button
-                                onClick={() => handleRejectByBincang(item.id)}
-                                className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                title="Tolak &amp; kembalikan histori ke Approver"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>TOLAK</span>
-                              </button>
-                              <button
-                                onClick={() => handleApproveByBincang(item.id)}
-                                className={`px-2.5 py-1 rounded-xl text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
-                                  !item.is_doc_uploaded ? "bg-slate-500 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-700"
-                                }`}
-                                title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; proses data ke Kemenkeu"}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span>SETUJU</span>
-                              </button>
-                            </div>
-                            {!item.is_doc_uploaded && (
-                              <span className="text-[0.62rem] font-semibold text-amber-600 dark:text-amber-400">
-                                ⚠️ Upload TTD dulu
-                              </span>
-                            )}
-                          </div>
-                        ) : item.owner === "Approver" ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="inline-flex items-center gap-1.5 justify-center">
-                              <button
-                                onClick={() => handleRejectByApprover(item.id)}
-                                className="px-2.5 py-1 rounded-xl bg-red-100 text-red-700 hover:bg-red-600 hover:text-white dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-800 border border-red-300 dark:border-red-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                title="Tolak &amp; kembalikan ke Operator"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>TOLAK</span>
-                              </button>
-                              <button
-                                onClick={() => handleApproveByApprover(item.id)}
-                                className={`px-2.5 py-1 rounded-xl text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
-                                  !item.is_doc_uploaded ? "bg-slate-500 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-700"
-                                }`}
-                                title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; kirim data ke BINCANG"}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span>SETUJU</span>
-                              </button>
-                            </div>
-                            {!item.is_doc_uploaded && (
-                              <span className="text-[0.62rem] font-semibold text-amber-600 dark:text-amber-400">
-                                ⚠️ Upload TTD dulu
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[0.68rem] font-bold bg-[var(--accent)] text-[var(--text-muted)] border border-[var(--border)]">
+                          <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
                             <span>Menunggu Operator</span>
                           </span>
                         )
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 ))
@@ -1130,6 +951,10 @@ export default function MonitoringSubmitApprovePage() {
                     size: A4 portrait;
                     margin: 1in;
                   }
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
                   html, body, #root, #root > *, main {
                     overflow: visible !important;
                     height: auto !important;
@@ -1164,6 +989,20 @@ export default function MonitoringSubmitApprovePage() {
                     display: block !important;
                     background: white !important;
                     color: black !important;
+                  }
+                  table {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                  }
+                  th, td {
+                    border: 1px solid #0f172a !important;
+                  }
+                  thead th {
+                    background-color: #e2e8f0 !important;
+                  }
+                  tr {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                   }
                   .print-break {
                     page-break-after: always !important;
@@ -1348,41 +1187,102 @@ export default function MonitoringSubmitApprovePage() {
                       Pelaksanaan Rencana Kerja Tahun {tahunAnggaran} merupakan kelanjutan dari pelaksanaan tahun sebelumnya dan menjadi bagian integral dari tahun ketiga pelaksanaan Renstra PPATK Tahun 2025 - 2029. Arah kebijakan diarahkan pada penguatan kualitas pelaporan, pengawasan kepatuhan berbasis risiko, serta optimalisasi pemanfaatan data dan teknologi dalam pencegahan dan pemberantasan TPPU, TPPT, dan PPSPM.
                     </p>
 
-                    {/* Tabel Target Kinerja */}
+                    {/* Tabel Target Kinerja (Format 3 Kolom Sesuai Gambar Standar PPATK) */}
                     <div className="py-2">
                       <table className="w-full text-xs border-collapse border border-slate-900 font-sans">
-                        <thead className="bg-slate-100 font-bold text-center">
+                        <thead className="bg-slate-200 font-bold text-center">
                           <tr>
-                            <th className="p-2 border border-slate-900 w-16">Kode</th>
-                            <th className="p-2 border border-slate-900">Sasaran Kegiatan / Indikator Kinerja / Rincian Output</th>
-                            <th className="p-2 border border-slate-900 w-24">Target</th>
-                            <th className="p-2 border border-slate-900 w-24">Satuan</th>
+                            <th className="p-2 border border-slate-900 w-24">Kode</th>
+                            <th className="p-2 border border-slate-900">
+                              Sasaran Strategis/Sasaran Program/Sasaran<br />
+                              Kegiatan/Indikator Kinerja
+                            </th>
+                            <th className="p-2 border border-slate-900 w-24">
+                              Target<br />
+                              2027
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
+                          {/* Row SS */}
                           <tr>
-                            <td className="p-2 border border-slate-900 text-center font-bold">01</td>
-                            <td className="p-2 border border-slate-900 font-medium">
-                              Penilaian Integritas Pihak Pelapor
+                            <td className="p-2 border border-slate-900 text-center font-bold align-middle">
+                              SS.1
                             </td>
-                            <td className="p-2 border border-slate-900 text-center">85.0</td>
-                            <td className="p-2 border border-slate-900 text-center">Indeks</td>
+                            <td className="border border-slate-900 p-0 align-top">
+                              <div className="p-2.5 font-bold text-slate-900 leading-snug">
+                                Meningkatnya Efektivitas Kinerja PPATK dalam Pencegahan dan Pemberantasan TPPU, TPPT, dan PPSPM
+                              </div>
+                              <div className="border-t border-slate-900 p-2 text-xs space-y-0.5">
+                                <div className="italic underline font-medium">Indikator IKSS 1.2:</div>
+                                <div className="italic text-slate-800">
+                                  Indeks Implementasi Program TPPU TPPT dan PPSPM PPATK. {"{Indeks}"}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="border border-slate-900 p-0 text-center align-bottom">
+                              <div className="p-2.5">&nbsp;</div>
+                              <div className="border-t border-slate-900 p-2 text-xs font-semibold">
+                                6,8
+                              </div>
+                            </td>
                           </tr>
+
+                          {/* Row SP */}
                           <tr>
-                            <td className="p-2 border border-slate-900 text-center font-bold">02</td>
-                            <td className="p-2 border border-slate-900 font-medium">
-                              Penyusunan Kebijakan di Bidang Pelaporan dan Pengawasan Kepatuhan
+                            <td className="p-2 border border-slate-900 text-center font-bold align-middle">
+                              SP.1
                             </td>
-                            <td className="p-2 border border-slate-900 text-center">4</td>
-                            <td className="p-2 border border-slate-900 text-center">Dokumen</td>
+                            <td className="border border-slate-900 p-0 align-top">
+                              <div className="p-2.5 font-bold text-slate-900 leading-snug">
+                                Meningkatnya Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pemberantasan TPPU, TPPT, dan PPSPM
+                              </div>
+                              <div className="border-t border-slate-900 p-2 text-xs space-y-0.5">
+                                <div className="italic underline font-medium">Indikator IKP 1.1:</div>
+                                <div className="italic text-slate-800">
+                                  Indeks Kebermanfaatan Data Pelaporan PPATK dan Kepatuhan dalam Pencegahan dan Pemberantasan TPPU, TPPT, dan PPSPM. {"{Indeks}"}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="border border-slate-900 p-0 text-center align-bottom">
+                              <div className="p-2.5">&nbsp;</div>
+                              <div className="border-t border-slate-900 p-2 text-xs font-semibold">
+                                5
+                              </div>
+                            </td>
                           </tr>
+
+                          {/* Divider Row: Sasaran Kegiatan */}
                           <tr>
-                            <td className="p-2 border border-slate-900 text-center font-bold">03</td>
+                            <td className="p-2 border border-slate-900"></td>
                             <td className="p-2 border border-slate-900 font-medium">
-                              Pengawasan Kepatuhan Pihak Pelapor PJK dan PBJP Berbasis Risiko
+                              <span className="underline">Sasaran Kegiatan:</span>
                             </td>
-                            <td className="p-2 border border-slate-900 text-center">150</td>
-                            <td className="p-2 border border-slate-900 text-center">Laporan</td>
+                            <td className="p-2 border border-slate-900"></td>
+                          </tr>
+
+                          {/* Row SK & IKK */}
+                          <tr>
+                            <td className="p-2 border border-slate-900 text-center font-bold align-middle">
+                              SK 1.7
+                            </td>
+                            <td className="border border-slate-900 p-0 align-top">
+                              <div className="p-2.5 font-bold text-slate-900 leading-snug">
+                                Meningkatnya Kompetensi SDM APU PPT dan PPSPM
+                              </div>
+                              <div className="border-t border-slate-900 p-2 text-xs space-y-0.5">
+                                <div className="italic underline font-medium">Indikator IKK 1.4.1:</div>
+                                <div className="italic text-slate-800">
+                                  Indeks Efektivitas Pengembangan Kompetensi SDM APU PPT dan PPSPM. {"{Indeks}"}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="border border-slate-900 p-0 text-center align-bottom">
+                              <div className="p-2.5">&nbsp;</div>
+                              <div className="border-t border-slate-900 p-2 text-xs font-semibold">
+                                4,52
+                              </div>
+                            </td>
                           </tr>
                         </tbody>
                       </table>

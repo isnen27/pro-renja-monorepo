@@ -4,7 +4,7 @@ import ThemeInitScript from "@/components/ui/ThemeInitScript";
 
 export const metadata: Metadata = {
   title: "AKSI - Modul Perencanaan dan Penganggaran",
-  description: "Sistem Informasi Perencanaan dan Penganggaran Pemerintah Daerah",
+  description: "AKSI - Aplikasi Keuangan Single Input",
 };
 
 export default function RootLayout({

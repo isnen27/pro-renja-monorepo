@@ -138,10 +138,116 @@ body {
 .badge-red { background-color: #fee2e2; color: #ef4444; }
 .dark .badge-red { background-color: rgba(220,38,38,0.15); color: #fca5a5; border: 1px solid rgba(220,38,38,0.25); }
 
+/* ── Scrollbar CSS Variables ─────────────────── */
+:root, .light {
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-track-border: #e2e8f0;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --scrollbar-btn-bg: #f8fafc;
+  --scrollbar-btn-hover: #e2e8f0;
+  --scrollbar-btn-active: #cbd5e1;
+  --scrollbar-arrow-color: %2364748b;
+  --scrollbar-arrow-hover: %231e293b;
+}
+
+.dark {
+  --scrollbar-track: #0b1329;
+  --scrollbar-track-border: #1e3050;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --scrollbar-btn-bg: #0f1b30;
+  --scrollbar-btn-hover: #1e293b;
+  --scrollbar-btn-active: #334155;
+  --scrollbar-arrow-color: %2394a3b8;
+  --scrollbar-arrow-hover: %23f1f5f9;
+}
+
 /* ========================================
-   SCROLLBAR
+   SCROLLBAR (MENYESUAIKAN TEMA DENGAN TOMBOL PANAH)
    ======================================== */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+/* Track scrollbar */
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-left: 1px solid var(--scrollbar-track-border);
+}
+
+/* Thumb (batang penggulir) */
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Tombol Scrollbar Panah Atas & Bawah */
+::-webkit-scrollbar-button:single-button {
+  background-color: var(--scrollbar-btn-bg);
+  display: block;
+  background-size: 8px;
+  background-repeat: no-repeat;
+  height: 16px;
+  width: 14px;
+  transition: background-color 0.15s ease;
+}
+
+/* Light Mode: Panah Atas */
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-position: center 4px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%2364748b'><path d='M12 6l-8 8h16z'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+  background-color: var(--scrollbar-btn-hover);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%231e293b'><path d='M12 6l-8 8h16z'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement:active {
+  background-color: var(--scrollbar-btn-active);
+}
+
+/* Light Mode: Panah Bawah */
+::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-position: center 4px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%2364748b'><path d='M12 18l8-8H4z'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+  background-color: var(--scrollbar-btn-hover);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%231e293b'><path d='M12 18l8-8H4z'/></svg>");
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment:active {
+  background-color: var(--scrollbar-btn-active);
+}
+
+/* Dark Mode: Panah Atas */
+.dark ::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 6l-8 8h16z'/></svg>");
+}
+
+.dark ::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+  background-color: var(--scrollbar-btn-hover);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%23f1f5f9'><path d='M12 6l-8 8h16z'/></svg>");
+}
+
+/* Dark Mode: Panah Bawah */
+.dark ::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 18l8-8H4z'/></svg>");
+}
+
+.dark ::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+  background-color: var(--scrollbar-btn-hover);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%23f1f5f9'><path d='M12 18l8-8H4z'/></svg>");
+}

@@ -11,6 +11,35 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onClose }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [userRole, setUserRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch {
+      return "Operator";
+    }
+  });
+
+  // Sinkronisasi perubahan role dari local storage / event
+  useEffect(() => {
+    const handleRoleUpdate = () => {
+      try {
+        const saved = localStorage.getItem("renja_e2_user_role") || "Operator";
+        setUserRole(saved);
+      } catch {}
+    };
+
+    window.addEventListener("storage", handleRoleUpdate);
+    window.addEventListener("renja_role_changed", handleRoleUpdate);
+    window.addEventListener("focus", handleRoleUpdate);
+    const interval = setInterval(handleRoleUpdate, 800);
+
+    return () => {
+      window.removeEventListener("storage", handleRoleUpdate);
+      window.removeEventListener("renja_role_changed", handleRoleUpdate);
+      window.removeEventListener("focus", handleRoleUpdate);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Tutup sidebar mobile saat tekan Escape
   useEffect(() => {
@@ -21,18 +50,44 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, collapsed]);
 
-  // Filtered menu items when searching
+  // Filtered menu items when searching & role based
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return menuConfig;
+    const isOperatorOrApprover = userRole === "Operator" || userRole === "Approver";
+
+    // Modifikasi item menu sesuai hak akses role
+    const roleAdjustedConfig = menuConfig.map((group) => {
+      const items = group.items.map((item) => {
+        // Untuk menu RAB: jika Operator atau Approver, tampilkan Isian RAB, Revisi Anggaran, dan Laporan RAB
+        if (item.label === "Rencana Anggaran Biaya (RAB)" && isOperatorOrApprover) {
+          return {
+            ...item,
+            submenu: item.submenu?.filter(
+              (sub) =>
+                sub.label === "Isian RAB" ||
+                sub.label === "Revisi Anggaran" ||
+                sub.label === "Laporan RAB"
+            ),
+          };
+        }
+        return item;
+      });
+      return { ...group, items };
+    });
+
+    if (!searchQuery.trim()) return roleAdjustedConfig;
     const q = searchQuery.toLowerCase();
 
-    return menuConfig
+    return roleAdjustedConfig
       .map((group) => {
         const matchingItems = group.items.filter((item) => {
           const matchItem = item.label.toLowerCase().includes(q);
-          const matchSub = item.submenu?.some((sub) =>
-            sub.label.toLowerCase().includes(q)
-          );
+          const matchSub = item.submenu?.some((sub) => {
+            const subMatch = sub.label.toLowerCase().includes(q);
+            const childMatch = sub.submenu?.some((child) =>
+              child.label.toLowerCase().includes(q)
+            );
+            return subMatch || childMatch;
+          });
           return matchItem || matchSub;
         });
 
@@ -42,7 +97,7 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
         };
       })
       .filter((group) => group.items.length > 0) as MenuGroup[];
-  }, [searchQuery]);
+  }, [searchQuery, userRole]);
 
   return (
     <>

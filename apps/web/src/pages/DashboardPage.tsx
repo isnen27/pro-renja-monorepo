@@ -328,7 +328,7 @@ export default function DashboardPage() {
                 <span>📦 Standar Biaya Keluaran</span>
                 <span className="badge badge-primary">SBK & SBM</span>
               </span>
-              <p className="text-[0.7rem] text-[var(--text-muted)] mt-1">Plafon per output diklat dan tarif tertinggi PMK Kemenkeu.</p>
+              <p className="text-[0.7rem] text-[var(--text-muted)] mt-1">Plafon per output diklat dan tarif standar KMK Nomor 296 Tahun 2026.</p>
             </Link>
 
             <Link to="/admin/pengguna" className="block p-3 rounded-xl border border-[var(--border)] hover:bg-[var(--accent)] transition-colors">

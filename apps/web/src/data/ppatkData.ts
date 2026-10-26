@@ -380,16 +380,7 @@ export const mockSbk = [
   },
 ];
 
-import { allSbmPmk32List, sbmKonsumsiDiklatList, sbmUangHarianList, sbmTiketPesawatList } from "./sbmPmk32Data";
-
-export const mockSbm = allSbmPmk32List.map((item) => ({
-  item: item.uraian,
-  satuan: item.satuan,
-  tarif: item.besaran,
-  ref: `${item.dasarHukum} - ${item.lampiran}`,
-  kategori: item.kategori,
-  subkategori: item.subkategori,
-}));
+export const mockSbm: any[] = [];
 
 // Data Renstra PPATK 2025-2029
 export const mockRenstra = {

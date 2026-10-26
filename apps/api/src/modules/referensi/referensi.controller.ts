@@ -3,7 +3,18 @@
 
 import { Controller, Get, Param, Query, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
-import { baganAkunService, pejabatService, sbkService, opdService } from './referensi.service.js';
+import {
+  baganAkunService,
+  pejabatService,
+  sbkService,
+  opdService,
+  visiMisiService,
+  unitKerjaService,
+  satkerService,
+  informasiKinerjaService,
+  sasaranKinerjaService,
+  sbmService,
+} from './referensi.service.js';
 
 @Controller('api/referensi')
 export class ReferensiController {
@@ -258,6 +269,210 @@ export class ReferensiController {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // STANDAR BIAYA MASUKAN (SBM) ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/sbm
+   * Get paginated list of SBM
+   */
+  @Get('sbm')
+  async getSbm(
+    @Query('search') search?: string,
+    @Query('kodeTabel') kodeTabel?: string,
+    @Query('lampiran') lampiran?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const result = await sbmService.getAll({
+      search,
+      kodeTabel,
+      lampiran,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+
+    return {
+      success: true,
+      message: 'Data Standar Biaya Masukan berhasil diambil',
+      data: result.data,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
+  }
+
+  /**
+   * GET /api/referensi/sbm/:id
+   * Get SBM by ID
+   */
+  @Get('sbm/:id')
+  async getSbmById(@Param('id') id: string) {
+    const result = await sbmService.getById(parseInt(id, 10));
+
+    if (!result) {
+      return {
+        success: false,
+        message: `SBM dengan ID ${id} tidak ditemukan`,
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Data SBM berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VISI & MISI PPATK ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/visi-misi
+   * Get Visi & Misi PPATK
+   */
+  @Get('visi-misi')
+  async getVisiMisi() {
+    const result = await visiMisiService.getVisiMisi();
+
+    return {
+      success: true,
+      message: 'Data Visi & Misi PPATK berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNIT KERJA PPATK ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/unit-kerja
+   * Get list of all Unit Kerja PPATK
+   */
+  @Get('unit-kerja')
+  async getUnitKerja() {
+    const result = await unitKerjaService.getAll();
+
+    return {
+      success: true,
+      message: 'Data Unit Kerja PPATK berhasil diambil',
+      data: result,
+    };
+  }
+
+  /**
+   * GET /api/referensi/unit-kerja/:singkatan
+   * Get Unit Kerja by singkatan
+   */
+  @Get('unit-kerja/:singkatan')
+  async getUnitKerjaBySingkatan(@Param('singkatan') singkatan: string) {
+    const result = await unitKerjaService.getBySingkatan(singkatan);
+
+    if (!result) {
+      return {
+        success: false,
+        message: `Unit kerja dengan singkatan ${singkatan} tidak ditemukan`,
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Data Unit Kerja berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SATUAN KERJA (SATKER) ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/satker
+   * Get list of all Satker
+   */
+  @Get('satker')
+  async getSatker() {
+    const result = await satkerService.getAll();
+
+    return {
+      success: true,
+      message: 'Data Satker berhasil diambil',
+      data: result,
+    };
+  }
+
+  /**
+   * GET /api/referensi/satker/:kode
+   * Get Satker by kode
+   */
+  @Get('satker/:kode')
+  async getSatkerByKode(@Param('kode') kode: string) {
+    const result = await satkerService.getByKode(kode);
+
+    if (!result) {
+      return {
+        success: false,
+        message: `Satker dengan kode ${kode} tidak ditemukan`,
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Data Satker berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INFORMASI KINERJA ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/informasi-kinerja
+   * Get Informasi Kinerja (filter optional by unitKerja)
+   */
+  @Get('informasi-kinerja')
+  async getInformasiKinerja(@Query('unitKerja') unitKerja?: string) {
+    const result = await informasiKinerjaService.getAll(unitKerja);
+
+    return {
+      success: true,
+      message: 'Data Informasi Kinerja berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SASARAN KINERJA (CASCADING RENJA & RENSTRA) ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/sasaran-kinerja
+   * Get Sasaran Kinerja (filter optional by program, type)
+   */
+  @Get('sasaran-kinerja')
+  async getSasaranKinerja(
+    @Query('program') program?: string,
+    @Query('type') type?: string,
+  ) {
+    const result = await sasaranKinerjaService.getAll(program, type);
+
+    return {
+      success: true,
+      message: 'Data Sasaran Kinerja berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // HEALTH CHECK
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -275,3 +490,4 @@ export class ReferensiController {
     };
   }
 }
+

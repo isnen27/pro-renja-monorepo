@@ -1,8 +1,10 @@
 // src/data/sbmPmk32Data.ts
-// Data Standar Biaya Masukan (SBM) TA 2026 berdasarkan PMK Nomor 32 Tahun 2025
+// Data Standar Biaya Masukan (SBM) & Standar Biaya Keluaran (SBK)
+// Peraturan Rujukan: KMK Nomor 296 Tahun 2026
 
 import rawSbmData from "./sbmData.json";
 import rawSbmTables from "./sbmTables.json";
+import rawSbkData from "./sbkData.json";
 
 export interface SbmItem {
   id: string;
@@ -28,27 +30,51 @@ export interface SbmTableMetadata {
   itemCount: number;
 }
 
-// Full 4,009 SBM items extracted from tabel SBM.xlsx (86 sheets)
-export const allSbmPmk32List: SbmItem[] = rawSbmData as SbmItem[];
+export interface SbkItem {
+  id: string;
+  kelompok: "SBKU" | "SBKK";
+  kelompokNama: string;
+  subKelompok?: string;
+  kategori: string;
+  kode: string;
+  uraian: string;
+  volume: number;
+  satuan: string;
+  besaran: number;
+  dasarHukum: string;
+  satker: string;
+}
 
-// Full 86 SBM Table Metadata
+// ── SBM KMK Nomor 296 Tahun 2026 ──
+// Total 3,466 SBM items extracted from 66 sheets (37 Batas Tertinggi + 29 Dapat Dilampaui)
+export const allSbmList: SbmItem[] = rawSbmData as SbmItem[];
+export const allSbmKmk296List: SbmItem[] = allSbmList;
+export const allSbmPmk32List: SbmItem[] = allSbmList; // Alias for backward compatibility
+
+// Full 66 SBM Table Metadata
 export const sbmTablesList: SbmTableMetadata[] = rawSbmTables as SbmTableMetadata[];
 
-// Strictly 2 PMK Categories (Pasal 2 PMK 32/2025)
+// Two KMK 296 SBM Lampiran Categories
 export const sbmCategoryList = [
   "Lampiran I (Batas Tertinggi)",
   "Lampiran II (Dapat Dilampaui)",
 ] as const;
 
+// ── SBK KMK Nomor 296 Tahun 2026 (DataSBKAll.xlsx) ──
+// Total 60 SBK items (57 SBKU + 3 SBKK PPATK)
+export const allSbkList: SbkItem[] = rawSbkData as SbkItem[];
+export const sbkuList: SbkItem[] = allSbkList.filter((s) => s.kelompok === "SBKU");
+export const sbkkList: SbkItem[] = allSbkList.filter((s) => s.kelompok === "SBKK");
+
 // Backward compatibility helper exports for any legacy consumers
-export const sbmPengelolaKeuangan = allSbmPmk32List.filter((i) => i.kodeTabel === "T01_P004");
-export const sbmNarasumberPanitia = allSbmPmk32List.filter((i) => i.kodeTabel === "T09_P012");
-export const sbmDiklat = allSbmPmk32List.filter((i) => i.kodeTabel === "T39_P038");
-export const sbmKonsumsiDiklatList = allSbmPmk32List.filter((i) => i.kodeTabel === "T39_P038");
-export const sbmPaketMeetingList = allSbmPmk32List.filter((i) => i.kodeTabel === "T20_P022");
-export const sbmUangHarianList = allSbmPmk32List.filter((i) => i.kodeTabel === "T12_P015");
-export const sbmTiketPesawatList = allSbmPmk32List.filter((i) => i.kodeTabel === "T70_P086");
-export const sbmTransportasiLokal = allSbmPmk32List.filter((i) => i.kodeTabel === "T50_P069");
-export const sbmUangMakanLembur = allSbmPmk32List.filter((i) => i.kodeTabel === "T23_P024");
-export const sbmPemeliharaan = allSbmPmk32List.filter((i) => i.kodeTabel === "T61_P080");
-export const sbmPengadaanKendaraan = allSbmPmk32List.filter((i) => i.kodeTabel === "T32_P033");
+export const sbmPengelolaKeuangan = allSbmList.filter((i) => i.kodeTabel === "T1_01");
+export const sbmNarasumberPanitia = allSbmList.filter((i) => i.kodeTabel === "T1_08");
+export const sbmDiklat = allSbmList.filter((i) => i.kodeTabel === "T1_10");
+export const sbmKonsumsiDiklatList = allSbmList.filter((i) => i.kodeTabel === "T1_10");
+export const sbmPaketMeetingList = allSbmList.filter((i) => i.kodeTabel === "T1_11");
+export const sbmUangHarianList = allSbmList.filter((i) => i.kodeTabel === "T1_13");
+export const sbmTiketPesawatList = allSbmList.filter((i) => i.kodeTabel === "T2_18");
+export const sbmTransportasiLokal = allSbmList.filter((i) => i.kodeTabel === "T1_15");
+export const sbmUangMakanLembur = allSbmList.filter((i) => i.kodeTabel === "T1_12");
+export const sbmPemeliharaan = allSbmList.filter((i) => i.kodeTabel === "T2_14");
+export const sbmPengadaanKendaraan = allSbmList.filter((i) => i.kodeTabel === "T2_13");

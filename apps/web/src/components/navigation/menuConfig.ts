@@ -21,9 +21,10 @@ import {
 
 export interface SubMenuItem {
   label: string;
-  href: string;
+  href?: string;
   badge?: string;
   badgeVariant?: "primary" | "gray" | "red";
+  submenu?: SubMenuItem[];
 }
 
 export interface MenuItem {
@@ -59,7 +60,16 @@ export const menuConfig: MenuGroup[] = [
         icon: Landmark,
         submenu: [
           { label: "Pilih Histori", href: "/eselon1/pilih-histori" },
-          { label: "Isian Bab I", href: "/eselon1/bab-1" },
+          {
+            label: "Isian Bab I",
+            href: "/eselon1/bab-1",
+            submenu: [
+              { label: "Gambaran Umum", href: "/eselon1/bab-1?tab=gambaran-umum" },
+              { label: "Capaian Kinerja", href: "/eselon1/bab-1?tab=capaian-kinerja" },
+              { label: "Arah Kebijakan, Strategi, & Target Kinerja", href: "/eselon1/bab-1?tab=arah-kebijakan" },
+              { label: "Analisis Situasi", href: "/eselon1/bab-1?tab=analisis-situasi" },
+            ],
+          },
           { label: "Isian Bab II", href: "/eselon1/bab-2" },
           { label: "Monitoring Submit & Approve Data", href: "/eselon1/monitoring" },
         ],
@@ -68,21 +78,21 @@ export const menuConfig: MenuGroup[] = [
         label: "Renja Eselon II",
         icon: Building,
         submenu: [
-          { label: "Profil & Capaian Kinerja Satker", href: "/patih/profil-satker" },
-          { label: "Rencana Output & 40 Pelatihan", href: "/patih/rencana-output" },
-          { label: "Belanja Modal Sarpras Internal", href: "/patih/sarpras" },
-          { label: "Rekapitulasi Pagu & Target PNBP", href: "/patih/rekapitulasi-pnbp" },
-          { label: "Kamus Rincian Output (RO)", href: "/patih/kamus-ro" },
-        ],
-      },
-      {
-        label: "Kerangka Acuan Kerja (TOR)",
-        icon: FileSpreadsheet,
-        badge: "APH",
-        badgeVariant: "red",
-        submenu: [
-          { label: "Penyusunan KAK/TOR Rinci", href: "/kak/penyusunan" },
-          { label: "Distribusi Jadwal Triwulan (TW I-IV)", href: "/kak/jadwal-triwulan" },
+          { label: "Pilih Histori", href: "/eselon2/pilih-histori" },
+          {
+            label: "Isian Bab I",
+            href: "/eselon2/bab-1",
+            submenu: [
+              { label: "Gambaran Umum", href: "/eselon2/bab-1?tab=gambaran-umum" },
+              { label: "Capaian Kinerja", href: "/eselon2/bab-1?tab=capaian-kinerja" },
+              { label: "Arah Kebijakan, Strategi, & Target Kinerja", href: "/eselon2/bab-1?tab=arah-kebijakan" },
+              { label: "Analisis Situasi", href: "/eselon2/bab-1?tab=analisis-situasi" },
+            ],
+          },
+          { label: "Isian Bab II", href: "/eselon2/bab-2" },
+          { label: "Isian Bab III", href: "/eselon2/bab-3" },
+          { label: "Isian Lampiran", href: "/eselon2/lampiran" },
+          { label: "Monitoring Submit & Approve Data", href: "/eselon2/monitoring" },
         ],
       },
     ],
@@ -91,14 +101,32 @@ export const menuConfig: MenuGroup[] = [
     groupLabel: "Penganggaran & Biaya",
     items: [
       {
+        label: "Kerangka Acuan Kerja (TOR)",
+        icon: FileSpreadsheet,
+        submenu: [
+          { label: "Pilih Histori", href: "/kak/pilih-histori" },
+          { label: "Isian KAK/TOR", href: "/kak/isian" },
+          { label: "Isian KAK/TOR Pengadaan", href: "/kak/pengadaan" },
+          { label: "Monitoring Submit & Approve Data", href: "/kak/monitoring" },
+        ],
+      },
+      {
         label: "Rencana Anggaran Biaya (RAB)",
         icon: Calculator,
-        badge: "Rp 2,2 M",
-        badgeVariant: "primary",
         submenu: [
-          { label: "Input RAB Rinci (Kalkulator 4 Faktor)", href: "/rab/input-rinci" },
-          { label: "Kertas Kerja RKA-K/L (Rekap Akun)", href: "/rab/kertas-kerja" },
-          { label: "Pengelolaan Tahapan Pagu", href: "/rab/tahapan-pagu" },
+          { label: "Pilih Histori", href: "/rab/pilih-histori" },
+          { label: "Isian RAB", href: "/rab/isian" },
+          { label: "Revisi Anggaran", href: "/rab/revisi" },
+          { label: "Automatic Adjustment", href: "/rab/automatic-adjustment" },
+          {
+            label: "Laporan RAB",
+            submenu: [
+              { label: "Matriks Usulan Revisi", href: "/rab/matriks-usulan-revisi" },
+              { label: "Monitoring Blokir", href: "/rab/monitoring-blokir" },
+              { label: "Monitoring RPD", href: "/rab/monitoring-rpd" },
+            ],
+          },
+          { label: "Monitoring Submit & Approve Data", href: "/rab/monitoring" },
         ],
       },
     ],

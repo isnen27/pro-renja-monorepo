@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
   FileSpreadsheet,
@@ -14,6 +14,14 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpRight,
+  LayoutGrid,
+  List,
+  Layers,
+  Filter,
+  SlidersHorizontal,
+  BookOpen,
+  AlertCircle,
+  FileText,
 } from "lucide-react";
 import { menuConfig } from "../components/navigation/menuConfig";
 import {
@@ -24,8 +32,14 @@ import {
   type RabItem,
 } from "../data/ppatkData";
 import {
+  allSbmList,
   allSbmPmk32List,
   sbmTablesList,
+  allSbkList,
+  sbkuList,
+  sbkkList,
+  type SbkItem,
+  type SbmItem,
 } from "../data/sbmPmk32Data";
 import {
   baganAkunStandar as fullBaganAkunStandar,
@@ -49,12 +63,32 @@ export default function ModulePage() {
   const [selectedAkun, setSelectedAkun] = useState("Semua");
   const [, setShowAddModal] = useState(false);
 
-  // State for SBM Explorer - Per page selection
   const [sbmSearch, setSbmSearch] = useState("");
   const [sbmTableFilter, setSbmTableFilter] = useState("Semua");
   const [sbmCategoryFilter, setSbmCategoryFilter] = useState("Semua");
   const [sbmRowsPerPage, setSbmRowsPerPage] = useState(20);
   const [sbmCurrentPage, setSbmCurrentPage] = useState(1);
+  const [isSbmDropdownOpen, setIsSbmDropdownOpen] = useState(false);
+  const [sbmDropdownSearch, setSbmDropdownSearch] = useState("");
+  const sbmDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sbmDropdownRef.current && !sbmDropdownRef.current.contains(event.target as Node)) {
+        setIsSbmDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // State for SBK Explorer - Clustered (SBKU & SBKK)
+  const [sbkClusterFilter, setSbkClusterFilter] = useState<"Semua" | "SBKU" | "SBKK">("Semua");
+  const [sbkCategoryFilter, setSbkCategoryFilter] = useState<string>("Semua");
+  const [sbkSearch, setSbkSearch] = useState("");
+  const [sbkViewMode, setSbkViewMode] = useState<"table" | "grid">("table");
+  const [sbkRowsPerPage, setSbkRowsPerPage] = useState(15);
+  const [sbkCurrentPage, setSbkCurrentPage] = useState(1);
 
   // State for BAS
   const [basSearch, setBasSearch] = useState("");
@@ -156,11 +190,20 @@ export default function ModulePage() {
   const title = currentSub ? currentSub.label : currentItem?.label || "Modul PPATK";
   const parentTitle = currentSub ? currentItem?.label : currentGroup?.groupLabel;
 
-  // Filter SBM list (only items with besaran > 0)
+  // Filter SBM list (only items with besaran > 0 and excluding any header rows)
   const filteredSbmList = useMemo(() => {
     const q = sbmSearch.toLowerCase().trim();
-    return allSbmPmk32List.filter((item) => {
+    const headerKeywords = [
+      'no', 'no.', 'no/uraian', 'uraian', 'satuan', 'besaran', 'no/ibukota provinsi',
+      'ibukota provinsi', 'kabupaten/kota tujuan', 'no/provinsi', 'provinsi', 'kota',
+      'golongan', 'satuan biaya tiket', 'nilai', 'jumlah', 'published', 'business', 'first'
+    ];
+
+    return allSbmList.filter((item) => {
       if (item.besaran <= 0 || !item.besaran) return false;
+      const uLower = item.uraian.toLowerCase().trim();
+      if (headerKeywords.includes(uLower)) return false;
+
       const matchText =
         !q ||
         item.uraian.toLowerCase().includes(q) ||
@@ -178,6 +221,42 @@ export default function ModulePage() {
     const start = (sbmCurrentPage - 1) * sbmRowsPerPage;
     return filteredSbmList.slice(start, start + sbmRowsPerPage);
   }, [filteredSbmList, sbmCurrentPage, sbmRowsPerPage]);
+
+  // Unique categories for SBK based on selected cluster
+  const sbkAvailableCategories = useMemo(() => {
+    let items = allSbkList;
+    if (sbkClusterFilter !== "Semua") {
+      items = items.filter((s) => s.kelompok === sbkClusterFilter);
+    }
+    const cats = new Set<string>();
+    items.forEach((s) => {
+      if (s.kategori) cats.add(s.kategori);
+    });
+    return Array.from(cats);
+  }, [sbkClusterFilter]);
+
+  // Filtered SBK list
+  const filteredSbkList = useMemo(() => {
+    const q = sbkSearch.toLowerCase().trim();
+    return allSbkList.filter((item) => {
+      const matchCluster = sbkClusterFilter === "Semua" || item.kelompok === sbkClusterFilter;
+      const matchCat = sbkCategoryFilter === "Semua" || item.kategori === sbkCategoryFilter;
+      const matchSearch =
+        !q ||
+        item.kode.toLowerCase().includes(q) ||
+        item.uraian.toLowerCase().includes(q) ||
+        item.kategori.toLowerCase().includes(q) ||
+        item.satker.toLowerCase().includes(q) ||
+        item.satuan.toLowerCase().includes(q);
+      return matchCluster && matchCat && matchSearch;
+    });
+  }, [sbkClusterFilter, sbkCategoryFilter, sbkSearch]);
+
+  const sbkTotalPages = Math.max(1, Math.ceil(filteredSbkList.length / sbkRowsPerPage));
+  const paginatedSbkList = useMemo(() => {
+    const start = (sbkCurrentPage - 1) * sbkRowsPerPage;
+    return filteredSbkList.slice(start, start + sbkRowsPerPage);
+  }, [filteredSbkList, sbkCurrentPage, sbkRowsPerPage]);
 
   // Filter Rekap Sasaran Renja All (Tab 1)
   const filteredRekapRenja = useMemo(() => {
@@ -197,17 +276,26 @@ export default function ModulePage() {
     });
   }, [selectedProgramFilter, selectedKegiatanFilter, selectedTypeFilter, kinerjaSearch]);
 
-  const rekapRenjaTotalPages = Math.max(1, Math.ceil(filteredRekapRenja.length / kinerjaRowsPerPage));
-  const paginatedRekapRenja = useMemo(() => {
-    const start = (kinerjaCurrentPage - 1) * kinerjaRowsPerPage;
-    return filteredRekapRenja.slice(start, start + kinerjaRowsPerPage);
-  }, [filteredRekapRenja, kinerjaCurrentPage, kinerjaRowsPerPage]);
-
   // Filter Informasi Kinerja Komponen (Tab 2)
   const filteredKomponenList = useMemo(() => {
     const q = kinerjaSearch.toLowerCase().trim();
-    return rawInformasiKinerja.filter((row: any) => {
-      const matchProg = selectedProgramFilter === "Semua" || row.program.includes(selectedProgramFilter);
+    // Ekstrak kode kegiatan (misal "3384" dari "3384 - Pelaksanaan...")
+    const selectedKegiatanCode =
+      selectedKegiatanFilter !== "Semua" ? selectedKegiatanFilter.split(" ")[0].trim() : "";
+
+    const rawFiltered = rawInformasiKinerja.filter((row: any) => {
+      // 1. Program Filter
+      const matchProg =
+        selectedProgramFilter === "Semua" || row.program.includes(selectedProgramFilter);
+
+      // 2. Kegiatan Filter
+      const matchKeg =
+        !selectedKegiatanCode ||
+        row.kegiatan.startsWith(selectedKegiatanCode) ||
+        row.kro.startsWith(selectedKegiatanCode) ||
+        row.ro.startsWith(selectedKegiatanCode);
+
+      // 3. Search Filter
       const matchSearch =
         !q ||
         row.kro.toLowerCase().includes(q) ||
@@ -215,9 +303,86 @@ export default function ModulePage() {
         row.komponen.toLowerCase().includes(q) ||
         row.unitKerja.toLowerCase().includes(q) ||
         row.kegiatan.toLowerCase().includes(q);
-      return matchProg && matchSearch;
+
+      return matchProg && matchKeg && matchSearch;
     });
-  }, [selectedProgramFilter, kinerjaSearch]);
+
+    // 4. Level Filter
+    if (selectedTypeFilter === "KRO_RO") {
+      // Tampilkan rekap per KRO & Rincian Output (RO) yang unik
+      const seen = new Set<string>();
+      const kroRoList: any[] = [];
+      rawFiltered.forEach((row: any) => {
+        const key = `${row.kro}|||${row.ro}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          const relatedComponents = rawFiltered.filter(
+            (r: any) => r.kro === row.kro && r.ro === row.ro
+          );
+          kroRoList.push({
+            ...row,
+            id: `ro_${row.id}`,
+            komponen:
+              relatedComponents.length === 1
+                ? relatedComponents[0].komponen
+                : `${relatedComponents.length} Komponen (${relatedComponents.map((c: any) => c.komponen.split(" ")[0]).join(", ")})`,
+          });
+        }
+      });
+      return kroRoList;
+    }
+
+    if (selectedTypeFilter === "SASARAN_PROGRAM") {
+      // Tampilkan rekap agregat per Program
+      const seen = new Set<string>();
+      const spList: any[] = [];
+      rawFiltered.forEach((row: any) => {
+        if (!seen.has(row.program)) {
+          seen.add(row.program);
+          const related = rawFiltered.filter((r: any) => r.program === row.program);
+          spList.push({
+            ...row,
+            id: `sp_${row.id}`,
+            kegiatan: "Semua Kegiatan Program",
+            kro: `${new Set(related.map((r: any) => r.kro)).size} KRO`,
+            ro: `${new Set(related.map((r: any) => r.ro)).size} Rincian Output (RO)`,
+            komponen: `${related.length} Komponen Kegiatan`,
+          });
+        }
+      });
+      return spList;
+    }
+
+    if (selectedTypeFilter === "SASARAN_KEGIATAN") {
+      // Tampilkan rekap agregat per Kegiatan
+      const seen = new Set<string>();
+      const skList: any[] = [];
+      rawFiltered.forEach((row: any) => {
+        if (!seen.has(row.kegiatan)) {
+          seen.add(row.kegiatan);
+          const related = rawFiltered.filter((r: any) => r.kegiatan === row.kegiatan);
+          skList.push({
+            ...row,
+            id: `sk_${row.id}`,
+            kro: `${new Set(related.map((r: any) => r.kro)).size} KRO`,
+            ro: `${new Set(related.map((r: any) => r.ro)).size} Rincian Output (RO)`,
+            komponen: `${related.length} Komponen Kegiatan`,
+          });
+        }
+      });
+      return skList;
+    }
+
+    return rawFiltered;
+  }, [selectedProgramFilter, selectedKegiatanFilter, selectedTypeFilter, kinerjaSearch]);
+
+  const currentTabTotalItems =
+    activeTabKinerja === "sasaran" ? filteredRekapRenja.length : filteredKomponenList.length;
+  const currentTabTotalPages = Math.max(1, Math.ceil(currentTabTotalItems / kinerjaRowsPerPage));
+  const paginatedRekapRenja = useMemo(() => {
+    const start = (kinerjaCurrentPage - 1) * kinerjaRowsPerPage;
+    return filteredRekapRenja.slice(start, start + kinerjaRowsPerPage);
+  }, [filteredRekapRenja, kinerjaCurrentPage, kinerjaRowsPerPage]);
 
   // List of Kegiatan under selected program
   const availableKegiatanList = useMemo(() => {
@@ -468,172 +633,344 @@ export default function ModulePage() {
 
       {/* ══════════════════════════════════════════════════════════════
           2. MODUL KHUSUS: STANDAR BIAYA MASUKAN (SBM) & KELUARAN (SBK)
+             RUJUKAN: KMK NOMOR 296 TAHUN 2026
          ══════════════════════════════════════════════════════════════ */}
       {path.startsWith("/standar-biaya") && (
         <div className="space-y-6">
+          {/* ──────────────────────────────────────────────────────────
+              2A. SUBMENU SBM: STANDAR BIAYA MASUKAN (KMK 296/2026)
+              66 Tabel (37 Batas Tertinggi + 29 Dapat Dilampaui)
+             ────────────────────────────────────────────────────────── */}
           {path === "/standar-biaya/sbm" && (
-            <div className="space-y-4">
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
-                <div className="relative w-full lg:w-80">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
-                  <input
-                    type="text"
-                    value={sbmSearch}
-                    onChange={(e) => {
-                      setSbmSearch(e.target.value);
-                      setSbmCurrentPage(1);
-                    }}
-                    placeholder="Cari kata kunci (misal: honor, uang makan, tiket, Bali, Papua)..."
-                    className="w-full pl-9 pr-4 py-1.5 text-xs rounded-xl border border-[var(--border)] bg-[var(--accent)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                  />
+            <div className="space-y-5">
+              {/* Header Box Rujukan Regulasi KMK 296/2026 - Putih Polos */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[0.68rem] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                        Regulasi Rujukan: KMK Nomor 296 Tahun 2026
+                      </span>
+                      <span className="text-[0.68rem] font-semibold text-slate-500">
+                        Tahun Anggaran 2026 / 2027
+                      </span>
+                    </div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Standar Biaya Masukan (SBM) TA 2026 / 2027
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Keputusan Menteri Keuangan Nomor 296 Tahun 2026 tentang Standar Biaya Masukan — Terdiri atas Lampiran I (Batas Tertinggi) dan Lampiran II (Dapat Dilampaui / Estimasi).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-right">
+                    <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-left">
+                      <div className="text-[0.65rem] text-slate-500 font-medium">Total Terintegrasi</div>
+                      <div className="text-xs font-bold text-slate-900">
+                        {sbmTablesList.length} Tabel · {allSbmList.length.toLocaleString("id-ID")} Data
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                  <select
-                    value={sbmCategoryFilter}
-                    onChange={(e) => {
-                      setSbmCategoryFilter(e.target.value);
-                      setSbmTableFilter("Semua");
-                      setSbmCurrentPage(1);
-                    }}
-                    className="px-2.5 py-1.5 text-xs rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--text)] font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                  >
-                    <option value="Semua">Semua Kategori (Lampiran I & II)</option>
-                    <option value="Lampiran I (Batas Tertinggi)">Lampiran I (Batas Tertinggi)</option>
-                    <option value="Lampiran II (Dapat Dilampaui)">Lampiran II (Dapat Dilampaui)</option>
-                  </select>
+                {/* 3 Metrics Cards - Putih Polos */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg border border-slate-200 bg-white">
+                    <div className="text-[0.7rem] text-slate-500 font-medium">Lampiran I (Batas Tertinggi)</div>
+                    <div className="text-base font-bold text-slate-900 mt-0.5">
+                      {sbmTablesList.filter((t) => t.lampiran.includes("Batas Tertinggi")).length} Tabel ·{" "}
+                      {allSbmList.filter((i) => i.lampiran.includes("Batas Tertinggi")).length.toLocaleString("id-ID")} Item
+                    </div>
+                    <div className="text-[0.65rem] text-slate-400 mt-0.5">Tidak dapat dilampaui dalam perencanaan</div>
+                  </div>
 
-                  <select
-                    value={sbmTableFilter}
-                    onChange={(e) => {
-                      setSbmTableFilter(e.target.value);
-                      setSbmCurrentPage(1);
-                    }}
-                    className="max-w-[280px] sm:max-w-[360px] px-2.5 py-1.5 text-xs rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                  >
-                    <option value="Semua">Semua Jenis Tabel SBM</option>
-                    {sbmTablesList
-                      .filter((t) => sbmCategoryFilter === "Semua" || t.lampiran === sbmCategoryFilter)
-                      .map((t) => (
-                        <option key={t.kodeTabel} value={t.kodeTabel}>
-                          {t.jenisTabel} ({t.page})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
+                  <div className="p-3 rounded-lg border border-slate-200 bg-white">
+                    <div className="text-[0.7rem] text-slate-500 font-medium">Lampiran II (Dapat Dilampaui)</div>
+                    <div className="text-base font-bold text-slate-900 mt-0.5">
+                      {sbmTablesList.filter((t) => t.lampiran.includes("Dapat Dilampaui")).length} Tabel ·{" "}
+                      {allSbmList.filter((i) => i.lampiran.includes("Dapat Dilampaui")).length.toLocaleString("id-ID")} Item
+                    </div>
+                    <div className="text-[0.65rem] text-slate-400 mt-0.5">Besaran estimasi yang dapat disesuaikan</div>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--text-muted)] font-medium">Baris per halaman:</span>
-                  <select
-                    value={sbmRowsPerPage}
-                    onChange={(e) => {
-                      setSbmRowsPerPage(Number(e.target.value));
-                      setSbmCurrentPage(1);
-                    }}
-                    className="px-3 py-1 text-xs rounded-xl border border-[var(--border)] bg-[var(--accent)] text-[var(--text)] font-bold focus:outline-none focus:ring-2 focus:ring-[var(--primary)] cursor-pointer"
-                  >
-                    <option value={10}>10 baris</option>
-                    <option value={20}>20 baris</option>
-                    <option value={50}>50 baris</option>
-                    <option value={100}>100 baris</option>
-                    <option value={200}>200 baris</option>
-                  </select>
-
-                  <span className="text-xs text-[var(--text-muted)]">
-                    Menampilkan {filteredSbmList.length > 0 ? (sbmCurrentPage - 1) * sbmRowsPerPage + 1 : 0} -{" "}
-                    {Math.min(sbmCurrentPage * sbmRowsPerPage, filteredSbmList.length)} dari{" "}
-                    <strong className="text-[var(--text)]">{filteredSbmList.length}</strong> data SBM
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setSbmCurrentPage(1)}
-                    disabled={sbmCurrentPage === 1}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
-                  >
-                    « First
-                  </button>
-                  <button
-                    onClick={() => setSbmCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={sbmCurrentPage === 1}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
-                  >
-                    ‹ Prev
-                  </button>
-                  <span className="px-3 py-1 text-xs font-bold text-[var(--primary)] bg-[var(--primary-bg)]/20 rounded-lg">
-                    {sbmCurrentPage} / {sbmTotalPages}
-                  </span>
-                  <button
-                    onClick={() => setSbmCurrentPage((p) => Math.min(sbmTotalPages, p + 1))}
-                    disabled={sbmCurrentPage >= sbmTotalPages}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
-                  >
-                    Next ›
-                  </button>
-                  <button
-                    onClick={() => setSbmCurrentPage(sbmTotalPages)}
-                    disabled={sbmCurrentPage >= sbmTotalPages}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
-                  >
-                    Last »
-                  </button>
+                  <div className="p-3 rounded-lg border border-slate-200 bg-white">
+                    <div className="text-[0.7rem] text-slate-500 font-medium">Dasar Hukum</div>
+                    <div className="text-base font-bold text-slate-900 mt-0.5">KMK No. 296 Th. 2026</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="aksi-card overflow-hidden">
+              {/* Toolbar Pencarian & Filter SBM */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+                  <div className="relative w-full lg:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={sbmSearch}
+                      onChange={(e) => {
+                        setSbmSearch(e.target.value);
+                        setSbmCurrentPage(1);
+                      }}
+                      placeholder="Cari komponen biaya, spesifikasi, provinsi, dsb..."
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    {/* Filter Kategori Lampiran SBM */}
+                    <select
+                      value={sbmCategoryFilter}
+                      onChange={(e) => {
+                        setSbmCategoryFilter(e.target.value);
+                        setSbmTableFilter("Semua");
+                        setSbmCurrentPage(1);
+                      }}
+                      className="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+                    >
+                      <option value="Semua">Semua Lampiran ({sbmTablesList.length} Tabel)</option>
+                      <option value="Lampiran I (Batas Tertinggi)">
+                        Lampiran I: Batas Tertinggi ({sbmTablesList.filter((t) => t.lampiran.includes("Batas Tertinggi")).length} Tabel)
+                      </option>
+                      <option value="Lampiran II (Dapat Dilampaui)">
+                        Lampiran II: Dapat Dilampaui ({sbmTablesList.filter((t) => t.lampiran.includes("Dapat Dilampaui")).length} Tabel)
+                      </option>
+                    </select>
+
+                    {/* Filter Dropdown Tabel SBM Kustom (Responsif, Anti-Glitch & Anti-Overflow) */}
+                    <div className="relative" ref={sbmDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsSbmDropdownOpen(!isSbmDropdownOpen)}
+                        className="w-full sm:w-[320px] md:w-[380px] lg:w-[420px] flex items-center justify-between gap-2 px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 hover:border-slate-400 transition-colors text-left"
+                      >
+                        <span className="truncate font-medium">
+                          {sbmTableFilter === "Semua" ? (
+                            `Semua Jenis Tabel SBM (${sbmTablesList.filter((t) => sbmCategoryFilter === "Semua" || t.lampiran === sbmCategoryFilter).length} Tabel)`
+                          ) : (
+                            (() => {
+                              const activeT = sbmTablesList.find((t) => t.kodeTabel === sbmTableFilter);
+                              return activeT ? `${activeT.page}: ${activeT.jenisTabel}` : sbmTableFilter;
+                            })()
+                          )}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isSbmDropdownOpen ? "rotate-180" : ""}`} />
+                      </button>
+
+                      {isSbmDropdownOpen && (
+                        <div className="absolute right-0 sm:right-auto sm:left-0 mt-1 w-[90vw] sm:w-[420px] md:w-[480px] max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-slate-200 shadow-2xl z-50 overflow-hidden flex flex-col">
+                          {/* Search inside dropdown */}
+                          <div className="p-2 border-b border-slate-100 bg-slate-50">
+                            <div className="relative">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                              <input
+                                type="text"
+                                value={sbmDropdownSearch}
+                                onChange={(e) => setSbmDropdownSearch(e.target.value)}
+                                placeholder="Cari nama atau nomor tabel..."
+                                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-slate-400"
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+
+                          {/* List items with max-height and custom scrollbar */}
+                          <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSbmTableFilter("Semua");
+                                setSbmCurrentPage(1);
+                                setIsSbmDropdownOpen(false);
+                                setSbmDropdownSearch("");
+                              }}
+                              className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 transition-colors flex items-center justify-between ${
+                                sbmTableFilter === "Semua" ? "bg-slate-100/80 font-bold text-slate-900" : "text-slate-700"
+                              }`}
+                            >
+                              <span>Semua Jenis Tabel SBM</span>
+                              <span className="text-[0.65rem] text-slate-400 px-1.5 py-0.5 rounded bg-slate-100">
+                                {sbmTablesList.filter((t) => sbmCategoryFilter === "Semua" || t.lampiran === sbmCategoryFilter).length} Tabel
+                              </span>
+                            </button>
+
+                            {sbmTablesList
+                              .filter((t) => sbmCategoryFilter === "Semua" || t.lampiran === sbmCategoryFilter)
+                              .filter((t) => {
+                                if (!sbmDropdownSearch) return true;
+                                const q = sbmDropdownSearch.toLowerCase();
+                                return (
+                                  t.page.toLowerCase().includes(q) ||
+                                  t.jenisTabel.toLowerCase().includes(q) ||
+                                  t.kodeTabel.toLowerCase().includes(q)
+                                );
+                              })
+                              .map((t) => {
+                                const isSelected = sbmTableFilter === t.kodeTabel;
+                                return (
+                                  <button
+                                    key={t.kodeTabel}
+                                    type="button"
+                                    onClick={() => {
+                                      setSbmTableFilter(t.kodeTabel);
+                                      setSbmCurrentPage(1);
+                                      setIsSbmDropdownOpen(false);
+                                      setSbmDropdownSearch("");
+                                    }}
+                                    className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 transition-colors flex items-start justify-between gap-2.5 ${
+                                      isSelected ? "bg-slate-100/80 font-bold text-slate-900" : "text-slate-700"
+                                    }`}
+                                  >
+                                    <div className="flex-1 min-w-0 pr-1">
+                                      <div className="font-semibold text-slate-900 break-words leading-tight">
+                                        {t.page}: {t.jenisTabel}
+                                      </div>
+                                      <div className="text-[0.65rem] text-slate-400 mt-0.5">
+                                        {t.lampiran}
+                                      </div>
+                                    </div>
+                                    <span className="shrink-0 text-[0.65rem] font-medium text-slate-500 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
+                                      {t.itemCount} item
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-bar Pagination & Info Data */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 font-medium">Baris per halaman:</span>
+                    <select
+                      value={sbmRowsPerPage}
+                      onChange={(e) => {
+                        setSbmRowsPerPage(Number(e.target.value));
+                        setSbmCurrentPage(1);
+                      }}
+                      className="px-2.5 py-1 text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-bold focus:outline-none cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+
+                    <span className="text-xs text-slate-600">
+                      Menampilkan{" "}
+                      <strong className="text-slate-900">
+                        {filteredSbmList.length > 0 ? (sbmCurrentPage - 1) * sbmRowsPerPage + 1 : 0}
+                      </strong>{" "}
+                      -{" "}
+                      <strong className="text-slate-900">
+                        {Math.min(sbmCurrentPage * sbmRowsPerPage, filteredSbmList.length)}
+                      </strong>{" "}
+                      dari <strong className="text-slate-900">{filteredSbmList.length}</strong> data SBM
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setSbmCurrentPage(1)}
+                      disabled={sbmCurrentPage === 1}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      « Awal
+                    </button>
+                    <button
+                      onClick={() => setSbmCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={sbmCurrentPage === 1}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      ‹ Sebelumnya
+                    </button>
+                    <span className="px-3 py-1 text-xs font-bold text-slate-900 bg-slate-100 rounded-lg border border-slate-200">
+                      {sbmCurrentPage} / {sbmTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setSbmCurrentPage((p) => Math.min(sbmTotalPages, p + 1))}
+                      disabled={sbmCurrentPage >= sbmTotalPages}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Selanjutnya ›
+                    </button>
+                    <button
+                      onClick={() => setSbmCurrentPage(sbmTotalPages)}
+                      disabled={sbmCurrentPage >= sbmTotalPages}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Akhir »
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabel SBM - Putih Polos & Header Center */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[var(--accent)] text-[var(--text-muted)] font-bold border-b border-[var(--border)]">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-white text-slate-800 font-bold border-b-2 border-slate-200">
                       <tr>
-                        <th className="py-2.5 px-3">Ketentuan SBM</th>
-                        <th className="py-2.5 px-3">Jenis Tabel</th>
-                        <th className="py-2.5 px-3">Uraian Komponen Biaya SBM</th>
-                        <th className="py-2.5 px-3">Satuan</th>
-                        <th className="py-2.5 px-3 text-right">Besaran / Tarif (Rp)</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200 w-12">No</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200 w-32">Ketentuan SBM</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200 w-64">Jenis Tabel & Halaman</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200">Uraian Komponen Biaya SBM & Spesifikasi</th>
+                        <th className="py-3 px-3 text-center border-r border-slate-200 w-28">Satuan</th>
+                        <th className="py-3 px-3 text-center w-36">Besaran / Tarif (Rp/ $)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
+                    <tbody className="divide-y divide-slate-200 bg-white">
                       {paginatedSbmList.length > 0 ? (
-                        paginatedSbmList.map((item) => (
-                          <tr key={item.id} className="hover:bg-[var(--accent)]/40 transition-colors">
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span
-                                className={`text-[0.68rem] px-2 py-0.5 rounded-full font-semibold ${
-                                  item.kategori.includes("Batas Tertinggi")
-                                    ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
-                                    : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                                }`}
-                              >
-                                {item.kategori.includes("Batas Tertinggi") ? "Lampiran I" : "Lampiran II"}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 font-semibold text-[var(--text)] max-w-xs">
-                              <div className="text-[0.75rem]">{item.jenisTabel}</div>
-                              <div className="text-[0.65rem] text-[var(--text-muted)] font-mono">
-                                {item.halaman} ({item.kodeTabel})
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 font-medium text-[var(--text)]">
-                              <div>{item.uraian}</div>
-                              {item.spesifikasi && (
-                                <div className="text-[0.65rem] text-[var(--text-muted)] italic">{item.spesifikasi}</div>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap font-bold text-[var(--text-muted)]">
-                              {item.satuan}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-[var(--primary)] tabular-nums whitespace-nowrap">
-                              Rp {item.besaran.toLocaleString("id-ID")}
-                            </td>
-                          </tr>
-                        ))
+                        paginatedSbmList.map((item, idx) => {
+                          const rowNum = (sbmCurrentPage - 1) * sbmRowsPerPage + idx + 1;
+                          const isBatasTertinggi = item.kategori.includes("Batas Tertinggi");
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-2.5 px-3 text-center text-slate-500 font-mono border-r border-slate-100">
+                                {rowNum}
+                              </td>
+                              <td className="py-2.5 px-3 text-center border-r border-slate-100 whitespace-nowrap">
+                                <span
+                                  className={`text-[0.68rem] px-2 py-0.5 rounded font-semibold border ${
+                                    isBatasTertinggi
+                                      ? "bg-slate-100 text-slate-800 border-slate-300"
+                                      : "bg-white text-slate-700 border-slate-300"
+                                  }`}
+                                >
+                                  {isBatasTertinggi ? "Lampiran I (Maksimal)" : "Lampiran II (Estimasi)"}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 border-r border-slate-100">
+                                <div className="font-semibold text-slate-900 text-[0.75rem]">{item.jenisTabel}</div>
+                                <div className="text-[0.65rem] text-slate-500 font-mono mt-0.5">
+                                  {item.halaman} ({item.kodeTabel})
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 border-r border-slate-100">
+                                <div className="font-medium text-slate-900">{item.uraian}</div>
+                                {item.spesifikasi && (
+                                  <div className="text-[0.68rem] text-slate-500 italic mt-0.5">
+                                    {item.spesifikasi}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-semibold text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                                {item.satuan}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-slate-900 tabular-nums whitespace-nowrap">
+                                {item.besaran.toLocaleString("id-ID")}
+                              </td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-[var(--text-muted)]">
-                            Tidak ada data SBM yang sesuai filter pencarian.
+                          <td colSpan={6} className="py-12 text-center text-slate-500">
+                            Tidak ada data Standar Biaya Masukan (SBM) yang sesuai dengan kriteria pencarian.
                           </td>
                         </tr>
                       )}
@@ -644,26 +981,490 @@ export default function ModulePage() {
             </div>
           )}
 
+          {/* ──────────────────────────────────────────────────────────
+              2B. SUBMENU SBK: STANDAR BIAYA KELUARAN (KMK 296/2026)
+              Dua Kelompok Tercluster:
+              1. Standar Biaya Keluaran Umum (SBKU) - 57 Output K/L
+              2. Standar Biaya Keluaran Khusus (SBKK) - 3 Output PPATK
+             ────────────────────────────────────────────────────────── */}
           {path === "/standar-biaya/sbk" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockSbk.map((sbk) => (
-                  <div key={sbk.kode} className="aksi-card p-5 space-y-2 border-t-4 border-t-[var(--primary)]">
-                    <div className="flex justify-between items-start">
-                      <span className="badge badge-primary">{sbk.kode}</span>
-                      <span className="text-[0.65rem] text-[var(--text-muted)] font-mono">{sbk.satuan}</span>
-                    </div>
-                    <h3 className="font-bold text-sm text-[var(--text)]">{sbk.nama}</h3>
-                    <p className="text-xs text-[var(--text-muted)]">{sbk.keterangan}</p>
-                    <div className="pt-3 mt-2 border-t border-[var(--border)] flex justify-between items-center">
-                      <span className="text-xs text-[var(--text-muted)]">Plafon Maksimal:</span>
-                      <span className="text-base font-black text-[var(--primary)] tabular-nums">
-                        Rp {sbk.paguMaks.toLocaleString("id-ID")}
+            <div className="space-y-5">
+              {/* Header Box Rujukan Regulasi KMK 296/2026 & Sumber DataSBKAll.xlsx - Putih Polos */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[0.68rem] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                        Regulasi Rujukan: KMK Nomor 296 Tahun 2026
+                      </span>
+                      <span className="text-[0.68rem] font-semibold text-slate-500">
+                        Sumber: DataSBKAll.xlsx
                       </span>
                     </div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Standar Biaya Keluaran (SBK) TA 2027
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Pedoman besaran biaya per satu satuan keluaran (output) kegiatan yang berlaku bagi Kementerian/Lembaga (SBKU) serta Satker Khusus PPATK (SBKK).
+                    </p>
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-left">
+                      <div className="text-[0.65rem] text-slate-500 font-medium">Total Output Terintegrasi</div>
+                      <div className="text-xs font-bold text-slate-900">60 Standar Biaya Keluaran</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Metrics Cards Ringkasan SBK - Putih Polos */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div
+                    onClick={() => {
+                      setSbkClusterFilter("SBKU");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`p-3.5 rounded-lg border transition-all cursor-pointer ${
+                      sbkClusterFilter === "SBKU"
+                        ? "border-slate-800 bg-slate-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-400"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[0.7rem] font-bold text-slate-600">CLUSTER 1: SBKU</span>
+                      <span className="text-[0.65rem] px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">
+                        57 Output
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900 mt-1">Standar Biaya Keluaran Umum</div>
+                    <div className="text-[0.68rem] text-slate-500 mt-0.5">
+                      Berlaku lintas K/L (10 Kategori Bidang Keluaran)
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      setSbkClusterFilter("SBKK");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`p-3.5 rounded-lg border transition-all cursor-pointer ${
+                      sbkClusterFilter === "SBKK"
+                        ? "border-slate-800 bg-slate-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-400"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[0.7rem] font-bold text-slate-600">CLUSTER 2: SBKK PPATK</span>
+                      <span className="text-[0.65rem] px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">
+                        3 Output
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900 mt-1">Standar Biaya Keluaran Khusus</div>
+                    <div className="text-[0.68rem] text-slate-500 mt-0.5">
+                      Khusus Satker PPATK (Pusdiklat & Analisis Pemeriksaan)
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      setSbkClusterFilter("Semua");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`p-3.5 rounded-lg border transition-all cursor-pointer ${
+                      sbkClusterFilter === "Semua"
+                        ? "border-slate-800 bg-slate-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-400"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[0.7rem] font-bold text-slate-600">SEMUA KELOMPOK</span>
+                      <span className="text-[0.65rem] px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">
+                        60 Output
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900 mt-1">Katalog Lengkap SBK TA 2027</div>
+                    <div className="text-[0.68rem] text-slate-500 mt-0.5">
+                      Gabungan SBKU (Umum) & SBKK (Khusus PPATK)
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Tab Selector Cluster SBK - Putih Polos */}
+              <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                  <button
+                    onClick={() => {
+                      setSbkClusterFilter("Semua");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      sbkClusterFilter === "Semua"
+                        ? "bg-slate-900 text-white"
+                        : "bg-white text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Semua Kelompok SBK (60)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSbkClusterFilter("SBKU");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      sbkClusterFilter === "SBKU"
+                        ? "bg-slate-900 text-white"
+                        : "bg-white text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Standar Biaya Keluaran Umum — SBKU (57)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSbkClusterFilter("SBKK");
+                      setSbkCategoryFilter("Semua");
+                      setSbkCurrentPage(1);
+                    }}
+                    className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      sbkClusterFilter === "SBKK"
+                        ? "bg-slate-900 text-white"
+                        : "bg-white text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Standar Biaya Keluaran Khusus — SBKK PPATK (3)
+                  </button>
+                </div>
+
+                {/* View Switcher: Tabel vs Grid Card */}
+                <div className="flex items-center gap-1 self-end sm:self-auto border border-slate-200 rounded-lg p-1 bg-white">
+                  <button
+                    onClick={() => setSbkViewMode("table")}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      sbkViewMode === "table"
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                    title="Tampilan Tabel"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    <span>Tabel</span>
+                  </button>
+                  <button
+                    onClick={() => setSbkViewMode("grid")}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      sbkViewMode === "grid"
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                    title="Tampilan Kartu Grid"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    <span>Kartu</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Penjelasan Khusus Cluster SBKK PPATK jika dipilih */}
+              {sbkClusterFilter === "SBKK" && (
+                <div className="bg-white border-2 border-slate-300 rounded-xl p-4 shadow-sm space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
+                      Khusus PPATK
+                    </span>
+                    <h3 className="text-xs font-bold text-slate-900">
+                      Rincian Standar Biaya Keluaran Khusus (SBKK) Pusat Pelaporan dan Analisis Transaksi Keuangan
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Berdasarkan KMK Nomor 296 Tahun 2026, PPATK memiliki 3 output khusus yang memiliki standar plafon biaya mandiri:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50">
+                      <div className="text-[0.65rem] font-bold text-slate-500 font-mono">3365.DCF.001</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">Diklat APU PPT</div>
+                      <div className="text-[0.68rem] text-slate-600 mt-0.5">Pusat Pendidikan & Pelatihan APUPPT</div>
+                      <div className="text-xs font-black text-slate-900 mt-1">Rp 81.156.000 / Orang</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50">
+                      <div className="text-[0.65rem] font-bold text-slate-500 font-mono">3384.QCE.003</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">Analisis Sektor Perjudian</div>
+                      <div className="text-[0.68rem] text-slate-600 mt-0.5">Kedeputian Analisis & Pemeriksaan</div>
+                      <div className="text-xs font-black text-slate-900 mt-1">Rp 132.245.000 / Perkara</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50">
+                      <div className="text-[0.65rem] font-bold text-slate-500 font-mono">3384.QCE.004</div>
+                      <div className="text-xs font-bold text-slate-900 mt-0.5">Analisis Sektor Lingkungan Hidup</div>
+                      <div className="text-[0.68rem] text-slate-600 mt-0.5">Kedeputian Analisis & Pemeriksaan</div>
+                      <div className="text-xs font-black text-slate-900 mt-1">Rp 106.698.000 / Perkara</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Toolbar Filter Kategori, Pencarian & Pagination SBK */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+                  <div className="relative w-full lg:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={sbkSearch}
+                      onChange={(e) => {
+                        setSbkSearch(e.target.value);
+                        setSbkCurrentPage(1);
+                      }}
+                      placeholder="Cari kode output, nomenklatur, kategori, atau satker..."
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    {/* Filter Kategori SBK Berdasarkan Cluster Terpilih */}
+                    <select
+                      value={sbkCategoryFilter}
+                      onChange={(e) => {
+                        setSbkCategoryFilter(e.target.value);
+                        setSbkCurrentPage(1);
+                      }}
+                      className="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer max-w-[320px]"
+                    >
+                      <option value="Semua">Semua Kategori Bidang Keluaran ({sbkAvailableCategories.length})</option>
+                      {sbkAvailableCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Baris Per Halaman */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 font-medium">Baris:</span>
+                      <select
+                        value={sbkRowsPerPage}
+                        onChange={(e) => {
+                          setSbkRowsPerPage(Number(e.target.value));
+                          setSbkCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-bold focus:outline-none cursor-pointer"
+                      >
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={30}>30</option>
+                        <option value={60}>60 (Semua)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Pagination SBK */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                  <span className="text-xs text-slate-600">
+                    Menampilkan{" "}
+                    <strong className="text-slate-900">
+                      {filteredSbkList.length > 0 ? (sbkCurrentPage - 1) * sbkRowsPerPage + 1 : 0}
+                    </strong>{" "}
+                    -{" "}
+                    <strong className="text-slate-900">
+                      {Math.min(sbkCurrentPage * sbkRowsPerPage, filteredSbkList.length)}
+                    </strong>{" "}
+                    dari <strong className="text-slate-900">{filteredSbkList.length}</strong> keluaran SBK
+                    {sbkClusterFilter !== "Semua" && (
+                      <span className="ml-1.5 text-slate-500">
+                        (Filter: Cluster <strong>{sbkClusterFilter}</strong>)
+                      </span>
+                    )}
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setSbkCurrentPage(1)}
+                      disabled={sbkCurrentPage === 1}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      « Awal
+                    </button>
+                    <button
+                      onClick={() => setSbkCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={sbkCurrentPage === 1}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      ‹ Sebelumnya
+                    </button>
+                    <span className="px-3 py-1 text-xs font-bold text-slate-900 bg-slate-100 rounded-lg border border-slate-200">
+                      {sbkCurrentPage} / {sbkTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setSbkCurrentPage((p) => Math.min(sbkTotalPages, p + 1))}
+                      disabled={sbkCurrentPage >= sbkTotalPages}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Selanjutnya ›
+                    </button>
+                    <button
+                      onClick={() => setSbkCurrentPage(sbkTotalPages)}
+                      disabled={sbkCurrentPage >= sbkTotalPages}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Akhir »
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* TAMPILAN 1: TABEL SBK (PUTIH POLOS & HEADER CENTER) */}
+              {sbkViewMode === "table" && (
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-white text-slate-800 font-bold border-b-2 border-slate-200">
+                        <tr>
+                          <th className="py-3 px-3 text-center border-r border-slate-200 w-12">No</th>
+                          <th className="py-3 px-3 text-center border-r border-slate-200 w-28">Cluster & Kode</th>
+                          <th className="py-3 px-3 text-center border-r border-slate-200 w-44">Kategori Bidang</th>
+                          <th className="py-3 px-3 text-center border-r border-slate-200">Uraian Nomenklatur Keluaran (Output)</th>
+                          <th className="py-3 px-3 text-center border-r border-slate-200 w-24">Satuan & Vol</th>
+                          <th className="py-3 px-3 text-center border-r border-slate-200 w-36">Besaran Plafon (Rp)</th>
+                          <th className="py-3 px-3 text-center w-52">Satuan Kerja / K/L Penerap</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {paginatedSbkList.length > 0 ? (
+                          paginatedSbkList.map((sbk, idx) => {
+                            const rowNum = (sbkCurrentPage - 1) * sbkRowsPerPage + idx + 1;
+                            const isKhusus = sbk.kelompok === "SBKK";
+                            return (
+                              <tr key={sbk.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-3 text-center text-slate-500 font-mono border-r border-slate-100">
+                                  {rowNum}
+                                </td>
+                                <td className="py-3 px-3 border-r border-slate-100">
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span
+                                      className={`text-[0.65rem] px-2 py-0.5 rounded font-bold border ${
+                                        isKhusus
+                                          ? "bg-slate-900 text-white border-slate-900"
+                                          : "bg-slate-100 text-slate-800 border-slate-300"
+                                      }`}
+                                    >
+                                      {sbk.kelompok}
+                                    </span>
+                                    <span className="font-mono text-[0.68rem] text-slate-700 font-semibold">
+                                      {sbk.kode}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3 border-r border-slate-100">
+                                  <span className="text-[0.72rem] font-semibold text-slate-700">
+                                    {sbk.kategori}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 border-r border-slate-100">
+                                  <div className="font-semibold text-slate-900 text-[0.78rem] leading-snug">
+                                    {sbk.uraian}
+                                  </div>
+                                  <div className="text-[0.65rem] text-slate-400 mt-0.5">
+                                    Dasar Regulasi: {sbk.dasarHukum}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3 text-center border-r border-slate-100 whitespace-nowrap">
+                                  <div className="font-bold text-slate-900">{sbk.volume}</div>
+                                  <div className="text-[0.68rem] text-slate-500">{sbk.satuan}</div>
+                                </td>
+                                <td className="py-3 px-3 text-right font-black text-slate-900 tabular-nums border-r border-slate-100 whitespace-nowrap">
+                                  Rp {sbk.besaran.toLocaleString("id-ID")}
+                                </td>
+                                <td className="py-3 px-3">
+                                  <div className="text-[0.72rem] font-medium text-slate-700">
+                                    {sbk.satker}
+                                  </div>
+                                  {isKhusus && (
+                                    <span className="inline-block mt-0.5 text-[0.65rem] font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-300">
+                                      ★ Khusus PPATK
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="py-12 text-center text-slate-500">
+                              Tidak ada data Standar Biaya Keluaran (SBK) yang sesuai dengan filter pencarian.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAMPILAN 2: GRID KARTU SBK (PUTIH POLOS) */}
+              {sbkViewMode === "grid" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedSbkList.map((sbk) => {
+                    const isKhusus = sbk.kelompok === "SBKK";
+                    return (
+                      <div
+                        key={sbk.id}
+                        className="bg-white border border-slate-200 rounded-xl p-5 space-y-3 shadow-sm hover:border-slate-400 transition-all flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`text-[0.68rem] font-bold px-2 py-0.5 rounded border ${
+                                isKhusus
+                                  ? "bg-slate-900 text-white border-slate-900"
+                                  : "bg-slate-100 text-slate-800 border-slate-300"
+                              }`}
+                            >
+                              {sbk.kelompok} · {sbk.kategori}
+                            </span>
+                            <span className="text-[0.68rem] font-mono font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                              {sbk.kode}
+                            </span>
+                          </div>
+
+                          <h3 className="font-bold text-xs text-slate-900 leading-snug">
+                            {sbk.uraian}
+                          </h3>
+
+                          <p className="text-[0.7rem] text-slate-500">
+                            Penerap: <strong className="text-slate-800">{sbk.satker}</strong>
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 text-[0.7rem]">Volume Output:</span>
+                            <span className="font-bold text-slate-800">
+                              {sbk.volume} {sbk.satuan}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500 font-medium">Besaran Plafon:</span>
+                            <span className="text-base font-black text-slate-900 tabular-nums">
+                              Rp {sbk.besaran.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+
+                          <div className="text-[0.62rem] text-slate-400 font-medium pt-1 border-t border-slate-50">
+                            Regulasi: {sbk.dasarHukum}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1285,9 +2086,24 @@ export default function ModulePage() {
                                 </span>
                               </div>
 
-                              <h5 className="font-bold text-xs text-[var(--text)] leading-snug mb-2.5">
+                              <h5 className="font-bold text-xs text-[var(--text)] leading-snug mb-1.5">
                                 {keg.kode_nama}
                               </h5>
+
+                              {/* Unit Kerja Badges for Kegiatan */}
+                              {keg.unit_kerja && (
+                                <div className="flex flex-wrap items-center gap-1 mb-2">
+                                  <span className="text-[0.6rem] font-bold text-[var(--text-muted)] uppercase">Unit Kerja:</span>
+                                  {(Array.isArray(keg.unit_kerja) ? keg.unit_kerja : [keg.unit_kerja]).map((uk: string, uIdx: number) => (
+                                    <span
+                                      key={uIdx}
+                                      className="px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                                    >
+                                      {uk}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
 
                               {/* List of Sasaran Kegiatan under this Kegiatan */}
                               <div className="space-y-2 border-t border-[var(--border)] pt-2">
@@ -1396,8 +2212,22 @@ export default function ModulePage() {
                                     key={rIdx}
                                     className="p-2.5 rounded-lg bg-[var(--card)] border border-purple-200 dark:border-purple-800 space-y-1.5"
                                   >
-                                    <div className="font-bold text-xs text-[var(--primary)] font-mono leading-tight">
-                                      {roItem.nama}
+                                    <div className="flex items-center justify-between gap-1">
+                                      <div className="font-bold text-xs text-[var(--primary)] font-mono leading-tight flex-1">
+                                        {roItem.nama}
+                                      </div>
+                                      {roItem.unit_kerja && (
+                                        <div className="flex flex-wrap gap-0.5 shrink-0">
+                                          {(Array.isArray(roItem.unit_kerja) ? roItem.unit_kerja : [roItem.unit_kerja]).map((uk: string, uIdx: number) => (
+                                            <span
+                                              key={uIdx}
+                                              className="px-1.5 py-0.5 rounded text-[0.58rem] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                            >
+                                              {uk}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
 
                                     {roItem.indikator.map((ind: any, iIdx: number) => (
@@ -1454,24 +2284,30 @@ export default function ModulePage() {
               {/* Tab Selector */}
               <div className="flex items-center gap-1 bg-[var(--accent)] p-1 rounded-xl border border-[var(--border)]">
                 <button
-                  onClick={() => setActiveTabKinerja("sasaran")}
+                  onClick={() => {
+                    setActiveTabKinerja("sasaran");
+                    setKinerjaCurrentPage(1);
+                  }}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                     activeTabKinerja === "sasaran"
                       ? "bg-[var(--primary)] text-white shadow"
                       : "text-[var(--text-muted)] hover:text-[var(--text)]"
                   }`}
                 >
-                  Hierarki Sasaran & RO (114)
+                  Hierarki Sasaran & RO ({filteredRekapRenja.length})
                 </button>
                 <button
-                  onClick={() => setActiveTabKinerja("komponen")}
+                  onClick={() => {
+                    setActiveTabKinerja("komponen");
+                    setKinerjaCurrentPage(1);
+                  }}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                     activeTabKinerja === "komponen"
                       ? "bg-[var(--primary)] text-white shadow"
                       : "text-[var(--text-muted)] hover:text-[var(--text)]"
                   }`}
                 >
-                  Katalog Komponen (443)
+                  Katalog Komponen ({filteredKomponenList.length})
                 </button>
               </div>
             </div>
@@ -1622,9 +2458,10 @@ export default function ModulePage() {
                 </select>
 
                 <span className="text-xs text-[var(--text-muted)]">
-                  Menampilkan {filteredRekapRenja.length > 0 ? (kinerjaCurrentPage - 1) * kinerjaRowsPerPage + 1 : 0} -{" "}
-                  {Math.min(kinerjaCurrentPage * kinerjaRowsPerPage, filteredRekapRenja.length)} dari{" "}
-                  <strong className="text-[var(--text)]">{filteredRekapRenja.length}</strong> data Renja All
+                  Menampilkan {currentTabTotalItems > 0 ? (kinerjaCurrentPage - 1) * kinerjaRowsPerPage + 1 : 0} -{" "}
+                  {Math.min(kinerjaCurrentPage * kinerjaRowsPerPage, currentTabTotalItems)} dari{" "}
+                  <strong className="text-[var(--text)]">{currentTabTotalItems}</strong> data{" "}
+                  {activeTabKinerja === "sasaran" ? "Renja All" : "Komponen"}
                 </span>
               </div>
 
@@ -1644,18 +2481,18 @@ export default function ModulePage() {
                   ‹ Prev
                 </button>
                 <span className="px-3 py-1 text-xs font-bold text-[var(--primary)] bg-[var(--primary-bg)]/20 rounded-lg">
-                  {kinerjaCurrentPage} / {rekapRenjaTotalPages}
+                  {kinerjaCurrentPage} / {currentTabTotalPages}
                 </span>
                 <button
-                  onClick={() => setKinerjaCurrentPage((p) => Math.min(rekapRenjaTotalPages, p + 1))}
-                  disabled={kinerjaCurrentPage >= rekapRenjaTotalPages}
+                  onClick={() => setKinerjaCurrentPage((p) => Math.min(currentTabTotalPages, p + 1))}
+                  disabled={kinerjaCurrentPage >= currentTabTotalPages}
                   className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
                 >
                   Next ›
                 </button>
                 <button
-                  onClick={() => setKinerjaCurrentPage(rekapRenjaTotalPages)}
-                  disabled={kinerjaCurrentPage >= rekapRenjaTotalPages}
+                  onClick={() => setKinerjaCurrentPage(currentTabTotalPages)}
+                  disabled={kinerjaCurrentPage >= currentTabTotalPages}
                   className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--card)] disabled:opacity-40 hover:bg-[var(--accent)] cursor-pointer"
                 >
                   Last »

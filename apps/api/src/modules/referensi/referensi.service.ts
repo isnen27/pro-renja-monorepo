@@ -1,9 +1,19 @@
 // src/modules/referensi/referensi.service.ts
 // Service for Referensi (Reference Data) Module
-
 import { db } from '../../database/index.js';
-import { baganAkunStandar, dataPejabat, standarBiayaKeluaran, dataOpd } from '../../database/schema.js';
-import { eq, like, or, desc, asc, sql, count } from 'drizzle-orm';
+import {
+  baganAkunStandar,
+  dataPejabat,
+  standarBiayaKeluaran,
+  dataOpd,
+  refVisiMisi,
+  refUnitKerja,
+  refSatker,
+  refInformasiKinerja,
+  refSasaranKinerja,
+  standarBiayaMasukan,
+} from '../../database/schema.js';
+import { eq, like, or, desc, asc, sql, count, and } from 'drizzle-orm';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BAGAN AKUN STANDAR SERVICE
@@ -267,8 +277,173 @@ export class OpdService {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// VISI & MISI PPATK SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class VisiMisiService {
+  async getVisiMisi() {
+    const result = await db.select().from(refVisiMisi).limit(1);
+    return result[0] || null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNIT KERJA SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class UnitKerjaService {
+  async getAll() {
+    return db.select().from(refUnitKerja).orderBy(refUnitKerja.nama);
+  }
+
+  async getBySingkatan(singkatan: string) {
+    const result = await db
+      .select()
+      .from(refUnitKerja)
+      .where(eq(refUnitKerja.singkatan, singkatan))
+      .limit(1);
+    return result[0] || null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SATKER SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class SatkerService {
+  async getAll() {
+    return db.select().from(refSatker).orderBy(refSatker.kode);
+  }
+
+  async getByKode(kode: string) {
+    const result = await db
+      .select()
+      .from(refSatker)
+      .where(eq(refSatker.kode, kode))
+      .limit(1);
+    return result[0] || null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INFORMASI KINERJA SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class InformasiKinerjaService {
+  async getAll(unitKerja?: string) {
+    if (unitKerja) {
+      return db
+        .select()
+        .from(refInformasiKinerja)
+        .where(eq(refInformasiKinerja.unitKerja, unitKerja))
+        .orderBy(refInformasiKinerja.id);
+    }
+    return db.select().from(refInformasiKinerja).orderBy(refInformasiKinerja.id);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SASARAN KINERJA (RENJA ALL) SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class SasaranKinerjaService {
+  async getAll(program?: string, type?: string) {
+    const conditions = [];
+    if (program && program !== 'Semua') {
+      conditions.push(like(refSasaranKinerja.program, `%${program}%`));
+    }
+    if (type && type !== 'Semua') {
+      conditions.push(eq(refSasaranKinerja.type, type));
+    }
+
+    if (conditions.length > 0) {
+      return db
+        .select()
+        .from(refSasaranKinerja)
+        .where(conditions[0])
+        .orderBy(refSasaranKinerja.id);
+    }
+    return db.select().from(refSasaranKinerja).orderBy(refSasaranKinerja.id);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STANDAR BIAYA MASUKAN (SBM) SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GetSbmParams {
+  search?: string;
+  kodeTabel?: string;
+  lampiran?: string;
+  page?: number;
+  limit?: number;
+}
+
+export class SbmService {
+  async getAll(params: GetSbmParams = {}): Promise<PaginatedResult<typeof standarBiayaMasukan.$inferSelect>> {
+    const { search, kodeTabel, lampiran, page = 1, limit = 50 } = params;
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+    if (search) {
+      conditions.push(
+        or(
+          like(standarBiayaMasukan.uraian, `%${search}%`),
+          like(standarBiayaMasukan.jenisTabel, `%${search}%`),
+          like(standarBiayaMasukan.kodeTabel, `%${search}%`)
+        )
+      );
+    }
+    if (kodeTabel) {
+      conditions.push(eq(standarBiayaMasukan.kodeTabel, kodeTabel));
+    }
+    if (lampiran) {
+      conditions.push(eq(standarBiayaMasukan.lampiran, lampiran));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(standarBiayaMasukan)
+      .where(whereClause);
+
+    const data = await db
+      .select()
+      .from(standarBiayaMasukan)
+      .where(whereClause)
+      .orderBy(standarBiayaMasukan.id)
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      data,
+      total: total || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((total || 0) / limit),
+    };
+  }
+
+  async getById(id: number) {
+    const result = await db
+      .select()
+      .from(standarBiayaMasukan)
+      .where(eq(standarBiayaMasukan.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+}
+
 // Export singleton instances
 export const baganAkunService = new BaganAkunService();
 export const pejabatService = new PejabatService();
 export const sbkService = new SbkService();
 export const opdService = new OpdService();
+export const visiMisiService = new VisiMisiService();
+export const unitKerjaService = new UnitKerjaService();
+export const satkerService = new SatkerService();
+export const informasiKinerjaService = new InformasiKinerjaService();
+export const sasaranKinerjaService = new SasaranKinerjaService();
+export const sbmService = new SbmService();
