@@ -118,6 +118,80 @@ function isOperasionalRo(roKodeOrUraian?: string): boolean {
   return s.includes("3377.EBA.994") || s.includes("3375.EBA.994");
 }
 
+// Tipe Baris Kertas Kerja Panduan Belanja Bahan (11 Kolom)
+export interface GuidedBelanjaBahanRow {
+  id: string;
+  itemKey: string;
+  uraian: string;        // Kolom 1 (A)
+  v1: number;            // Kolom 2 (B)
+  s1: string;            // Kolom 3 (C)
+  v2: number;            // Kolom 4 (D)
+  s2: string;            // Kolom 5 (E)
+  v3: number;            // Kolom 6 (F)
+  s3: string;            // Kolom 7 (G)
+  totalVol: number;      // Kolom 8 (H = B * D * F)
+  satTotal: string;      // Kolom 9 (I)
+  harga: number;         // Kolom 10 (J)
+  totalBiaya: number;    // Kolom 11 (K = ROUNDDOWN(H * J, -3))
+  isLainnya?: boolean;
+  selected?: boolean;    // Checklist baris untuk diganti / diedit
+}
+
+// Checklist Item Belanja Bahan
+export const BELANJA_BAHAN_CHECKLIST_ITEMS = [
+  "Konsumsi",
+  "Konsumsi Rapat - makan",
+  "Konsumsi Rapat - kudapan",
+  "Seminar Kit - Internal",
+  "Seminar Kit - Eksternal",
+  "Diklat Kit - Internal",
+  "Diklat Kit - Eksternal",
+  "Pencetakan",
+  "Lainnya",
+];
+
+// Tarif SBM Belanja Bahan berdasarkan Lokasi KRO
+export const TARIF_BELANJA_BAHAN_01_51_55: Record<string, number> = {
+  "Konsumsi": 81000,
+  "Konsumsi Rapat - makan": 57000,
+  "Konsumsi Rapat - kudapan": 24000,
+  "Seminar Kit - Internal": 50000,
+  "Seminar Kit - Eksternal": 150000,
+  "Diklat Kit - Internal": 100000,
+  "Diklat Kit - Eksternal": 200000,
+  "Pencetakan": 1000,
+};
+
+export const TARIF_BELANJA_BAHAN_02_58: Record<string, number> = {
+  "Konsumsi": 76000,
+  "Konsumsi Rapat - makan": 54000,
+  "Konsumsi Rapat - kudapan": 22000,
+  "Seminar Kit - Internal": 50000,
+  "Seminar Kit - Eksternal": 150000,
+  "Diklat Kit - Internal": 100000,
+  "Diklat Kit - Eksternal": 200000,
+  "Pencetakan": 1000,
+};
+
+// Helper parsing angka standar Indonesia (pemisah ribuan '.' dan desimal ',')
+export function parseIndoNumber(val: any): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const s = String(val).trim();
+  if (!s) return 0;
+  const clean = s.replace(/\./g, "").replace(/,/g, ".");
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+}
+
+// Helper format angka standar Indonesia (pemisah ribuan '.' dan desimal ',')
+export function formatIndoNumber(val: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(val);
+}
+
 
 // Helper hierarki level kalkulasi bertingkat sesuai struktur SAKTI / PATIH
 const HIERARCHY_LEVEL_ORDER = [
@@ -460,6 +534,7 @@ export default function IsianRabPage() {
   // State Modal Rekam & Alur Form (Awal klik submenu Isian RAB langsung tampilkan modal KRO)
   const [modalMode, setModalMode] = useState<
     | "kro"
+    | "konfirmasi_kro"
     | "ro"
     | "komponen"
     | "subkomponen"
@@ -470,12 +545,35 @@ export default function IsianRabPage() {
     | "edit"
     | "pilih_metode"
     | "panduan_wizard"
+    | "panduan_belanja_bahan"
     | "upload_excel"
     | null
   >("kro");
 
   // State Sub Komponen Target untuk input lanjutan setelah rekam Sub Komponen
   const [targetSubkompRowId, setTargetSubkompRowId] = useState<string | null>(null);
+
+  // State Panduan Belanja Bahan (Akun 521211)
+  const [guidedBelanjaStep, setGuidedBelanjaStep] = useState<"konfirmasi" | "checklist" | "kertas_kerja">("konfirmasi");
+  const [selectedBelanjaItems, setSelectedBelanjaItems] = useState<string[]>([]);
+  const [guidedBelanjaRows, setGuidedBelanjaRows] = useState<GuidedBelanjaBahanRow[]>([]);
+  const [pasteExcelModalOpen, setPasteExcelModalOpen] = useState(false);
+  const [pasteExcelInputText, setPasteExcelInputText] = useState("");
+  const [rowCountInput, setRowCountInput] = useState<number>(5);
+  const [pasteTargetOption, setPasteTargetOption] = useState<"selected" | "all" | "append">("selected");
+  const [activeCellRef, setActiveCellRef] = useState<{
+    cellName: string;
+    colKey: string;
+    rowIdx: number;
+    val: string;
+    formula?: string;
+  }>({
+    cellName: "A1",
+    colKey: "uraian",
+    rowIdx: 0,
+    val: "",
+    formula: "",
+  });
 
   // State Wizard Panduan Input
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
@@ -1344,6 +1442,42 @@ export default function IsianRabPage() {
     return isOperasionalRo(roRef);
   }, [activeRoForKomponen, formRo.roKode]);
 
+  // Dapatkan lokasi KRO aktif untuk penentuan tarif Belanja Bahan
+  const currentKroLocation = useMemo(() => {
+    const targetId = targetSubkompRowId || selectedRowId;
+    const selIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    let kroRow: WorksheetRow | null = null;
+    if (selIdx >= 0) {
+      for (let i = selIdx; i >= 0; i--) {
+        if (worksheetRows[i].type === "kro") {
+          kroRow = worksheetRows[i];
+          break;
+        }
+      }
+    }
+    if (!kroRow) {
+      kroRow = worksheetRows.find((r) => r.type === "kro") || null;
+    }
+
+    let locCode = `${formKroDialog.lokasi1}.${formKroDialog.lokasi2}`;
+    let locName = formKroDialog.lokasiNama || "DKI Jakarta";
+    if (kroRow?.subUraian) {
+      const match = kroRow.subUraian.match(/Lokasi\s*:\s*(\d{2}\.\d{2})-?([^)]*)/i);
+      if (match) {
+        locCode = match[1];
+        if (match[2]) locName = match[2].trim();
+      }
+    }
+    const isKotaDepok = locCode.startsWith("02.58") || locCode.startsWith("02");
+    return {
+      code: locCode,
+      name: locName,
+      isKotaDepok,
+      tarif: isKotaDepok ? TARIF_BELANJA_BAHAN_02_58 : TARIF_BELANJA_BAHAN_01_51_55,
+      tarifLabel: isKotaDepok ? "Lokasi 02.58 (Kota Depok / Jawa Barat)" : `Lokasi ${locCode} (DKI Jakarta / 01.51 s.d 01.55)`,
+    };
+  }, [targetSubkompRowId, selectedRowId, worksheetRows, formKroDialog]);
+
   // List Komponen yang tersedia untuk RO aktif (difilter Unit Kerja aktif & RO yang dipilih)
   const availableKomponensForRo = useMemo(() => {
     const list: Array<{
@@ -1481,7 +1615,44 @@ export default function IsianRabPage() {
     // 8. Detail Belanja -> boleh tambah Detail Belanja lagi di akun/header yang sama (detail)
 
     if (targetMode === "kro") {
-      // Isian KRO mereset / menambah KRO
+      // Periksa apakah kursor aktif berada pada level KRO
+      if (selectedRow && selectedRow.type === "kro") {
+        const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+        let hasChildRo = false;
+        if (selIdx >= 0) {
+          for (let i = selIdx + 1; i < worksheetRows.length; i++) {
+            const rowType = worksheetRows[i].type;
+            if (rowType === "program" || rowType === "kegiatan" || rowType === "kro") {
+              break; // Keluar dari subtree KRO ini
+            }
+            if (rowType === "ro") {
+              hasChildRo = true;
+              break;
+            }
+          }
+        }
+
+        if (!hasChildRo) {
+          // Di bawah KRO belum ada level RO -> buka dialogbox untuk Form Rekam KRO kembali (edit baris KRO ini)
+          setEditingRowId(selectedRow.id);
+          const parts = selectedRow.kode.split(".");
+          const kroCode = parts.length > 1 ? parts[parts.length - 1] : selectedRow.kode;
+          setFormKroDialog((prev) => ({
+            ...prev,
+            kroKode: kroCode,
+            kroNama: selectedRow.uraian,
+            volume: selectedRow.vol || prev.volume,
+          }));
+          setModalMode("kro");
+          return;
+        } else {
+          // Di bawah KRO ada minimal 1 baris level RO -> konfirmasi edit KRO atau tambah KRO
+          setModalMode("konfirmasi_kro");
+          return;
+        }
+      }
+
+      setEditingRowId(null);
       setModalMode("kro");
       return;
     }
@@ -1605,6 +1776,19 @@ export default function IsianRabPage() {
     const subUraianKro = `(Lokasi :${formKroDialog.lokasi1}.${formKroDialog.lokasi2}-${formKroDialog.lokasiNama}) (KDIB=${formKroDialog.kodeIB} ${formKroDialog.kodeIBUraian})`;
 
     if (editingRowId) {
+      // Jika mode edit, pastikan tidak mengganti menjadi KRO yang sudah ada di baris KRO lain
+      const existingKroRow = worksheetRows.find(
+        (r) =>
+          r.type === "kro" &&
+          r.id !== editingRowId &&
+          (r.kode.trim().toUpperCase() === kroKode.trim().toUpperCase() ||
+            (formKroDialog.kroKode && r.kode.trim().toUpperCase().endsWith(formKroDialog.kroKode.trim().toUpperCase())))
+      );
+      if (existingKroRow) {
+        triggerAlert(`KRO ${kroKode} sudah ada di kertas kerja (${existingKroRow.uraian}). Anda tidak dapat menggunakan KRO yang sama!`);
+        return;
+      }
+
       setWorksheetRows((prev) =>
         prev.map((r) => {
           if (r.id === editingRowId) {
@@ -1625,7 +1809,68 @@ export default function IsianRabPage() {
       return;
     }
 
-    // Tampilkan s.d. level KRO persis permintaan user
+    // Validasi penambahan KRO baru: User tidak dapat menambahkan KRO baru apabila KRO yang sama sudah ada di kertas kerja
+    const isKroAlreadyExist = worksheetRows.some(
+      (r) =>
+        r.type === "kro" &&
+        (r.kode.trim().toUpperCase() === kroKode.trim().toUpperCase() ||
+          (formKroDialog.kroKode && r.kode.trim().toUpperCase().endsWith(formKroDialog.kroKode.trim().toUpperCase())))
+    );
+
+    if (isKroAlreadyExist) {
+      triggerAlert(
+        `KRO ${kroKode} sudah ada di kertas kerja! Penambahan KRO hanya dapat dilakukan untuk KRO yang belum ada di kertas kerja.`
+      );
+      return;
+    }
+
+    // Jika worksheet sudah memiliki data dan user memilih Tambah KRO baru:
+    if (worksheetRows.length > 0) {
+      const newKroRow: WorksheetRow = {
+        id: `row-kro-${Date.now()}`,
+        type: "kro",
+        kode: kroKode,
+        uraian: kroNama,
+        subUraian: subUraianKro,
+        vol: Number(formKroDialog.volume) || 19,
+        sat: "peraturan, Rancanga...",
+        jumlah: 0,
+        cO: false,
+        cS: false,
+        cU: false,
+        cK: false,
+        cD: false,
+      };
+
+      setWorksheetRows((prev) => {
+        const selIdx = prev.findIndex((r) => r.id === selectedRowId);
+        const next = [...prev];
+        if (selIdx >= 0) {
+          let kroIdx = selIdx;
+          while (kroIdx >= 0 && next[kroIdx].type !== "kro") {
+            kroIdx--;
+          }
+          const insertIdx = findInsertionIndexForSubtree(kroIdx >= 0 ? kroIdx : selIdx, "kro");
+          next.splice(insertIdx, 0, newKroRow);
+        } else {
+          next.push(newKroRow);
+        }
+        return calculateHierarchyAmounts(next);
+      });
+
+      setSelectedRowId(newKroRow.id);
+      setFormRo((prev) => ({
+        ...prev,
+        kroKode,
+        kroNama,
+      }));
+      setSelectedKroOption(kroKode);
+      setModalMode(null);
+      triggerAlert(`KRO baru ${kroKode} - ${kroNama} berhasil ditambahkan pada baris baru!`);
+      return;
+    }
+
+    // Tampilkan s.d. level KRO persis permintaan user (kertas kerja awal)
     const levelRows: WorksheetRow[] = [
       {
         id: "row-prog",
@@ -2197,6 +2442,479 @@ export default function IsianRabPage() {
     setWizardStep(1);
     setWizardItemUraian("");
     triggerAlert(`Berhasil menambahkan akun ${wizardAkun} & rincian belanja melalui panduan!`);
+  }
+
+  // ── HANDLER PANDUAN BELANJA BAHAN (AKUN 521211) ──────────────────────────
+
+  // Transisi dari Checklist ke Kertas Kerja (11 Kolom)
+  function handleProceedToChecklistKertasKerja() {
+    if (selectedBelanjaItems.length === 0) {
+      triggerAlert("Silakan pilih minimal 1 item belanja bahan terlebih dahulu!");
+      return;
+    }
+
+    const generatedRows: GuidedBelanjaBahanRow[] = [];
+    selectedBelanjaItems.forEach((itemKey, idx) => {
+      if (itemKey === "Lainnya") {
+        const v1 = 24;
+        const v2 = 20;
+        const v3 = 1;
+        const totalVol = v1 * v2 * v3;
+        const harga = currentKroLocation.isKotaDepok ? 76000 : 81000;
+        const rawBiaya = totalVol * harga;
+        const totalBiaya = Math.floor(rawBiaya / 1000) * 1000;
+
+        generatedRows.push({
+          id: `guided-bahan-${Date.now()}-${idx}`,
+          itemKey: "Lainnya",
+          uraian: "Konsumsi Rapat Pimpinan",
+          v1,
+          s1: "orang",
+          v2,
+          s2: "keg",
+          v3,
+          s3: "-",
+          totalVol,
+          satTotal: "OK",
+          harga,
+          totalBiaya,
+          isLainnya: true,
+          selected: true, // Otomatis dichecklist agar siap diganti oleh user
+        });
+      } else {
+        const harga = currentKroLocation.tarif[itemKey] || 0;
+        let s1 = "orang";
+        let s2 = "keg";
+        let satTotal = "OK";
+        if (itemKey.includes("Seminar Kit") || itemKey.includes("Diklat Kit")) {
+          satTotal = "Paket";
+        } else if (itemKey === "Pencetakan") {
+          s1 = "lembar";
+          s2 = "buku";
+          satTotal = "Eksemplar";
+        }
+        const v1 = 1;
+        const v2 = 1;
+        const v3 = 1;
+        const totalVol = 1;
+        const rawBiaya = totalVol * harga;
+        const totalBiaya = Math.floor(rawBiaya / 1000) * 1000;
+
+        generatedRows.push({
+          id: `guided-bahan-${Date.now()}-${idx}`,
+          itemKey,
+          uraian: itemKey,
+          v1,
+          s1,
+          v2,
+          s2,
+          v3,
+          s3: "-",
+          totalVol,
+          satTotal,
+          harga,
+          totalBiaya,
+          isLainnya: false,
+          selected: false, // Item standar tidak dichecklist secara default
+        });
+      }
+    });
+
+    setGuidedBelanjaRows(generatedRows);
+    setGuidedBelanjaStep("kertas_kerja");
+  }
+
+  // Toggle checklist pada 1 baris
+  function handleToggleRowSelection(idx: number) {
+    setGuidedBelanjaRows((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], selected: !next[idx].selected };
+      return next;
+    });
+  }
+
+  // Toggle checklist semua baris
+  function handleToggleAllRowsSelection(selectAll: boolean) {
+    setGuidedBelanjaRows((prev) =>
+      prev.map((r) => ({ ...r, selected: selectAll }))
+    );
+  }
+
+  // Hapus baris yang dichecklist
+  function handleDeleteSelectedGuidedRows() {
+    const checkedCount = guidedBelanjaRows.filter((r) => r.selected).length;
+    if (checkedCount === 0) {
+      triggerAlert("Checklist minimal 1 baris yang ingin dihapus.");
+      return;
+    }
+    if (guidedBelanjaRows.length - checkedCount < 1) {
+      triggerAlert("Minimal harus menyisakan 1 baris pada kertas kerja!");
+      return;
+    }
+    setGuidedBelanjaRows((prev) => prev.filter((r) => !r.selected));
+    triggerAlert(`Berhasil menghapus ${checkedCount} baris yang dichecklist.`);
+  }
+
+  // Ubah baris yang dichecklist menjadi item template tertentu
+  function handleApplyTemplateToSelectedRows(templateItemKey: string) {
+    const checkedCount = guidedBelanjaRows.filter((r) => r.selected).length;
+    if (checkedCount === 0) {
+      triggerAlert("Checklist minimal 1 baris yang ingin diganti!");
+      return;
+    }
+
+    setGuidedBelanjaRows((prev) =>
+      prev.map((r) => {
+        if (!r.selected) return r;
+        if (templateItemKey === "Lainnya") {
+          return {
+            ...r,
+            itemKey: "Lainnya",
+            isLainnya: true,
+          };
+        }
+        const harga = currentKroLocation.tarif[templateItemKey] || r.harga;
+        let satTotal = r.satTotal || "OK";
+        if (templateItemKey.includes("Seminar Kit") || templateItemKey.includes("Diklat Kit")) {
+          satTotal = "Paket";
+        } else if (templateItemKey === "Pencetakan") {
+          satTotal = "Eksemplar";
+        }
+        const totalVol = (r.v1 || 1) * (r.v2 || 1) * (r.v3 || 1);
+        const totalBiaya = Math.floor((totalVol * harga) / 1000) * 1000;
+        return {
+          ...r,
+          itemKey: templateItemKey,
+          uraian: templateItemKey,
+          satTotal,
+          harga,
+          totalBiaya,
+          isLainnya: false,
+        };
+      })
+    );
+    triggerAlert(`Berhasil mengubah ${checkedCount} baris yang dichecklist menjadi ${templateItemKey}!`);
+  }
+
+  // Update nilai field pada baris kertas kerja panduan belanja bahan
+  function updateGuidedRowField(idx: number, field: keyof GuidedBelanjaBahanRow, value: any) {
+    setGuidedBelanjaRows((prev) => {
+      const next = [...prev];
+      const row = { ...next[idx], [field]: value };
+
+      if (field === "v1" || field === "v2" || field === "v3" || field === "harga") {
+        const v1 = parseIndoNumber(row.v1) || 1;
+        const v2 = parseIndoNumber(row.v2) || 1;
+        const v3 = parseIndoNumber(row.v3) || 1;
+        const harga = parseIndoNumber(row.harga) || 0;
+        const totalVol = v1 * (v2 > 0 ? v2 : 1) * (v3 > 0 ? v3 : 1);
+        const rawBiaya = totalVol * harga;
+        const totalBiaya = Math.floor(rawBiaya / 1000) * 1000; // ROUNDDOWN ke ribuan terdekat
+        row.totalVol = totalVol;
+        row.harga = harga;
+        row.totalBiaya = totalBiaya;
+      }
+      next[idx] = row;
+      return next;
+    });
+  }
+
+  // Duplikat baris
+  function handleDuplicateGuidedRow(idx: number) {
+    const target = guidedBelanjaRows[idx];
+    const dup: GuidedBelanjaBahanRow = {
+      ...target,
+      id: `guided-bahan-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      selected: false,
+    };
+    const next = [...guidedBelanjaRows];
+    next.splice(idx + 1, 0, dup);
+    setGuidedBelanjaRows(next);
+    triggerAlert("Baris berhasil diduplikasi!");
+  }
+
+  // Hapus baris
+  function handleDeleteGuidedRow(idx: number) {
+    if (guidedBelanjaRows.length <= 1) {
+      triggerAlert("Minimal harus ada 1 baris pada kertas kerja!");
+      return;
+    }
+    setGuidedBelanjaRows(guidedBelanjaRows.filter((_, i) => i !== idx));
+  }
+
+  // Tambah baris kosong
+  function handleAddEmptyGuidedRow() {
+    const newRow: GuidedBelanjaBahanRow = {
+      id: `guided-bahan-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      itemKey: "Lainnya",
+      uraian: "",
+      v1: 1,
+      s1: "",
+      v2: 1,
+      s2: "",
+      v3: 1,
+      s3: "-",
+      totalVol: 1,
+      satTotal: "",
+      harga: 0,
+      totalBiaya: 0,
+      isLainnya: true,
+      selected: true,
+    };
+    setGuidedBelanjaRows([...guidedBelanjaRows, newRow]);
+  }
+
+  // Set total jumlah baris
+  function handleSetTotalGuidedRows(targetCount: number) {
+    if (targetCount <= 0) return;
+    if (targetCount <= guidedBelanjaRows.length) {
+      setGuidedBelanjaRows(guidedBelanjaRows.slice(0, targetCount));
+    } else {
+      const toAdd = targetCount - guidedBelanjaRows.length;
+      const added: GuidedBelanjaBahanRow[] = [];
+      for (let i = 0; i < toAdd; i++) {
+        added.push({
+          id: `guided-bahan-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          itemKey: "Lainnya",
+          uraian: "",
+          v1: 1,
+          s1: "",
+          v2: 1,
+          s2: "",
+          v3: 1,
+          s3: "-",
+          totalVol: 1,
+          satTotal: "",
+          harga: 0,
+          totalBiaya: 0,
+          isLainnya: true,
+          selected: true,
+        });
+      }
+      setGuidedBelanjaRows([...guidedBelanjaRows, ...added]);
+    }
+  }
+
+  // Salin 1 baris ke clipboard (format TSV kompatibel Excel)
+  function handleCopyGuidedRow(row: GuidedBelanjaBahanRow) {
+    const tsv = `${row.uraian}\t${row.v1}\t${row.s1}\t${row.v2}\t${row.s2}\t${row.v3}\t${row.s3}\t${row.totalVol}\t${row.satTotal}\t${row.harga}\t${row.totalBiaya}`;
+    navigator.clipboard?.writeText(tsv).then(() => {
+      triggerAlert(`Baris "${row.uraian || "Data"}" berhasil disalin ke clipboard!`);
+    }).catch(() => {
+      triggerAlert("Gagal menyalin ke clipboard.");
+    });
+  }
+
+  // Parse data yang ditempel (paste) dari Excel / Sheets
+  function parsePastedExcelText(text: string) {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
+    const parsedRows: GuidedBelanjaBahanRow[] = [];
+
+    lines.forEach((line, i) => {
+      const rawCols = line.includes("\t") ? line.split("\t") : line.split("|");
+      const cols = rawCols.map((c) => c.trim());
+      if (cols.length === 0 || !cols[0]) return;
+
+      const uraian = cols[0];
+      const v1 = cols.length > 1 ? parseIndoNumber(cols[1]) || 1 : 1;
+      const s1 = cols.length > 2 ? cols[2] : "";
+      const v2 = cols.length > 3 ? parseIndoNumber(cols[3]) || 1 : 1;
+      const s2 = cols.length > 4 ? cols[4] : "";
+      const v3 = cols.length > 5 ? parseIndoNumber(cols[5]) || 1 : 1;
+      const s3 = cols.length > 6 ? cols[6] : "";
+
+      const totalVol = v1 * (v2 > 0 ? v2 : 1) * (v3 > 0 ? v3 : 1);
+      const satTotal = cols.length > 8 && cols[8] ? cols[8] : (s1 ? `${s1}` : "OK");
+
+      let harga = 0;
+      if (cols.length >= 10 && cols[9]) {
+        harga = parseIndoNumber(cols[9]);
+      } else if (cols.length >= 8 && cols[7] && !isNaN(parseIndoNumber(cols[7])) && parseIndoNumber(cols[7]) > 100) {
+        harga = parseIndoNumber(cols[7]);
+      } else if (currentKroLocation.tarif[uraian]) {
+        harga = currentKroLocation.tarif[uraian];
+      }
+
+      const rawBiaya = totalVol * harga;
+      const totalBiaya = Math.floor(rawBiaya / 1000) * 1000; // ROUNDDOWN ke ribuan terdekat
+
+      parsedRows.push({
+        id: `guided-bahan-paste-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+        itemKey: "Lainnya",
+        uraian,
+        v1,
+        s1,
+        v2,
+        s2,
+        v3,
+        s3,
+        totalVol,
+        satTotal,
+        harga,
+        totalBiaya,
+        isLainnya: true,
+        selected: true,
+      });
+    });
+
+    return parsedRows;
+  }
+
+  // Terapkan data paste ke Kertas Kerja (mendukung penggantian baris yang dichecklist)
+  function handleApplyPastedExcel() {
+    if (!pasteExcelInputText.trim()) return;
+    const parsed = parsePastedExcelText(pasteExcelInputText);
+    if (parsed.length === 0) {
+      triggerAlert("Format data tidak sesuai atau tidak ada baris yang valid.");
+      return;
+    }
+
+    const checkedIndices = guidedBelanjaRows
+      .map((r, idx) => (r.selected ? idx : -1))
+      .filter((idx) => idx !== -1);
+
+    // Jika mode selected atau ada baris dicentang
+    if ((pasteTargetOption === "selected" || checkedIndices.length > 0) && pasteTargetOption !== "all" && pasteTargetOption !== "append") {
+      setGuidedBelanjaRows((prev) => {
+        const next = [...prev];
+        checkedIndices.forEach((rowIdx, i) => {
+          if (i < parsed.length) {
+            next[rowIdx] = {
+              ...parsed[i],
+              id: next[rowIdx].id,
+              selected: true,
+            };
+          }
+        });
+        // Jika hasil paste memiliki baris lebih banyak dari yang dicentang, sisanya ditambahkan di bawah baris terakhir
+        if (parsed.length > checkedIndices.length) {
+          const extra = parsed.slice(checkedIndices.length);
+          next.push(...extra);
+        }
+        return next;
+      });
+      setPasteExcelModalOpen(false);
+      setPasteExcelInputText("");
+      triggerAlert(`Berhasil mengganti ${Math.min(checkedIndices.length, parsed.length)} baris yang dichecklist dengan data Excel!`);
+      return;
+    }
+
+    if (pasteTargetOption === "append") {
+      setGuidedBelanjaRows((prev) => [...prev, ...parsed]);
+      setPasteExcelModalOpen(false);
+      setPasteExcelInputText("");
+      triggerAlert(`Berhasil menambahkan ${parsed.length} baris baru dari data Excel!`);
+      return;
+    }
+
+    // Default: ganti semua baris
+    setGuidedBelanjaRows(parsed);
+    setPasteExcelModalOpen(false);
+    setPasteExcelInputText("");
+    triggerAlert(`Berhasil memuat ${parsed.length} baris data dari Excel!`);
+  }
+
+  // Handler Simpan Belanja Bahan ke Worksheet Utama (Membentuk Akun 521211 & Detail Belanja)
+  function handleSaveGuidedBelanjaBahan() {
+    const validRows = guidedBelanjaRows.filter((r) => r.uraian.trim() !== "");
+    if (validRows.length === 0) {
+      triggerAlert("Mohon isi minimal 1 baris rincian belanja bahan!");
+      return;
+    }
+
+    const targetId = targetSubkompRowId || selectedRowId;
+    let subkompIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    if (subkompIdx < 0) {
+      subkompIdx = worksheetRows.map((r) => r.type).lastIndexOf("subkomponen");
+    }
+
+    if (subkompIdx < 0) {
+      triggerAlert("Tidak ditemukan baris Sub Komponen acuan untuk menampung Belanja Bahan.");
+      return;
+    }
+
+    const subkompRow = worksheetRows[subkompIdx];
+
+    // Cek apakah di bawah subkomponen ini sudah ada Akun 521211
+    let existingAkunIdx = -1;
+    for (let i = subkompIdx + 1; i < worksheetRows.length; i++) {
+      const t = worksheetRows[i].type;
+      if (t === "program" || t === "kegiatan" || t === "kro" || t === "ro" || t === "komponen" || t === "subkomponen") {
+        break;
+      }
+      if (t === "akun" && worksheetRows[i].kode === "521211") {
+        existingAkunIdx = i;
+        break;
+      }
+    }
+
+    const newRowsToInsert: WorksheetRow[] = [];
+
+    // Jika belum ada akun 521211, buat baris level Akun 521211
+    if (existingAkunIdx < 0) {
+      newRowsToInsert.push({
+        id: `row-akun-521211-${Date.now()}`,
+        type: "akun",
+        kode: "521211",
+        uraian: "Belanja Bahan",
+        jumlah: 0,
+        sd: "A00",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        parentSubkompKode: subkompRow.kode,
+        cO: false,
+        cS: false,
+        cU: false,
+        cK: false,
+        cD: false,
+      });
+    }
+
+    // Bentuk baris level Detail Belanja untuk setiap baris di kertas kerja
+    validRows.forEach((r, idx) => {
+      newRowsToInsert.push({
+        id: `row-detail-bahan-${Date.now()}-${idx}`,
+        type: "detail",
+        kode: "",
+        uraian: r.uraian,
+        parentAkunKode: "521211",
+        k1Nilai: r.v1,
+        k1Sat: r.s1,
+        k2Nilai: r.v2,
+        k2Sat: r.s2,
+        k3Nilai: r.v3,
+        k3Sat: r.s3,
+        vol: r.totalVol,
+        sat: r.satTotal || r.s1 || "OK",
+        harga: r.harga,
+        jumlah: r.totalBiaya, // ROUNDDOWN ke ribuan terdekat
+        badge: r.isLainnya ? "[Verifikasi BINCANG]" : undefined,
+        cO: false,
+        cS: false,
+        cU: false,
+        cK: false,
+        cD: false,
+      });
+    });
+
+    setWorksheetRows((prev) => {
+      const next = [...prev];
+      if (existingAkunIdx >= 0) {
+        // Masukkan detail di akhir subtree Akun 521211 yang sudah ada
+        const insertIdx = findInsertionIndexForSubtree(existingAkunIdx, "akun");
+        next.splice(insertIdx, 0, ...newRowsToInsert);
+      } else {
+        // Masukkan akun dan detail di akhir subtree Sub Komponen
+        const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        next.splice(insertIdx, 0, ...newRowsToInsert);
+      }
+      return calculateHierarchyAmounts(next);
+    });
+
+    const grandTotal = validRows.reduce((sum, r) => sum + r.totalBiaya, 0);
+    setModalMode(null);
+    triggerAlert(
+      `Berhasil menambahkan ${validRows.length} baris Belanja Bahan (Akun 521211) ke kertas kerja! Total: Rp ${formatRupiah(grandTotal)}`
+    );
   }
 
   // Handler Unggah File Excel (.xls, .xlsx)
@@ -2956,6 +3674,22 @@ export default function IsianRabPage() {
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Rekam Detail Belanja</span>
+              </button>
+
+              {/* Tombol Panduan Belanja Bahan (Akun 521211) */}
+              <button
+                onClick={() => {
+                  const targetSubId = selectedRow?.type === "subkomponen" ? selectedRow.id : (targetSubkompRowId || null);
+                  setTargetSubkompRowId(targetSubId);
+                  setGuidedBelanjaStep("konfirmasi");
+                  setSelectedBelanjaItems([]);
+                  setModalMode("panduan_belanja_bahan");
+                }}
+                title="Input dengan Panduan Belanja Bahan (Akun 521211 - Kertas Kerja 11 Kolom)"
+                className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-sm shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Panduan Belanja Bahan</span>
               </button>
             </div>
 
@@ -4032,6 +4766,99 @@ export default function IsianRabPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
+          MODAL KONFIRMASI TINDAKAN KRO (Edit KRO atau Tambah KRO Baru)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "konfirmasi_kro" && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-blue-600" />
+                <span>Konfirmasi Tindakan KRO</span>
+              </h3>
+              <button
+                onClick={() => setModalMode(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2.5">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-[11px] text-slate-400 block font-medium">Baris KRO Aktif:</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono text-xs">
+                  {selectedRow?.kode}
+                </span>
+                <span className="text-slate-800 dark:text-slate-200 block mt-0.5 font-medium">
+                  {selectedRow?.uraian}
+                </span>
+              </div>
+              <p className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 leading-relaxed font-medium">
+                Di bawah KRO ini sudah terdapat minimal 1 baris level RO. Apakah Anda ingin <strong>mengubah (edit)</strong> data KRO ini atau <strong>menambah KRO baru</strong>?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedRow) {
+                    setEditingRowId(selectedRow.id);
+                    const parts = selectedRow.kode.split(".");
+                    const kroCode = parts.length > 1 ? parts[parts.length - 1] : selectedRow.kode;
+                    setFormKroDialog((prev) => ({
+                      ...prev,
+                      kroKode: kroCode,
+                      kroNama: selectedRow.uraian,
+                      volume: selectedRow.vol || prev.volume,
+                    }));
+                    setModalMode("kro");
+                  }
+                }}
+                className="p-3.5 border-2 border-amber-500 hover:bg-amber-50/60 dark:hover:bg-amber-950/30 rounded-xl text-left transition-all cursor-pointer group shadow-xs hover:shadow"
+              >
+                <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400 mb-1 text-xs">
+                  <PenTool className="w-4 h-4" />
+                  <span>1. Edit KRO</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                  Buka formulir untuk mengubah data KRO pada baris yang aktif saat ini.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingRowId(null);
+                  setModalMode("kro");
+                }}
+                className="p-3.5 border-2 border-emerald-600 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 rounded-xl text-left transition-all cursor-pointer group shadow-xs hover:shadow"
+              >
+                <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400 mb-1 text-xs">
+                  <Plus className="w-4 h-4" />
+                  <span>2. Tambah KRO Baru</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                  Buka formulir untuk menambahkan KRO baru pada baris berikutnya.
+                </p>
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setModalMode(null)}
+                className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
           MODAL 1: FORM REKAM PROGRAM, AKTIVITAS, KRO (Persis Gambar Pengguna)
          ══════════════════════════════════════════════════════════════════════ */}
       {modalMode === "kro" && (
@@ -4237,7 +5064,8 @@ export default function IsianRabPage() {
                 <thead>
                   <tr className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold sticky top-0">
                     <th className="p-2.5 text-left border-r border-slate-300 dark:border-slate-700 w-32">Kode KRO</th>
-                    <th className="p-2.5 text-left">Deskripsi / Uraian KRO</th>
+                    <th className="p-2.5 text-left border-r border-slate-300 dark:border-slate-700">Deskripsi / Uraian KRO</th>
+                    <th className="p-2.5 text-center w-28">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -4261,11 +5089,32 @@ export default function IsianRabPage() {
                       }
                     });
 
+                    // Set kumpulan KRO yang sudah ada di kertas kerja saat ini
+                    const existingKroCodes = new Set(
+                      worksheetRows
+                        .filter((r) => r.type === "kro")
+                        .map((r) => r.kode.trim().toUpperCase())
+                    );
+                    const editingRow = editingRowId ? worksheetRows.find((r) => r.id === editingRowId) : null;
+                    const editingKroCode = editingRow?.kode.trim().toUpperCase();
+
                     return Array.from(kroMap.values()).map((kroItem, idx) => {
+                      const itemFullKroKode = `${kroItem.kodeAktivitas}.${kroItem.kodeKro}`.toUpperCase();
+                      const isAlreadyInWorksheet =
+                        existingKroCodes.has(itemFullKroKode) ||
+                        Array.from(existingKroCodes).some((c) => c.endsWith(`.${kroItem.kodeKro.toUpperCase()}`) || c === kroItem.kodeKro.toUpperCase());
+                      
+                      // Jika sedang mengedit KRO yang sama, jangan disable KRO miliknya sendiri
+                      const isDisabled = isAlreadyInWorksheet && (!editingKroCode || (editingKroCode !== itemFullKroKode && !editingKroCode.endsWith(`.${kroItem.kodeKro.toUpperCase()}`)));
+
                       return (
                         <tr
                           key={idx}
                           onClick={() => {
+                            if (isDisabled) {
+                              triggerAlert(`KRO ${kroItem.kodeAktivitas}.${kroItem.kodeKro} sudah ada di kertas kerja! Pilih KRO lain.`);
+                              return;
+                            }
                             setFormKroDialog((prev) => ({
                               ...prev,
                               prog1: kroItem.prog1,
@@ -4280,12 +5129,30 @@ export default function IsianRabPage() {
                             setSelectedKroOption(`${kroItem.kodeAktivitas}.${kroItem.kodeKro}`);
                             setShowKroPickerModal(false);
                           }}
-                          className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
+                          className={`transition-colors ${
+                            isDisabled
+                              ? "bg-slate-100 dark:bg-slate-800/50 opacity-60 cursor-not-allowed text-slate-400"
+                              : "cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                          }`}
+                          title={isDisabled ? "KRO ini sudah ada di kertas kerja dan tidak dapat dipilih lagi" : undefined}
                         >
-                          <td className="p-2.5 font-mono font-bold text-[#0078d4] border-r border-slate-200 dark:border-slate-700">
+                          <td className={`p-2.5 font-mono font-bold border-r border-slate-200 dark:border-slate-700 ${isDisabled ? "text-slate-400" : "text-[#0078d4]"}`}>
                             {kroItem.kodeAktivitas}.{kroItem.kodeKro}
                           </td>
-                          <td className="p-2.5 font-medium">{kroItem.namaKro}</td>
+                          <td className="p-2.5 font-medium border-r border-slate-200 dark:border-slate-700">
+                            {kroItem.namaKro}
+                          </td>
+                          <td className="p-2 text-center">
+                            {isDisabled ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                Sudah Ada
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                                Tersedia
+                              </span>
+                            )}
+                          </td>
                         </tr>
                       );
                     });
@@ -5641,8 +6508,9 @@ export default function IsianRabPage() {
               {/* Opsi 2: Panduan */}
               <div
                 onClick={() => {
-                  setWizardStep(1);
-                  setModalMode("panduan_wizard");
+                  setGuidedBelanjaStep("konfirmasi");
+                  setSelectedBelanjaItems([]);
+                  setModalMode("panduan_belanja_bahan");
                 }}
                 className="group relative flex flex-col justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-white dark:bg-slate-800/80 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer shadow-sm hover:shadow"
               >
@@ -5655,12 +6523,12 @@ export default function IsianRabPage() {
                       2. Input dengan Panduan
                     </h4>
                     <p className="text-[0.68rem] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Langkah-demi-langkah terpandu untuk memilih kelompok akun BAS yang tepat, menentukan volume, dan tarif satuan biaya.
+                      Panduan otomatis pengisian Belanja Bahan (Akun 521211) dengan tarif SBM sesuai lokasi KRO, checklist kebutuhan, dan kertas kerja interaktif 11 kolom.
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center text-[0.7rem] font-bold text-emerald-600 group-hover:translate-x-0.5 transition-transform">
-                  <span>Buka Panduan</span>
+                  <span>Buka Panduan Belanja Bahan</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </div>
               </div>
@@ -5735,6 +6603,903 @@ export default function IsianRabPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN PENGISIAN BELANJA BAHAN (AKUN 521211) & KERTAS KERJA 11 KOLOM
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_belanja_bahan" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          {/* STEP 1: KONFIRMASI ALOKASI BELANJA BAHAN */}
+          {guidedBelanjaStep === "konfirmasi" && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
+                    <HelpCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Panduan: Belanja Bahan (521211)
+                    </h3>
+                    <p className="text-[0.68rem] text-slate-500">Langkah 1: Konfirmasi Alokasi</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalMode("pilih_metode")}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{currentKroLocation.tarifLabel}</span>
+                </div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                  Apakah terdapat alokasi <span className="text-emerald-600 dark:text-emerald-400">Belanja Bahan</span> pada Sub Komponen ini?
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
+                  Panduan otomatis ini akan mengarahkan Anda pada pemilihan item konsumsi rapat, seminar kit, diklat kit, atau pencetakan dengan tarif standar SBM yang otomatis terhitung.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalMode("pilih_metode")}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                >
+                  Tidak, Kembali ke Pilihan Metode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuidedBelanjaStep("checklist")}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
+                >
+                  <span>Ya, Lanjut ke Item Belanja</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: CHECKLIST ITEM BELANJA BAHAN */}
+          {guidedBelanjaStep === "checklist" && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl my-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
+                    <CheckSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Pilihan Item Belanja Bahan
+                    </h3>
+                    <p className="text-[0.68rem] text-slate-500">Langkah 2: Pilih Kebutuhan Belanja Bahan</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalMode(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-[11px]">
+                  <span className="font-semibold text-emerald-800 dark:text-emerald-300">
+                    {currentKroLocation.tarifLabel}
+                  </span>
+                  <span className="text-slate-500 dark:text-slate-400">
+                    (Dapat memilih lebih dari 1 pilihan)
+                  </span>
+                </div>
+
+                {/* Daftar Checkbox 9 Item Belanja Bahan */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-72 overflow-y-auto pr-1">
+                  {BELANJA_BAHAN_CHECKLIST_ITEMS.map((item) => {
+                    const isChecked = selectedBelanjaItems.includes(item);
+                    const tarif = currentKroLocation.tarif[item];
+                    return (
+                      <label
+                        key={item}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isChecked
+                            ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 dark:border-emerald-500 shadow-xs"
+                            : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBelanjaItems([...selectedBelanjaItems, item]);
+                            } else {
+                              setSelectedBelanjaItems(selectedBelanjaItems.filter((i) => i !== item));
+                            }
+                          }}
+                          className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className={`block font-bold text-xs ${isChecked ? "text-emerald-900 dark:text-emerald-200" : "text-slate-800 dark:text-slate-200"}`}>
+                            {item}
+                          </span>
+                          {tarif ? (
+                            <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
+                              Rp {formatIndoNumber(tarif)}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold italic">
+                              *Verifikasi BINCANG
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {selectedBelanjaItems.includes("Lainnya") && (
+                  <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>
+                      Item <strong>'Lainnya'</strong> akan ditandai secara otomatis sebagai bagian yang memerlukan verifikasi oleh role <strong>BINCANG</strong>.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setGuidedBelanjaStep("konfirmasi")}
+                  className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Kembali
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">
+                    Terpilih: <strong>{selectedBelanjaItems.length}</strong> item
+                  </span>
+                  <button
+                    type="button"
+                    disabled={selectedBelanjaItems.length === 0}
+                    onClick={handleProceedToChecklistKertasKerja}
+                    className="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Lanjut ke Kertas Kerja</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: KERTAS KERJA SHEET EXCEL 11 KOLOM (CELL-BASED SPREADSHEET) */}
+          {guidedBelanjaStep === "kertas_kerja" && (
+            <div
+              className="bg-[#f3f2f1] dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-7xl w-full p-4 space-y-3 shadow-2xl my-auto flex flex-col max-h-[95vh] text-slate-800 dark:text-slate-100"
+              onPaste={(e) => {
+                const text = e.clipboardData?.getData("text");
+                if (text && (text.includes("\t") || text.includes("|"))) {
+                  e.preventDefault();
+                  const parsed = parsePastedExcelText(text);
+                  if (parsed.length > 0) {
+                    const checkedIndices = guidedBelanjaRows
+                      .map((r, idx) => (r.selected ? idx : -1))
+                      .filter((idx) => idx !== -1);
+                    if (checkedIndices.length > 0) {
+                      setGuidedBelanjaRows((prev) => {
+                        const next = [...prev];
+                        checkedIndices.forEach((rowIdx, i) => {
+                          if (i < parsed.length) {
+                            next[rowIdx] = { ...parsed[i], id: next[rowIdx].id, selected: true };
+                          }
+                        });
+                        if (parsed.length > checkedIndices.length) {
+                          next.push(...parsed.slice(checkedIndices.length));
+                        }
+                        return next;
+                      });
+                      triggerAlert(`Berhasil memperbarui ${Math.min(checkedIndices.length, parsed.length)} baris yang dichecklist dari clipboard!`);
+                    } else {
+                      setGuidedBelanjaRows(parsed);
+                      triggerAlert(`Berhasil memuat ${parsed.length} baris data dari clipboard!`);
+                    }
+                  }
+                }
+              }}
+            >
+              {/* Excel Green Header Ribbon Bar */}
+              <div className="flex items-center justify-between px-3 py-2 bg-[#107c41] text-white rounded-xl shadow-xs shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold flex items-center gap-2">
+                      <span>Kertas Kerja Belanja Bahan (Akun 521211) — Sheet Excel</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white text-[#107c41] font-black uppercase">
+                        11 Kolom
+                      </span>
+                    </h3>
+                    <p className="text-[0.66rem] text-emerald-100 font-medium">
+                      {currentKroLocation.tarifLabel} • Kolom 8: Rumus Auto-Volume (B×D×F) • Kolom 11: ROUNDDOWN Ribuan (H×J)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPasteExcelModalOpen(true)}
+                    title="Buka dialog tempel data dari sheet Excel"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  >
+                    <ClipboardPaste className="w-3.5 h-3.5" />
+                    <span>Paste dari Excel</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAddEmptyGuidedRow}
+                    className="px-3 py-1.5 bg-white text-[#107c41] hover:bg-emerald-50 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Baris</span>
+                  </button>
+
+                  <div className="flex items-center gap-1 text-xs text-white/90 border-l pl-2 border-white/30">
+                    <span className="text-[11px]">Set Baris:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={rowCountInput}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 1;
+                        setRowCountInput(val);
+                        handleSetTotalGuidedRows(val);
+                      }}
+                      className="w-12 px-1 py-0.5 text-center bg-white text-slate-900 rounded font-mono font-bold text-xs"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setModalMode(null)}
+                    className="text-white/80 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10 cursor-pointer ml-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Bilah Rumus / Formula Bar & Checklist Baris Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs shrink-0 shadow-xs">
+                {/* Cell Indicator & Formula Input */}
+                <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+                  <div className="w-16 px-2 py-1 text-center font-mono font-black text-xs bg-slate-100 dark:bg-slate-700 text-[#107c41] dark:text-emerald-400 border border-slate-300 dark:border-slate-600 rounded">
+                    {activeCellRef.cellName}
+                  </div>
+                  <span className="text-slate-400 font-serif italic text-sm select-none font-bold">fx</span>
+                  <div className="flex-1 px-2.5 py-1 font-mono text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded truncate text-slate-700 dark:text-slate-200">
+                    {activeCellRef.formula ? (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">{activeCellRef.formula}</span>
+                    ) : (
+                      activeCellRef.val || <span className="text-slate-400 italic font-sans">(Cell Kosong)</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Toolbar Checklist & Seleksi Baris */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+                    <span>
+                      Dicentang untuk diganti:{" "}
+                      <strong className="font-mono text-xs font-bold text-amber-700 dark:text-amber-300">
+                        {guidedBelanjaRows.filter((r) => r.selected).length}
+                      </strong>{" "}
+                      dari {guidedBelanjaRows.length} baris
+                    </span>
+                  </div>
+
+                  {guidedBelanjaRows.some((r) => r.selected) && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPasteExcelModalOpen(true)}
+                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Ganti baris yang dichecklist dengan data paste Excel"
+                      >
+                        <ClipboardPaste className="w-3 h-3" />
+                        <span>Ganti Dicentang</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteSelectedGuidedRows}
+                        className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Hapus baris yang dichecklist"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus Dicentang</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allChecked = guidedBelanjaRows.every((r) => r.selected);
+                      handleToggleAllRowsSelection(!allChecked);
+                    }}
+                    className="px-2 py-1 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-[11px] font-semibold cursor-pointer text-slate-700 dark:text-slate-300"
+                  >
+                    {guidedBelanjaRows.every((r) => r.selected) ? "Batal Centang Semua" : "Centang Semua Baris"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabel Sheet Excel Sejati (Cell-based Layout) */}
+              <div className="border-2 border-slate-300 dark:border-slate-700 rounded-xl overflow-x-auto overflow-y-auto flex-1 max-h-[56vh] bg-white dark:bg-slate-900 shadow-inner">
+                <table className="w-full border-collapse text-xs text-left">
+                  {/* Header Baris 1: Huruf Kolom Excel A s.d. K */}
+                  <thead className="sticky top-0 z-20 bg-[#e1dfdd] dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-300 dark:border-slate-700">
+                    <tr className="border-b border-slate-300 dark:border-slate-700 text-center font-mono text-[10px]">
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-12 bg-[#edebe9] dark:bg-slate-800/90 text-center">
+                        <input
+                          type="checkbox"
+                          checked={guidedBelanjaRows.length > 0 && guidedBelanjaRows.every((r) => r.selected)}
+                          onChange={(e) => handleToggleAllRowsSelection(e.target.checked)}
+                          className="w-3.5 h-3.5 accent-[#107c41] cursor-pointer align-middle"
+                          title="Checklist / Uncheck semua baris"
+                        />
+                      </th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 min-w-[240px]">A</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">B</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">C</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">D</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">E</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">F</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">G</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20 bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300">H (Rumus)</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">I</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-28">J</th>
+                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-32 bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300">K (Rumus)</th>
+                      <th className="p-1 w-24 bg-[#edebe9] dark:bg-slate-800/90">Aksi</th>
+                    </tr>
+                    {/* Header Baris 2: Nama Kolom Kertas Kerja 11 Kolom */}
+                    <tr className="bg-[#f3f2f1] dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold border-b-2 border-slate-400 dark:border-slate-600 shadow-xs">
+                      <th className="px-1.5 py-1.5 border-r border-slate-300 dark:border-slate-700 text-center font-mono text-[11px] bg-[#e1dfdd] dark:bg-slate-800">
+                        Row
+                      </th>
+                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 min-w-[240px]">
+                        1. Uraian Rincian Belanja
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                        2. Vol 1
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                        3. Sat 1
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                        4. Vol 2
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                        5. Sat 2
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                        6. Vol 3
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                        7. Sat 3
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">
+                        8. Vol Total
+                      </th>
+                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                        9. Satuan
+                      </th>
+                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 w-28 text-right">
+                        10. Harga (Rp)
+                      </th>
+                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 w-32 text-right bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
+                        11. Total (Rp)
+                      </th>
+                      <th className="px-1.5 py-1.5 w-24 text-center bg-[#e1dfdd] dark:bg-slate-800">
+                        Kelola
+                      </th>
+                    </tr>
+                  </thead>
+
+                  {/* Body Cell Spreadsheet */}
+                  <tbody className="divide-y divide-slate-300 dark:divide-slate-700 font-sans">
+                    {guidedBelanjaRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={13} className="p-8 text-center text-slate-400 italic">
+                          Belum ada baris data. Klik <strong>+ Tambah Baris</strong> atau <strong>Paste dari Excel</strong>.
+                        </td>
+                      </tr>
+                    ) : (
+                      guidedBelanjaRows.map((r, idx) => {
+                        const rowNum = idx + 1;
+                        const isSelectedRow = !!r.selected;
+                        return (
+                          <tr
+                            key={r.id}
+                            className={`transition-colors ${
+                              isSelectedRow
+                                ? "bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100/60"
+                                : r.isLainnya
+                                ? "bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/50"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                            }`}
+                          >
+                            {/* Excel Row Header (Checkbox + Nomor Baris 1, 2, 3...) */}
+                            <td
+                              className={`p-1 text-center font-mono text-[11px] border-r border-slate-300 dark:border-slate-700 select-none cursor-pointer ${
+                                isSelectedRow
+                                  ? "bg-amber-200/70 dark:bg-amber-900/50 font-bold text-amber-950 dark:text-amber-200"
+                                  : "bg-[#f3f2f1] dark:bg-slate-800 text-slate-500"
+                              }`}
+                              onClick={() => handleToggleRowSelection(idx)}
+                              title={`Klik untuk centang baris ${rowNum} (status: ${isSelectedRow ? "Dicentang untuk diganti" : "Tidak diganti"})`}
+                            >
+                              <div className="flex items-center justify-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelectedRow}
+                                  onChange={() => handleToggleRowSelection(idx)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-3.5 h-3.5 accent-[#107c41] cursor-pointer"
+                                />
+                                <span>{rowNum}</span>
+                              </div>
+                            </td>
+
+                            {/* Cell A: 1. Uraian Rincian Belanja */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700 relative">
+                              <input
+                                type="text"
+                                value={r.uraian}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `A${rowNum}`,
+                                    colKey: "uraian",
+                                    rowIdx: idx,
+                                    val: r.uraian,
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "uraian", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                placeholder="Uraian belanja bahan..."
+                                className="w-full h-full px-2 py-1 text-xs font-medium bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                              {r.isLainnya && (
+                                <span className="absolute bottom-0 right-1 text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950 px-1 rounded pointer-events-none">
+                                  BINCANG
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Cell B: 2. Vol 1 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="number"
+                                min={1}
+                                value={r.v1}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `B${rowNum}`,
+                                    colKey: "v1",
+                                    rowIdx: idx,
+                                    val: String(r.v1),
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "v1", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell C: 3. Sat 1 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="text"
+                                value={r.s1}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `C${rowNum}`,
+                                    colKey: "s1",
+                                    rowIdx: idx,
+                                    val: r.s1,
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "s1", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                placeholder="orang"
+                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell D: 4. Vol 2 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="number"
+                                min={1}
+                                value={r.v2}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `D${rowNum}`,
+                                    colKey: "v2",
+                                    rowIdx: idx,
+                                    val: String(r.v2),
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "v2", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell E: 5. Sat 2 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="text"
+                                value={r.s2}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `E${rowNum}`,
+                                    colKey: "s2",
+                                    rowIdx: idx,
+                                    val: r.s2,
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "s2", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                placeholder="keg"
+                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell F: 6. Vol 3 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="number"
+                                min={1}
+                                value={r.v3}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `F${rowNum}`,
+                                    colKey: "v3",
+                                    rowIdx: idx,
+                                    val: String(r.v3),
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "v3", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell G: 7. Sat 3 */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="text"
+                                value={r.s3}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `G${rowNum}`,
+                                    colKey: "s3",
+                                    rowIdx: idx,
+                                    val: r.s3,
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "s3", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                placeholder="-"
+                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell H: 8. Vol Total (Auto-calculated formula: Kolom B × D × F) */}
+                            <td
+                              className="px-2 py-1 border-r border-slate-300 dark:border-slate-700 text-center font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20 select-all cursor-pointer"
+                              onClick={() =>
+                                setActiveCellRef({
+                                  cellName: `H${rowNum}`,
+                                  colKey: "totalVol",
+                                  rowIdx: idx,
+                                  val: formatIndoNumber(r.totalVol),
+                                  formula: `=B${rowNum}*D${rowNum}*F${rowNum}`,
+                                })
+                              }
+                              title={`Rumus Excel: =B${rowNum}*D${rowNum}*F${rowNum}`}
+                            >
+                              {formatIndoNumber(r.totalVol)}
+                            </td>
+
+                            {/* Cell I: 9. Satuan Total */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="text"
+                                value={r.satTotal}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `I${rowNum}`,
+                                    colKey: "satTotal",
+                                    rowIdx: idx,
+                                    val: r.satTotal,
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "satTotal", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                placeholder="OK"
+                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800 font-medium"
+                              />
+                            </td>
+
+                            {/* Cell J: 10. Harga Satuan (Rp) */}
+                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                              <input
+                                type="text"
+                                value={formatIndoNumber(r.harga)}
+                                onFocus={() =>
+                                  setActiveCellRef({
+                                    cellName: `J${rowNum}`,
+                                    colKey: "harga",
+                                    rowIdx: idx,
+                                    val: String(r.harga),
+                                    formula: "",
+                                  })
+                                }
+                                onChange={(e) => {
+                                  updateGuidedRowField(idx, "harga", e.target.value);
+                                  setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
+                                }}
+                                className="w-full h-full px-2 py-1 text-xs font-mono font-bold text-right bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                              />
+                            </td>
+
+                            {/* Cell K: 11. Total Biaya (ROUNDDOWN ribuan terdekat: =ROUNDDOWN(H*J, -3)) */}
+                            <td
+                              className="px-2 py-1 border-r border-slate-300 dark:border-slate-700 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 select-all cursor-pointer"
+                              onClick={() =>
+                                setActiveCellRef({
+                                  cellName: `K${rowNum}`,
+                                  colKey: "totalBiaya",
+                                  rowIdx: idx,
+                                  val: `Rp ${formatIndoNumber(r.totalBiaya)}`,
+                                  formula: `=ROUNDDOWN(H${rowNum}*J${rowNum}, -3)`,
+                                })
+                              }
+                              title={`Rumus Excel: =ROUNDDOWN(H${rowNum}*J${rowNum}, -3)`}
+                            >
+                              Rp {formatIndoNumber(r.totalBiaya)}
+                            </td>
+
+                            {/* Cell Aksi Baris */}
+                            <td className="p-1 text-center bg-[#faf9f8] dark:bg-slate-800/60">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyGuidedRow(r)}
+                                  title="Salin Baris (TSV Excel)"
+                                  className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicateGuidedRow(idx)}
+                                  title="Duplikat Baris"
+                                  className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteGuidedRow(idx)}
+                                  title="Hapus Baris"
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer Kertas Kerja Excel */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-300 dark:border-slate-700 shrink-0 text-xs">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGuidedBelanjaStep("checklist")}
+                    className="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    ← Kembali ke Checklist
+                  </button>
+                  <span className="text-slate-500 font-medium">
+                    Total Baris: <strong>{guidedBelanjaRows.length}</strong> | Tercentang:{" "}
+                    <strong className="text-amber-700 dark:text-amber-400">
+                      {guidedBelanjaRows.filter((r) => r.selected).length}
+                    </strong>
+                  </span>
+                  {guidedBelanjaRows.some((r) => r.isLainnya) && (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                      ⚠️ Terdapat item 'Lainnya' yang memerlukan verifikasi BINCANG
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="text-[11px] text-slate-400 block font-medium">Total Anggaran Belanja Bahan:</span>
+                    <span className="text-base font-black font-mono text-[#107c41] dark:text-emerald-400">
+                      Rp {formatIndoNumber(guidedBelanjaRows.reduce((sum, r) => sum + r.totalBiaya, 0))}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveGuidedBelanjaBahan}
+                    className="px-5 py-2 bg-[#107c41] hover:bg-[#0c6233] text-white font-bold rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Simpan ke Kertas Kerja (Akun 521211)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-MODAL: PASTE DATA EXCEL DENGAN TARGET CHECKLIST */}
+          {pasteExcelModalOpen && (
+            <div className="fixed inset-0 z-60 bg-black/70 flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-2xl w-full p-5 space-y-3.5 shadow-2xl">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-700">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <ClipboardPaste className="w-4 h-4 text-[#107c41]" />
+                    <span>Tempel (Paste) Data dari Excel</span>
+                  </h4>
+                  <button
+                    onClick={() => setPasteExcelModalOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2.5">
+                  <p className="leading-relaxed">
+                    Salin (Copy) baris data dari Excel Anda lalu tempel (Paste) ke kotak di bawah ini. Sistem otomatis membaca kolom ke-1 s.d. ke-10, menghitung total volume (Kolom 8), dan membulatkan total biaya ke ribuan terdekat (Kolom 11).
+                  </p>
+
+                  {/* Pilihan Target Baris yang Dituju */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">
+                      Target Penggantian Data:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        pasteTargetOption === "selected"
+                          ? "bg-amber-50 border-amber-500 font-bold text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
+                          : "border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="pasteTarget"
+                          checked={pasteTargetOption === "selected"}
+                          onChange={() => setPasteTargetOption("selected")}
+                          className="accent-[#107c41]"
+                        />
+                        <span>
+                          Ganti Baris Dicentang ({guidedBelanjaRows.filter((r) => r.selected).length})
+                        </span>
+                      </label>
+
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        pasteTargetOption === "all"
+                          ? "bg-blue-50 border-blue-500 font-bold text-blue-900 dark:bg-blue-950/60 dark:text-blue-200"
+                          : "border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="pasteTarget"
+                          checked={pasteTargetOption === "all"}
+                          onChange={() => setPasteTargetOption("all")}
+                          className="accent-[#107c41]"
+                        />
+                        <span>Ganti Semua Baris</span>
+                      </label>
+
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        pasteTargetOption === "append"
+                          ? "bg-emerald-50 border-emerald-500 font-bold text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
+                          : "border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="pasteTarget"
+                          checked={pasteTargetOption === "append"}
+                          onChange={() => setPasteTargetOption("append")}
+                          className="accent-[#107c41]"
+                        />
+                        <span>Tambah Baris Baru</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                    Contoh format TSV Excel: <code>Konsumsi Rapat Pimpinan | 24 | orang | 20 | keg | | | 480 | OK | 76000 | 36480000</code>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={pasteExcelInputText}
+                    onChange={(e) => setPasteExcelInputText(e.target.value)}
+                    placeholder="Tempel (Paste) data dari Excel di sini..."
+                    className="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg font-mono text-xs focus:border-[#107c41] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasteExcelModalOpen(false);
+                      setPasteExcelInputText("");
+                    }}
+                    className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyPastedExcel}
+                    className="px-5 py-1.5 bg-[#107c41] hover:bg-[#0c6233] text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer transition-colors"
+                  >
+                    Terapkan ke Kertas Kerja
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
