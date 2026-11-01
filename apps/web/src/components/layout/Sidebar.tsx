@@ -1,3 +1,12 @@
+/**
+ * Sidebar Navigation Component
+ * 
+ * Based on & inspired by:
+ * - Project: sidebar-components (https://github.com/berkayderin/sidebar-components)
+ * - Author: Berkay Derin (https://github.com/berkayderin)
+ * - License: MIT License
+ */
+
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { X, Search } from "lucide-react";
