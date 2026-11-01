@@ -479,10 +479,6 @@ export default function IsianRabPage() {
 
   // State baris yang sedang dipilih
   const [selectedRowId, setSelectedRowId] = useState<string>("row-komp");
-  const selectedRow = useMemo(
-    () => worksheetRows.find((r) => r.id === selectedRowId),
-    [worksheetRows, selectedRowId]
-  );
 
   // State Clipboard untuk Copy & Paste baris
   const [copiedRow, setCopiedRow] = useState<WorksheetRow | null>(null);
@@ -1275,6 +1271,11 @@ export default function IsianRabPage() {
     } catch (e) {}
     return initialWorksheet;
   });
+
+  const selectedRow = useMemo(
+    () => worksheetRows.find((r) => r.id === selectedRowId),
+    [worksheetRows, selectedRowId]
+  );
 
   // Sinkronisasi bila unit kerja berganti
   useEffect(() => {
