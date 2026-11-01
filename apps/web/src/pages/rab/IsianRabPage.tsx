@@ -608,6 +608,7 @@ export default function IsianRabPage() {
   const [selectedBelanjaItems, setSelectedBelanjaItems] = useState<string[]>([]);
   const [guidedBelanjaRows, setGuidedBelanjaRows] = useState<GuidedBelanjaBahanRow[]>([]);
   const [selectedCellRange, setSelectedCellRange] = useState<{ startCol: number; endCol: number; rowIdx: number } | null>(null);
+  const [lastSelectedRowIdx, setLastSelectedRowIdx] = useState<number | null>(null);
   const [pasteExcelModalOpen, setPasteExcelModalOpen] = useState(false);
   const [pasteExcelInputText, setPasteExcelInputText] = useState("");
   const [rowCountInput, setRowCountInput] = useState<number>(5);
@@ -2885,13 +2886,24 @@ export default function IsianRabPage() {
     setGuidedBelanjaStep("kertas_kerja");
   }
 
-  // Toggle checklist pada 1 baris
-  function handleToggleRowSelection(idx: number) {
+  // Toggle checklist pada 1 baris (Mendukung Shift+Click untuk blok multi-baris seperti Excel)
+  function handleToggleRowSelection(idx: number, isShiftKey = false) {
+    if (isShiftKey && lastSelectedRowIdx !== null) {
+      const start = Math.min(lastSelectedRowIdx, idx);
+      const end = Math.max(lastSelectedRowIdx, idx);
+      setGuidedBelanjaRows((prev) =>
+        prev.map((r, i) => (i >= start && i <= end ? { ...r, selected: true } : r))
+      );
+      setLastSelectedRowIdx(idx);
+      return;
+    }
+
     setGuidedBelanjaRows((prev) => {
       const next = [...prev];
       next[idx] = { ...next[idx], selected: !next[idx].selected };
       return next;
     });
+    setLastSelectedRowIdx(idx);
   }
 
   // Toggle checklist semua baris
@@ -3121,12 +3133,12 @@ export default function IsianRabPage() {
     return parsedRows;
   }
 
-  // Terapkan data paste ke Kertas Kerja (mendukung penggantian baris yang dichecklist)
-  function handleApplyPastedExcel() {
-    if (!pasteExcelInputText.trim()) return;
-    const parsed = parsePastedExcelText(pasteExcelInputText);
+  // Terapkan data paste teks Excel / Sheets ke tabel secara cerdas
+  function applyPastedClipboardData(text: string) {
+    if (!text || !text.trim()) return;
+    const parsed = parsePastedExcelText(text);
     if (parsed.length === 0) {
-      triggerAlert("Format data tidak sesuai atau tidak ada baris yang valid.");
+      triggerAlert("Format data clipboard tidak sesuai atau tidak ada baris yang valid.");
       return;
     }
 
@@ -3134,8 +3146,7 @@ export default function IsianRabPage() {
       .map((r, idx) => (r.selected ? idx : -1))
       .filter((idx) => idx !== -1);
 
-    // Jika mode selected atau ada baris dicentang
-    if ((pasteTargetOption === "selected" || checkedIndices.length > 0) && pasteTargetOption !== "all" && pasteTargetOption !== "append") {
+    if (checkedIndices.length > 0) {
       setGuidedBelanjaRows((prev) => {
         const next = [...prev];
         checkedIndices.forEach((rowIdx, i) => {
@@ -3147,32 +3158,24 @@ export default function IsianRabPage() {
             };
           }
         });
-        // Jika hasil paste memiliki baris lebih banyak dari yang dicentang, sisanya ditambahkan di bawah baris terakhir
         if (parsed.length > checkedIndices.length) {
-          const extra = parsed.slice(checkedIndices.length);
-          next.push(...extra);
+          next.push(...parsed.slice(checkedIndices.length));
         }
         return next;
       });
-      setPasteExcelModalOpen(false);
-      setPasteExcelInputText("");
-      triggerAlert(`Berhasil mengganti ${Math.min(checkedIndices.length, parsed.length)} baris yang dichecklist dengan data Excel!`);
-      return;
+      triggerAlert(`Berhasil memperbarui ${Math.min(checkedIndices.length, parsed.length)} baris terpilih dari Clipboard (Ctrl+V)!`);
+    } else {
+      setGuidedBelanjaRows(parsed);
+      triggerAlert(`Berhasil memuat ${parsed.length} baris data dari Clipboard (Ctrl+V)!`);
     }
+  }
 
-    if (pasteTargetOption === "append") {
-      setGuidedBelanjaRows((prev) => [...prev, ...parsed]);
-      setPasteExcelModalOpen(false);
-      setPasteExcelInputText("");
-      triggerAlert(`Berhasil menambahkan ${parsed.length} baris baru dari data Excel!`);
-      return;
-    }
-
-    // Default: ganti semua baris
-    setGuidedBelanjaRows(parsed);
+  // Terapkan data paste ke Kertas Kerja (mendukung penggantian baris yang dichecklist)
+  function handleApplyPastedExcel() {
+    if (!pasteExcelInputText.trim()) return;
+    applyPastedClipboardData(pasteExcelInputText);
     setPasteExcelModalOpen(false);
     setPasteExcelInputText("");
-    triggerAlert(`Berhasil memuat ${parsed.length} baris data dari Excel!`);
   }
 
   // Handler Simpan Belanja Bahan ke Worksheet Utama (Membentuk Akun 521211 & Detail Belanja)
@@ -7739,56 +7742,46 @@ export default function IsianRabPage() {
             </div>
           )}
 
-          {/* STEP 3: KERTAS KERJA SHEET EXCEL 11 KOLOM (CELL-BASED SPREADSHEET) */}
+          {/* STEP 3: KERTAS KERJA PERHITUNGAN BELANJA BAHAN (AKUN 521211) */}
           {guidedBelanjaStep === "kertas_kerja" && (
             <div
-              className="bg-[#f3f2f1] dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-7xl w-full p-4 space-y-3 shadow-2xl my-auto flex flex-col max-h-[95vh] text-slate-800 dark:text-slate-100"
+              tabIndex={0}
+              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-7xl w-full p-5 space-y-4 shadow-2xl my-auto flex flex-col max-h-[95vh] text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500/30"
               onPaste={(e) => {
                 const text = e.clipboardData?.getData("text");
-                if (text && (text.includes("\t") || text.includes("|"))) {
+                if (text && (text.includes("\t") || text.includes("|") || text.includes("\n"))) {
                   e.preventDefault();
-                  const parsed = parsePastedExcelText(text);
-                  if (parsed.length > 0) {
-                    const checkedIndices = guidedBelanjaRows
-                      .map((r, idx) => (r.selected ? idx : -1))
-                      .filter((idx) => idx !== -1);
-                    if (checkedIndices.length > 0) {
-                      setGuidedBelanjaRows((prev) => {
-                        const next = [...prev];
-                        checkedIndices.forEach((rowIdx, i) => {
-                          if (i < parsed.length) {
-                            next[rowIdx] = { ...parsed[i], id: next[rowIdx].id, selected: true };
-                          }
-                        });
-                        if (parsed.length > checkedIndices.length) {
-                          next.push(...parsed.slice(checkedIndices.length));
-                        }
-                        return next;
-                      });
-                      triggerAlert(`Berhasil memperbarui ${Math.min(checkedIndices.length, parsed.length)} baris yang dichecklist dari clipboard!`);
-                    } else {
-                      setGuidedBelanjaRows(parsed);
-                      triggerAlert(`Berhasil memuat ${parsed.length} baris data dari clipboard!`);
+                  applyPastedClipboardData(text);
+                }
+              }}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && (e.key === "v" || e.key === "V")) {
+                  // Jika fokus di luar input atau ingin paste clipboard browser
+                  navigator.clipboard?.readText().then((text) => {
+                    if (text && (text.includes("\t") || text.includes("|") || text.includes("\n"))) {
+                      applyPastedClipboardData(text);
                     }
-                  }
+                  }).catch(() => {
+                    // Fallback jika permission browser dibatasi
+                  });
                 }
               }}
             >
-              {/* Excel Green Header Ribbon Bar */}
-              <div className="flex items-center justify-between px-3 py-2 bg-[#107c41] text-white rounded-xl shadow-xs shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white">
-                    <FileSpreadsheet className="w-5 h-5" />
+              {/* Pro Renja Brand Header Banner */}
+              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-700 text-white rounded-xl shadow-md shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/20 shadow-xs">
+                    <Layers className="w-5 h-5 text-sky-200" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold flex items-center gap-2">
-                      <span>Kertas Kerja Belanja Bahan (Akun 521211) — Sheet Excel</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white text-[#107c41] font-black uppercase">
-                        11 Kolom
+                    <h3 className="text-sm font-bold flex items-center gap-2 tracking-wide">
+                      <span>Penyusunan Kertas Kerja Belanja Bahan</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/20 text-sky-100 border border-white/30 font-bold uppercase tracking-wider">
+                        Akun 521211
                       </span>
                     </h3>
-                    <p className="text-[0.66rem] text-emerald-100 font-medium">
-                      {currentKroLocation.tarifLabel} • Kolom 8: Rumus Auto-Volume (B×D×F) • Kolom 11: ROUNDDOWN Ribuan (H×J)
+                    <p className="text-[0.7rem] text-sky-100/90 font-medium mt-0.5">
+                      {currentKroLocation.tarifLabel} • Kolom 8 Otomatis (Vol 1 × Vol 2 × Vol 3) • Pembulatan Ribuan Terdekat
                     </p>
                   </div>
                 </div>
@@ -7796,25 +7789,15 @@ export default function IsianRabPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setPasteExcelModalOpen(true)}
-                    title="Buka dialog tempel data dari sheet Excel"
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                  >
-                    <ClipboardPaste className="w-3.5 h-3.5" />
-                    <span>Paste dari Excel</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={handleAddEmptyGuidedRow}
-                    className="px-3 py-1.5 bg-white text-[#107c41] hover:bg-emerald-50 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                    className="px-3 py-1.5 bg-white text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs hover:shadow"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Tambah Baris</span>
                   </button>
 
-                  <div className="flex items-center gap-1 text-xs text-white/90 border-l pl-2 border-white/30">
-                    <span className="text-[11px]">Set Baris:</span>
+                  <div className="flex items-center gap-1 text-xs text-white/90 border-l pl-2 border-white/20">
+                    <span className="text-[11px] font-medium">Jml Baris:</span>
                     <input
                       type="number"
                       min={1}
@@ -7825,70 +7808,50 @@ export default function IsianRabPage() {
                         setRowCountInput(val);
                         handleSetTotalGuidedRows(val);
                       }}
-                      className="w-12 px-1 py-0.5 text-center bg-white text-slate-900 rounded font-mono font-bold text-xs"
+                      className="w-12 px-1.5 py-0.5 text-center bg-white/90 text-slate-900 rounded font-mono font-bold text-xs border border-white/40 focus:outline-none focus:bg-white"
                     />
                   </div>
 
                   <button
                     onClick={() => setModalMode(null)}
-                    className="text-white/80 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10 cursor-pointer ml-1"
+                    className="text-white/80 hover:text-white text-xs p-1.5 rounded-lg hover:bg-white/10 cursor-pointer ml-1 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* Bilah Rumus / Formula Bar & Checklist Baris Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs shrink-0 shadow-xs">
-                {/* Cell Indicator & Formula Input */}
-                <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-                  <div className="w-16 px-2 py-1 text-center font-mono font-black text-xs bg-slate-100 dark:bg-slate-700 text-[#107c41] dark:text-emerald-400 border border-slate-300 dark:border-slate-600 rounded">
-                    {activeCellRef.cellName}
-                  </div>
-                  <span className="text-slate-400 font-serif italic text-sm select-none font-bold">fx</span>
-                  <div className="flex-1 px-2.5 py-1 font-mono text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded truncate text-slate-700 dark:text-slate-200">
-                    {activeCellRef.formula ? (
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">{activeCellRef.formula}</span>
-                    ) : (
-                      activeCellRef.val || <span className="text-slate-400 italic font-sans">(Cell Kosong)</span>
-                    )}
-                  </div>
+              {/* Status Bar & Info Paste Shortcut (Ctrl+V) */}
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
+                    <Clipboard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Salin dari Excel lalu tekan <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[10px] font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600">Ctrl + V</kbd> untuk tempel langsung.</span>
+                  </span>
+                  <span className="text-slate-400">&bull;</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                    Tekan <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[10px] font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600">Shift + Klik</kbd> pada nomor baris untuk mem-blok rentang baris.
+                  </span>
                 </div>
 
-                {/* Toolbar Checklist & Seleksi Baris */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+                {/* Toolbar Checklist & Aksi Massal */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[11px] font-semibold text-blue-900 dark:text-blue-200">
                     <span>
-                      Dicentang untuk diganti:{" "}
-                      <strong className="font-mono text-xs font-bold text-amber-700 dark:text-amber-300">
-                        {guidedBelanjaRows.filter((r) => r.selected).length}
-                      </strong>{" "}
-                      dari {guidedBelanjaRows.length} baris
+                      Terpilih: <strong className="font-mono font-bold text-blue-700 dark:text-blue-300">{guidedBelanjaRows.filter((r) => r.selected).length}</strong> dari {guidedBelanjaRows.length} baris
                     </span>
                   </div>
 
                   {guidedBelanjaRows.some((r) => r.selected) && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setPasteExcelModalOpen(true)}
-                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Ganti baris yang dichecklist dengan data paste Excel"
-                      >
-                        <ClipboardPaste className="w-3 h-3" />
-                        <span>Ganti Dicentang</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleDeleteSelectedGuidedRows}
-                        className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Hapus baris yang dichecklist"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Hapus Dicentang</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedGuidedRows}
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                      title="Hapus baris yang diblok/dipilih"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Hapus Terpilih</span>
+                    </button>
                   )}
 
                   <button
@@ -7897,91 +7860,73 @@ export default function IsianRabPage() {
                       const allChecked = guidedBelanjaRows.every((r) => r.selected);
                       handleToggleAllRowsSelection(!allChecked);
                     }}
-                    className="px-2 py-1 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-[11px] font-semibold cursor-pointer text-slate-700 dark:text-slate-300"
+                    className="px-2.5 py-1 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-[11px] font-semibold cursor-pointer text-slate-700 dark:text-slate-300 transition-colors"
                   >
-                    {guidedBelanjaRows.every((r) => r.selected) ? "Batal Centang Semua" : "Centang Semua Baris"}
+                    {guidedBelanjaRows.every((r) => r.selected) ? "Batal Pilih Semua" : "Pilih Semua Baris"}
                   </button>
                 </div>
               </div>
 
-              {/* Tabel Sheet Excel Sejati (Cell-based Layout) */}
-              <div className="border-2 border-slate-300 dark:border-slate-700 rounded-xl overflow-x-auto overflow-y-auto flex-1 max-h-[56vh] bg-white dark:bg-slate-900 shadow-inner">
+              {/* Tabel Kertas Kerja Belanja Bahan Pro Renja */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-x-auto overflow-y-auto flex-1 max-h-[56vh] bg-white dark:bg-slate-900 shadow-xs">
                 <table className="w-full border-collapse text-xs text-left">
-                  {/* Header Baris 1: Huruf Kolom Excel A s.d. K */}
-                  <thead className="sticky top-0 z-20 bg-[#e1dfdd] dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-300 dark:border-slate-700">
-                    <tr className="border-b border-slate-300 dark:border-slate-700 text-center font-mono text-[10px]">
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-12 bg-[#edebe9] dark:bg-slate-800/90 text-center">
+                  {/* Header Kolom Tabel */}
+                  <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px]">
+                      <th className="p-2 border-r border-slate-200 dark:border-slate-700 w-12 text-center bg-slate-100 dark:bg-slate-800">
                         <input
                           type="checkbox"
                           checked={guidedBelanjaRows.length > 0 && guidedBelanjaRows.every((r) => r.selected)}
                           onChange={(e) => handleToggleAllRowsSelection(e.target.checked)}
-                          className="w-3.5 h-3.5 accent-[#107c41] cursor-pointer align-middle"
-                          title="Checklist / Uncheck semua baris"
+                          className="w-3.5 h-3.5 accent-blue-600 rounded cursor-pointer align-middle"
+                          title="Pilih / Batal Pilih semua baris"
                         />
                       </th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 min-w-[240px]">A</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">B</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">C</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">D</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">E</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">F</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-16">G</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20 bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300">H (Rumus)</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-20">I</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-28">J</th>
-                      <th className="p-1 border-r border-slate-300 dark:border-slate-700 w-32 bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300">K (Rumus)</th>
-                      <th className="p-1 w-24 bg-[#edebe9] dark:bg-slate-800/90">Aksi</th>
-                    </tr>
-                    {/* Header Baris 2: Nama Kolom Kertas Kerja 11 Kolom */}
-                    <tr className="bg-[#f3f2f1] dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold border-b-2 border-slate-400 dark:border-slate-600 shadow-xs">
-                      <th className="px-1.5 py-1.5 border-r border-slate-300 dark:border-slate-700 text-center font-mono text-[11px] bg-[#e1dfdd] dark:bg-slate-800">
-                        Row
-                      </th>
-                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 min-w-[240px]">
+                      <th className="px-3 py-2 border-r border-slate-200 dark:border-slate-700 min-w-[240px]">
                         1. Uraian Rincian Belanja
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-16 text-center">
                         2. Vol 1
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-20 text-center">
                         3. Sat 1
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-16 text-center">
                         4. Vol 2
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-20 text-center">
                         5. Sat 2
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-16 text-center">
                         6. Vol 3
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-16 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-16 text-center">
                         7. Sat 3
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">
+                      <th className="px-2 py-2 border-r border-slate-200 dark:border-slate-700 w-20 text-center bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300">
                         8. Vol Total
                       </th>
-                      <th className="px-1 py-1.5 border-r border-slate-300 dark:border-slate-700 w-20 text-center">
+                      <th className="px-1.5 py-2 border-r border-slate-200 dark:border-slate-700 w-20 text-center">
                         9. Satuan
                       </th>
-                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 w-28 text-right">
+                      <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700 w-28 text-right">
                         10. Harga (Rp)
                       </th>
-                      <th className="px-2 py-1.5 border-r border-slate-300 dark:border-slate-700 w-32 text-right bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
+                      <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700 w-32 text-right bg-blue-50/80 dark:bg-blue-950/50 text-blue-900 dark:text-blue-300">
                         11. Total (Rp)
                       </th>
-                      <th className="px-1.5 py-1.5 w-24 text-center bg-[#e1dfdd] dark:bg-slate-800">
-                        Kelola
+                      <th className="px-1.5 py-2 w-20 text-center bg-slate-100 dark:bg-slate-800">
+                        Aksi
                       </th>
                     </tr>
                   </thead>
 
-                  {/* Body Cell Spreadsheet */}
-                  <tbody className="divide-y divide-slate-300 dark:divide-slate-700 font-sans">
+                  {/* Body Cell Kertas Kerja */}
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700/80 font-sans">
                     {guidedBelanjaRows.length === 0 ? (
                       <tr>
                         <td colSpan={13} className="p-8 text-center text-slate-400 italic">
-                          Belum ada baris data. Klik <strong>+ Tambah Baris</strong> atau <strong>Paste dari Excel</strong>.
+                          Belum ada baris data. Klik <strong>+ Tambah Baris</strong> atau tekan <kbd className="font-mono font-bold">Ctrl+V</kbd> untuk menempel data dari Excel.
                         </td>
                       </tr>
                     ) : (
@@ -7993,36 +7938,36 @@ export default function IsianRabPage() {
                             key={r.id}
                             className={`transition-colors ${
                               isSelectedRow
-                                ? "bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100/60"
+                                ? "bg-blue-50/60 dark:bg-blue-950/30 ring-1 ring-inset ring-blue-300 dark:ring-blue-800"
                                 : r.isLainnya
-                                ? "bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/50"
-                                : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                                ? "bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/50"
+                                : "hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
                             }`}
                           >
-                            {/* Excel Row Header (Checkbox + Nomor Baris 1, 2, 3...) */}
+                            {/* Row Header (Checkbox + Nomor Baris dengan Shift-Click Range Selection) */}
                             <td
-                              className={`p-1 text-center font-mono text-[11px] border-r border-slate-300 dark:border-slate-700 select-none cursor-pointer ${
+                              className={`p-1 text-center font-mono text-[11px] border-r border-slate-200 dark:border-slate-700 select-none cursor-pointer transition-colors ${
                                 isSelectedRow
-                                  ? "bg-amber-200/70 dark:bg-amber-900/50 font-bold text-amber-950 dark:text-amber-200"
-                                  : "bg-[#f3f2f1] dark:bg-slate-800 text-slate-500"
+                                  ? "bg-blue-100/80 dark:bg-blue-900/50 font-bold text-blue-900 dark:text-blue-200"
+                                  : "bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
                               }`}
-                              onClick={() => handleToggleRowSelection(idx)}
-                              title={`Klik untuk centang baris ${rowNum} (status: ${isSelectedRow ? "Dicentang untuk diganti" : "Tidak diganti"})`}
+                              onClick={(e) => handleToggleRowSelection(idx, e.shiftKey)}
+                              title={`Klik untuk memilih baris ${rowNum}. Tahan tombol Shift + Klik untuk blok rentang baris.`}
                             >
                               <div className="flex items-center justify-center gap-1.5">
                                 <input
                                   type="checkbox"
                                   checked={isSelectedRow}
-                                  onChange={() => handleToggleRowSelection(idx)}
+                                  onChange={(e) => handleToggleRowSelection(idx, (e.nativeEvent as any).shiftKey)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="w-3.5 h-3.5 accent-[#107c41] cursor-pointer"
+                                  className="w-3.5 h-3.5 accent-blue-600 rounded cursor-pointer"
                                 />
                                 <span>{rowNum}</span>
                               </div>
                             </td>
 
-                            {/* Cell A: 1. Uraian Rincian Belanja */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700 relative">
+                            {/* Kolom 1: Uraian Rincian Belanja */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700 relative">
                               <input
                                 type="text"
                                 value={r.uraian}
@@ -8040,17 +7985,17 @@ export default function IsianRabPage() {
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
                                 placeholder="Uraian belanja bahan..."
-                                className="w-full h-full px-2 py-1 text-xs font-medium bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-2.5 py-1.5 text-xs font-medium bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800 rounded-xs"
                               />
                               {r.isLainnya && (
-                                <span className="absolute bottom-0 right-1 text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950 px-1 rounded pointer-events-none">
+                                <span className="absolute bottom-1 right-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/90 dark:bg-amber-950 px-1 py-0.2 rounded pointer-events-none">
                                   BINCANG
                                 </span>
                               )}
                             </td>
 
-                            {/* Cell B: 2. Vol 1 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 2: Vol 1 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="number"
                                 min={1}
@@ -8068,12 +8013,12 @@ export default function IsianRabPage() {
                                   updateGuidedRowField(idx, "v1", e.target.value);
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
-                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell C: 3. Sat 1 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 3: Sat 1 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="text"
                                 value={r.s1}
@@ -8091,12 +8036,12 @@ export default function IsianRabPage() {
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
                                 placeholder="orang"
-                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell D: 4. Vol 2 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 4: Vol 2 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="number"
                                 min={1}
@@ -8114,12 +8059,12 @@ export default function IsianRabPage() {
                                   updateGuidedRowField(idx, "v2", e.target.value);
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
-                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell E: 5. Sat 2 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 5: Sat 2 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="text"
                                 value={r.s2}
@@ -8137,12 +8082,12 @@ export default function IsianRabPage() {
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
                                 placeholder="keg"
-                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell F: 6. Vol 3 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 6: Vol 3 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="number"
                                 min={1}
@@ -8160,12 +8105,12 @@ export default function IsianRabPage() {
                                   updateGuidedRowField(idx, "v3", e.target.value);
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
-                                className="w-full h-full px-1 py-1 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs font-mono font-bold text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell G: 7. Sat 3 */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 7: Sat 3 */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="text"
                                 value={r.s3}
@@ -8183,29 +8128,20 @@ export default function IsianRabPage() {
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
                                 placeholder="-"
-                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-1 py-1.5 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell H: 8. Vol Total (Auto-calculated formula: Kolom B × D × F) */}
+                            {/* Kolom 8: Vol Total (Rumus otomatis: Kolom B × D × F) */}
                             <td
-                              className="px-2 py-1 border-r border-slate-300 dark:border-slate-700 text-center font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20 select-all cursor-pointer"
-                              onClick={() =>
-                                setActiveCellRef({
-                                  cellName: `H${rowNum}`,
-                                  colKey: "totalVol",
-                                  rowIdx: idx,
-                                  val: formatIndoNumber(r.totalVol),
-                                  formula: `=B${rowNum}*D${rowNum}*F${rowNum}`,
-                                })
-                              }
-                              title={`Rumus Excel: =B${rowNum}*D${rowNum}*F${rowNum}`}
+                              className="px-2 py-1.5 border-r border-slate-200 dark:border-slate-700 text-center font-mono font-bold text-blue-800 dark:text-blue-300 bg-blue-50/40 dark:bg-blue-950/20 select-all"
+                              title={`Rumus: Vol 1 (${r.v1}) × Vol 2 (${r.v2}) × Vol 3 (${r.v3})`}
                             >
                               {formatIndoNumber(r.totalVol)}
                             </td>
 
-                            {/* Cell I: 9. Satuan Total */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 9: Satuan Total */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="text"
                                 value={r.satTotal}
@@ -8223,12 +8159,12 @@ export default function IsianRabPage() {
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
                                 placeholder="OK"
-                                className="w-full h-full px-1 py-1 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800 font-medium"
+                                className="w-full h-full px-1 py-1.5 text-xs text-center bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800 font-medium"
                               />
                             </td>
 
-                            {/* Cell J: 10. Harga Satuan (Rp) */}
-                            <td className="p-0 border-r border-slate-300 dark:border-slate-700">
+                            {/* Kolom 10: Harga Satuan (Rp) */}
+                            <td className="p-0 border-r border-slate-200 dark:border-slate-700">
                               <input
                                 type="text"
                                 value={formatIndoNumber(r.harga)}
@@ -8245,35 +8181,26 @@ export default function IsianRabPage() {
                                   updateGuidedRowField(idx, "harga", e.target.value);
                                   setActiveCellRef((prev) => ({ ...prev, val: e.target.value }));
                                 }}
-                                className="w-full h-full px-2 py-1 text-xs font-mono font-bold text-right bg-transparent border-0 outline-none focus:ring-2 focus:ring-[#107c41] focus:bg-white dark:focus:bg-slate-800"
+                                className="w-full h-full px-2.5 py-1.5 text-xs font-mono font-bold text-right bg-transparent border-0 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-slate-800"
                               />
                             </td>
 
-                            {/* Cell K: 11. Total Biaya (ROUNDDOWN ribuan terdekat: =ROUNDDOWN(H*J, -3)) */}
+                            {/* Kolom 11: Total Biaya (ROUNDDOWN ribuan terdekat: Total Vol × Harga) */}
                             <td
-                              className="px-2 py-1 border-r border-slate-300 dark:border-slate-700 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 select-all cursor-pointer"
-                              onClick={() =>
-                                setActiveCellRef({
-                                  cellName: `K${rowNum}`,
-                                  colKey: "totalBiaya",
-                                  rowIdx: idx,
-                                  val: `Rp ${formatIndoNumber(r.totalBiaya)}`,
-                                  formula: `=ROUNDDOWN(H${rowNum}*J${rowNum}, -3)`,
-                                })
-                              }
-                              title={`Rumus Excel: =ROUNDDOWN(H${rowNum}*J${rowNum}, -3)`}
+                              className="px-2.5 py-1.5 border-r border-slate-200 dark:border-slate-700 text-right font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30 select-all"
+                              title="Rumus: Pembulatan ke bawah ribuan terdekat (Total Vol × Harga)"
                             >
                               Rp {formatIndoNumber(r.totalBiaya)}
                             </td>
 
                             {/* Cell Aksi Baris */}
-                            <td className="p-1 text-center bg-[#faf9f8] dark:bg-slate-800/60">
+                            <td className="p-1 text-center bg-slate-50 dark:bg-slate-800/60">
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   type="button"
                                   onClick={() => handleCopyGuidedRow(r)}
-                                  title="Salin Baris (TSV Excel)"
-                                  className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                  title="Salin Baris (TSV)"
+                                  className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
                                 </button>
@@ -8281,7 +8208,7 @@ export default function IsianRabPage() {
                                   type="button"
                                   onClick={() => handleDuplicateGuidedRow(idx)}
                                   title="Duplikat Baris"
-                                  className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                 </button>
@@ -8289,7 +8216,7 @@ export default function IsianRabPage() {
                                   type="button"
                                   onClick={() => handleDeleteGuidedRow(idx)}
                                   title="Hapus Baris"
-                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -8303,24 +8230,24 @@ export default function IsianRabPage() {
                 </table>
               </div>
 
-              {/* Footer Kertas Kerja Excel */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-300 dark:border-slate-700 shrink-0 text-xs">
+              {/* Footer Kertas Kerja Pro Renja */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 shrink-0 text-xs">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setGuidedBelanjaStep("checklist")}
-                    className="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    className="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                   >
                     ← Kembali ke Checklist
                   </button>
                   <span className="text-slate-500 font-medium">
-                    Total Baris: <strong>{guidedBelanjaRows.length}</strong> | Tercentang:{" "}
-                    <strong className="text-amber-700 dark:text-amber-400">
+                    Total: <strong>{guidedBelanjaRows.length}</strong> baris | Terpilih:{" "}
+                    <strong className="text-blue-700 dark:text-blue-400">
                       {guidedBelanjaRows.filter((r) => r.selected).length}
                     </strong>
                   </span>
                   {guidedBelanjaRows.some((r) => r.isLainnya) && (
-                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
                       ⚠️ Terdapat item 'Lainnya' yang memerlukan verifikasi BINCANG
                     </span>
                   )}
@@ -8329,7 +8256,7 @@ export default function IsianRabPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <span className="text-[11px] text-slate-400 block font-medium">Total Anggaran Belanja Bahan:</span>
-                    <span className="text-base font-black font-mono text-[#107c41] dark:text-emerald-400">
+                    <span className="text-base font-black font-mono text-blue-700 dark:text-blue-400">
                       Rp {formatIndoNumber(guidedBelanjaRows.reduce((sum, r) => sum + r.totalBiaya, 0))}
                     </span>
                   </div>
@@ -8337,7 +8264,7 @@ export default function IsianRabPage() {
                   <button
                     type="button"
                     onClick={handleSaveGuidedBelanjaBahan}
-                    className="px-5 py-2 bg-[#107c41] hover:bg-[#0c6233] text-white font-bold rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all flex items-center gap-2"
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" />
                     <span>Simpan ke Kertas Kerja (Akun 521211)</span>
