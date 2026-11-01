@@ -43,6 +43,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
+import templateRabGajiKantor from "../../data/templateRabGajiKantor.json";
 import { baganAkunStandar } from "../../data/baganAkunStandar";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import sbkData from "../../data/sbkData.json";
@@ -137,26 +138,26 @@ export interface GuidedBelanjaBahanRow {
   selected?: boolean;    // Checklist baris untuk diganti / diedit
 }
 
-// Checklist Item Belanja Bahan
+// Checklist Item Belanja Bahan Sesuai Panduan 2
 export const BELANJA_BAHAN_CHECKLIST_ITEMS = [
   "Konsumsi",
   "Konsumsi Rapat - makan",
   "Konsumsi Rapat - kudapan",
-  "Seminar Kit - Internal",
-  "Seminar Kit - Eksternal",
+  "Seminar Kit",
+  "Souvenir",
   "Diklat Kit - Internal",
   "Diklat Kit - Eksternal",
   "Pencetakan",
   "Lainnya",
 ];
 
-// Tarif SBM Belanja Bahan berdasarkan Lokasi KRO
+// Tarif SBM Belanja Bahan berdasarkan Lokasi KRO (Panduan 2)
 export const TARIF_BELANJA_BAHAN_01_51_55: Record<string, number> = {
   "Konsumsi": 81000,
   "Konsumsi Rapat - makan": 57000,
   "Konsumsi Rapat - kudapan": 24000,
-  "Seminar Kit - Internal": 50000,
-  "Seminar Kit - Eksternal": 150000,
+  "Seminar Kit": 50000,
+  "Souvenir": 150000,
   "Diklat Kit - Internal": 100000,
   "Diklat Kit - Eksternal": 200000,
   "Pencetakan": 1000,
@@ -166,11 +167,38 @@ export const TARIF_BELANJA_BAHAN_02_58: Record<string, number> = {
   "Konsumsi": 76000,
   "Konsumsi Rapat - makan": 54000,
   "Konsumsi Rapat - kudapan": 22000,
-  "Seminar Kit - Internal": 50000,
-  "Seminar Kit - Eksternal": 150000,
+  "Seminar Kit": 50000,
+  "Souvenir": 150000,
   "Diklat Kit - Internal": 100000,
   "Diklat Kit - Eksternal": 200000,
   "Pencetakan": 1000,
+};
+
+// 7 Kategori Belanja Panduan 2
+export type JenisBelanjaPanduan =
+  | "001" // Komponen 001 Gaji dan Tunjangan (Hanya BINCANG & PATIH)
+  | "002" // Komponen 002 Operasional Kantor (Hanya BIRU & PATIH)
+  | "bahan" // Pengadaan Belanja Bahan
+  | "jasa" // Pengadaan Jasa (Konsultan, profesi, lainnya)
+  | "spd_dn" // Perjalanan Dinas Dalam Negeri
+  | "spd_ln" // Perjalanan Dinas Luar Negeri
+  | "konsinyering"; // Penyelenggaraan Konsinyering
+
+// Tarif SBM Honorarium Jasa Profesi (Panduan 2)
+export const TARIF_JASA_PROFESI_NARASUMBER: Record<string, number> = {
+  "Honorarium Narasumber - Menteri/Pejabat Setingkat Menteri/Pejabat Negara Lainnya/Wakil Menteri/yang disetarakan": 1700000,
+  "Honorarium Narasumber - Pejabat Eselon I/yang disetarakan": 1400000,
+  "Honorarium Narasumber - Pejabat Eselon II/yang disetarakan": 1000000,
+  "Honorarium Narasumber - Pejabat Eselon III ke bawah/yang disetarakan": 900000,
+};
+
+export const TARIF_JASA_PROFESI_PANITIA: Record<string, number> = {
+  "Honorarium Moderator": 700000,
+  "Honorarium Pembawa Acara": 400000,
+  "Honorarium Panitia - Penanggung Jawab": 450000,
+  "Honorarium Panitia - Ketua/Wakil ketua": 400000,
+  "Honorarium Panitia - Sekretaris": 300000,
+  "Honorarium Panitia - Anggota": 300000,
 };
 
 // Helper parsing angka standar Indonesia (pemisah ribuan '.' dan desimal ',')
@@ -544,6 +572,8 @@ export default function IsianRabPage() {
     | "detail"
     | "edit"
     | "pilih_metode"
+    | "panduan_jenis_belanja"
+    | "panduan_jasa"
     | "panduan_wizard"
     | "panduan_belanja_bahan"
     | "upload_excel"
@@ -553,10 +583,31 @@ export default function IsianRabPage() {
   // State Sub Komponen Target untuk input lanjutan setelah rekam Sub Komponen
   const [targetSubkompRowId, setTargetSubkompRowId] = useState<string | null>(null);
 
+  // State Pilihan Multi-select 7 Jenis Belanja (Panduan 2)
+  const [selectedJenisBelanjaList, setSelectedJenisBelanjaList] = useState<JenisBelanjaPanduan[]>([]);
+
+  // State Form Pengadaan Jasa (Konsultan, Profesi, Lainnya)
+  const [jasaSubPilihan, setJasaSubPilihan] = useState<"konsultan" | "profesi" | "lainnya">("konsultan");
+  const [jasaKonsultanBiaya, setJasaKonsultanBiaya] = useState<number>(50000000);
+  
+  // Jasa Profesi
+  const [jasaProfesiKategori, setJasaProfesiKategori] = useState<"narasumber" | "kepanitiaan">("narasumber");
+  const [jasaProfesiItem, setJasaProfesiItem] = useState<string>("Honorarium Narasumber - Pejabat Eselon I/yang disetarakan");
+  const [jasaProfesiJumlahOrg, setJasaProfesiJumlahOrg] = useState<number>(2);
+  const [jasaProfesiJumlahKeg, setJasaProfesiJumlahKeg] = useState<number>(1);
+  const [jasaProfesiTarif, setJasaProfesiTarif] = useState<number>(1400000);
+
+  // Jasa Lainnya
+  const [jasaLainnyaUraian, setJasaLainnyaUraian] = useState<string>("Jasa Penyelenggaraan Acara");
+  const [jasaLainnyaVol1, setJasaLainnyaVol1] = useState<number>(1);
+  const [jasaLainnyaVol2, setJasaLainnyaVol2] = useState<number>(1);
+  const [jasaLainnyaHarga, setJasaLainnyaHarga] = useState<number>(15000000);
+
   // State Panduan Belanja Bahan (Akun 521211)
-  const [guidedBelanjaStep, setGuidedBelanjaStep] = useState<"konfirmasi" | "checklist" | "kertas_kerja">("konfirmasi");
+  const [guidedBelanjaStep, setGuidedBelanjaStep] = useState<"checklist" | "kertas_kerja">("checklist");
   const [selectedBelanjaItems, setSelectedBelanjaItems] = useState<string[]>([]);
   const [guidedBelanjaRows, setGuidedBelanjaRows] = useState<GuidedBelanjaBahanRow[]>([]);
+  const [selectedCellRange, setSelectedCellRange] = useState<{ startCol: number; endCol: number; rowIdx: number } | null>(null);
   const [pasteExcelModalOpen, setPasteExcelModalOpen] = useState(false);
   const [pasteExcelInputText, setPasteExcelInputText] = useState("");
   const [rowCountInput, setRowCountInput] = useState<number>(5);
@@ -1315,7 +1366,7 @@ export default function IsianRabPage() {
     );
   }, [worksheetRows, viewScope, filterSearch]);
 
-  // List RO yang tersedia untuk KRO aktif (difilter berdasarkan KRO yang dipilih / Unit Kerja aktif)
+  // List RO yang tersedia untuk KRO aktif (difilter ketat berdasarkan KRO pada Form Lokus / KRO aktif)
   const availableRosForKro = useMemo(() => {
     const list: Array<{
       id: string;
@@ -1327,17 +1378,21 @@ export default function IsianRabPage() {
     }> = [];
     const seenFullKode = new Set<string>();
 
-    // Target KRO yang sedang dipilih (contoh: "3382.BKC" atau "3374.EBD")
-    const targetKroRaw = (selectedKroOption || formKroDialog.kroKode || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    const targetAktivitas = formKroDialog.aktivitasKode || "";
+    // Target KRO yang sedang dibuka di Form Pendetailan Lokus (formRo.kroKode) atau fallback ke KRO dialog/option
+    const formKroVal = (formRo.kroKode || "").trim();
+    const partsFormKro = formKroVal.split(".");
+    const targetKegKode = partsFormKro.length > 1 ? partsFormKro[0].toUpperCase() : (formKroDialog.aktivitasKode || "").toUpperCase();
+    const targetKroShort = (partsFormKro.length > 1 ? partsFormKro[partsFormKro.length - 1] : formKroVal || formKroDialog.kroKode || selectedKroOption || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const targetKroFull = targetKegKode ? `${targetKegKode}.${targetKroShort}` : targetKroShort;
 
     // 1. Prioritas Utama: Ambil dari Informasi Kinerja Unit Kerja aktif pada TOR
     filteredInformasiKinerja.forEach((ik, idx) => {
       const p = parseInformasiKinerjaRow(ik);
-      const isMatch = !targetKroRaw ||
-        p.kroKode.toUpperCase() === targetKroRaw ||
-        `${p.aktivitasKode}${p.kroKode}`.toUpperCase() === targetKroRaw ||
-        p.fullKroKode.toUpperCase().includes(targetKroRaw);
+      const isMatch =
+        !targetKroShort ||
+        p.kroKode.toUpperCase() === targetKroShort ||
+        p.fullKroKode.toUpperCase() === targetKroFull ||
+        (targetKegKode ? p.aktivitasKode.toUpperCase() === targetKegKode && p.kroKode.toUpperCase() === targetKroShort : false);
 
       if (isMatch && !seenFullKode.has(p.fullRoKode)) {
         seenFullKode.add(p.fullRoKode);
@@ -1361,14 +1416,11 @@ export default function IsianRabPage() {
       const match = rawFullKode.match(/^([A-Z0-9]+)\.(\d{4})\.([A-Z0-9]+)\.([A-Z0-9]+)$/);
       if (match) {
         const [_, prog, keg, kro, sub] = match;
-        const currentKroKey = `${keg}${kro}`.toUpperCase();
         const fullKode = `${prog}.${keg}.${kro}.${sub}`;
 
         const isKroMatch =
-          !targetKroRaw ||
-          targetKroRaw === kro.toUpperCase() ||
-          targetKroRaw === currentKroKey ||
-          (targetAktivitas === keg && targetKroRaw.includes(kro.toUpperCase()));
+          !targetKroShort ||
+          (targetKegKode ? keg.toUpperCase() === targetKegKode && kro.toUpperCase() === targetKroShort : kro.toUpperCase() === targetKroShort);
 
         if (isKroMatch && !seenFullKode.has(fullKode)) {
           seenFullKode.add(fullKode);
@@ -1396,7 +1448,7 @@ export default function IsianRabPage() {
     }
 
     return list;
-  }, [filteredInformasiKinerja, selectedKroOption, formKroDialog.kroKode, formKroDialog.aktivitasKode, roSearchQuery]);
+  }, [filteredInformasiKinerja, formRo.kroKode, formKroDialog.aktivitasKode, formKroDialog.kroKode, selectedKroOption, roSearchQuery]);
 
   // List SBK (Standar Biaya Keluaran) terfilter untuk modal pemilih SBK
   const filteredSbkList = useMemo(() => {
@@ -2087,6 +2139,33 @@ export default function IsianRabPage() {
     const finalKode = isTanpa ? "" : formSubkomponen.kode.toUpperCase();
     const finalUraian = isTanpa ? "Tanpa Sub Komponen" : formSubkomponen.uraian.trim();
 
+    // Validasi Duplikasi: dalam satu Komponen tidak dapat ada 2 sub Komponen yang sama (kode / uraian)
+    const selIdx = worksheetRows.findIndex((r) => r.id === (editingRowId || selectedRowId));
+    let parentKompIdx = -1;
+    if (selIdx >= 0) {
+      for (let i = selIdx; i >= 0; i--) {
+        if (worksheetRows[i].type === "komponen") {
+          parentKompIdx = i;
+          break;
+        }
+      }
+    }
+    if (parentKompIdx >= 0) {
+      // Periksa semua subkomponen di bawah komponen induk ini sampai bertemu komponen/level lebih tinggi berikutnya
+      for (let i = parentKompIdx + 1; i < worksheetRows.length; i++) {
+        const row = worksheetRows[i];
+        if (["program", "kegiatan", "kro", "ro", "komponen"].includes(row.type)) break;
+        if (row.type === "subkomponen" && row.id !== editingRowId) {
+          const isSameKode = finalKode && row.kode.toUpperCase() === finalKode;
+          const isSameUraian = row.uraian.trim().toLowerCase() === finalUraian.toLowerCase();
+          if (isSameKode || isSameUraian) {
+            triggerAlert(`Sub Komponen "${finalKode ? finalKode + ' - ' : ''}${finalUraian}" sudah ada dalam Komponen ini! Dalam satu Komponen tidak dapat ada 2 Sub Komponen yang sama.`);
+            return;
+          }
+        }
+      }
+    }
+
     if (editingRowId) {
       setWorksheetRows((prev) => {
         const next = prev.map((r) => {
@@ -2150,6 +2229,33 @@ export default function IsianRabPage() {
   // Handler Tambah Akun (Bagan Akun Standar - BAS)
   function handleSaveAkun() {
     if (!formAkun.kodeAkun.trim()) return;
+
+    // Validasi Duplikasi: dalam satu Sub Komponen tidak dapat ada 2 Akun yang sama (kode akun)
+    const selIdx = worksheetRows.findIndex((r) => r.id === (editingRowId || selectedRowId));
+    let parentSubkompIdx = -1;
+    if (selIdx >= 0) {
+      for (let i = selIdx; i >= 0; i--) {
+        if (worksheetRows[i].type === "subkomponen") {
+          parentSubkompIdx = i;
+          break;
+        }
+        if (["program", "kegiatan", "kro", "ro", "komponen"].includes(worksheetRows[i].type)) {
+          break;
+        }
+      }
+    }
+    if (parentSubkompIdx >= 0) {
+      for (let i = parentSubkompIdx + 1; i < worksheetRows.length; i++) {
+        const row = worksheetRows[i];
+        if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen"].includes(row.type)) break;
+        if (row.type === "akun" && row.id !== editingRowId) {
+          if (row.kode.trim() === formAkun.kodeAkun.trim()) {
+            triggerAlert(`Akun ${formAkun.kodeAkun} sudah ada dalam Sub Komponen ini! Dalam satu Sub Komponen tidak dapat ada 2 Akun yang sama.`);
+            return;
+          }
+        }
+      }
+    }
 
     if (editingRowId) {
       setWorksheetRows((prev) => {
@@ -2444,7 +2550,257 @@ export default function IsianRabPage() {
     triggerAlert(`Berhasil menambahkan akun ${wizardAkun} & rincian belanja melalui panduan!`);
   }
 
-  // ── HANDLER PANDUAN BELANJA BAHAN (AKUN 521211) ──────────────────────────
+  // ── HANDLER PANDUAN PENGISIAN 7 JENIS BELANJA (PANDUAN 2) ──────────────────
+
+  // Helper untuk mendapatkan unit kerja aktif yang dinormalisasi ("BINCANG" | "PATIH" | "BIRU" | string)
+  const currentUnitSingkatan = useMemo(() => {
+    const raw = (ukSingkatan || activeUnit || "BINCANG").toUpperCase().trim();
+    if (raw.includes("PATIH") || raw.includes("PUSDIKLAT")) return "PATIH";
+    if (raw.includes("BIRU") || raw.includes("UMUM")) return "BIRU";
+    if (raw.includes("BINCANG") || raw.includes("RENCANA") || raw.includes("KEUANGAN")) return "BINCANG";
+    return raw;
+  }, [ukSingkatan, activeUnit]);
+
+  // Handler eksekusi Otomatisasi Komponen 001 dari template Excel
+  function handleImportKomponen001() {
+    const templateRows = currentUnitSingkatan === "PATIH"
+      ? (templateRabGajiKantor as any).pusdiklatGaji
+      : (templateRabGajiKantor as any).pusatGaji;
+
+    if (!templateRows || templateRows.length === 0) {
+      triggerAlert("Template Excel Gaji tidak ditemukan!");
+      return;
+    }
+
+    const targetId = targetSubkompRowId || selectedRowId;
+    let subkompIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    if (subkompIdx < 0) {
+      subkompIdx = worksheetRows.map((r) => r.type).lastIndexOf("subkomponen");
+    }
+
+    const newRowsToInsert: WorksheetRow[] = templateRows.map((row: any, idx: number) => ({
+      id: `row-k001-${Date.now()}-${idx}`,
+      type: row.type as WorksheetRowType,
+      kode: row.kode || "",
+      uraian: row.uraian,
+      subUraian: row.subUraian || "",
+      sd: row.sd || "A00",
+      vol: row.vol,
+      sat: row.sat,
+      k1Nilai: row.k1Nilai,
+      k1Sat: row.k1Sat,
+      k2Nilai: row.k2Nilai,
+      k2Sat: row.k2Sat,
+      k3Nilai: row.k3Nilai,
+      k3Sat: row.k3Sat,
+      harga: row.harga,
+      jumlah: row.jumlah,
+      cO: false,
+      cS: false,
+      cU: false,
+      cK: false,
+      cD: false,
+    }));
+
+    setWorksheetRows((prev) => {
+      const next = [...prev];
+      if (subkompIdx >= 0) {
+        const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        next.splice(insertIdx, 0, ...newRowsToInsert);
+      } else {
+        next.push(...newRowsToInsert);
+      }
+      return calculateHierarchyAmounts(next);
+    });
+
+    triggerAlert(
+      `Berhasil mengisi otomatis Komponen 001 Gaji dan Tunjangan (${newRowsToInsert.length} baris) sesuai file ${
+        currentUnitSingkatan === "PATIH" ? "Pusdiklat_RAB Gaji.xlsx" : "Pusat_RAB Gaji.xlsx"
+      }!`
+    );
+  }
+
+  // Handler eksekusi Otomatisasi Komponen 002 dari template Excel
+  function handleImportKomponen002() {
+    const templateRows = currentUnitSingkatan === "PATIH"
+      ? (templateRabGajiKantor as any).pusdiklatKantor
+      : (templateRabGajiKantor as any).pusatKantor;
+
+    if (!templateRows || templateRows.length === 0) {
+      triggerAlert("Template Excel Operasional Kantor tidak ditemukan!");
+      return;
+    }
+
+    const targetId = targetSubkompRowId || selectedRowId;
+    let subkompIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    if (subkompIdx < 0) {
+      subkompIdx = worksheetRows.map((r) => r.type).lastIndexOf("subkomponen");
+    }
+
+    const newRowsToInsert: WorksheetRow[] = templateRows.map((row: any, idx: number) => ({
+      id: `row-k002-${Date.now()}-${idx}`,
+      type: row.type as WorksheetRowType,
+      kode: row.kode || "",
+      uraian: row.uraian,
+      subUraian: row.subUraian || "",
+      sd: row.sd || "A00",
+      vol: row.vol,
+      sat: row.sat,
+      k1Nilai: row.k1Nilai,
+      k1Sat: row.k1Sat,
+      k2Nilai: row.k2Nilai,
+      k2Sat: row.k2Sat,
+      k3Nilai: row.k3Nilai,
+      k3Sat: row.k3Sat,
+      harga: row.harga,
+      jumlah: row.jumlah,
+      cO: false,
+      cS: false,
+      cU: false,
+      cK: false,
+      cD: false,
+    }));
+
+    setWorksheetRows((prev) => {
+      const next = [...prev];
+      if (subkompIdx >= 0) {
+        const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        next.splice(insertIdx, 0, ...newRowsToInsert);
+      } else {
+        next.push(...newRowsToInsert);
+      }
+      return calculateHierarchyAmounts(next);
+    });
+
+    triggerAlert(
+      `Berhasil mengisi otomatis Komponen 002 Operasional Kantor (${newRowsToInsert.length} baris) sesuai file ${
+        currentUnitSingkatan === "PATIH" ? "Pusdiklat_RAB kantor.xlsx" : "Pusat_RAB kantor.xlsx"
+      }!`
+    );
+  }
+
+  // Handler Simpan Pengadaan Jasa (Konsultan 522131, Profesi 522151, Lainnya 522191)
+  function handleSavePengadaanJasa() {
+    const targetId = targetSubkompRowId || selectedRowId;
+    let subkompIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    if (subkompIdx < 0) {
+      subkompIdx = worksheetRows.map((r) => r.type).lastIndexOf("subkomponen");
+    }
+    if (subkompIdx < 0) {
+      triggerAlert("Silakan pilih Sub Komponen terlebih dahulu!");
+      return;
+    }
+
+    const subkompRow = worksheetRows[subkompIdx];
+    const newRowsToInsert: WorksheetRow[] = [];
+
+    if (jasaSubPilihan === "konsultan") {
+      // Kode Akun 522131 Belanja Jasa Konsultan
+      const harga = jasaKonsultanBiaya;
+      const total = harga; // 1 paket * 1 keg = 1 paket
+      newRowsToInsert.push({
+        id: `row-akun-522131-${Date.now()}`,
+        type: "akun",
+        kode: "522131",
+        uraian: "Belanja Jasa Konsultan",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        sd: "A00",
+        jumlah: total,
+        parentSubkompKode: subkompRow.kode,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+      newRowsToInsert.push({
+        id: `row-detail-522131-${Date.now()}`,
+        type: "detail",
+        kode: "",
+        uraian: "Jasa Konsultan",
+        parentAkunKode: "522131",
+        k1Nilai: 1,
+        k1Sat: "paket",
+        k2Nilai: 1,
+        k2Sat: "keg",
+        vol: 1,
+        sat: "paket",
+        harga: harga,
+        jumlah: total,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+    } else if (jasaSubPilihan === "profesi") {
+      // Kode Akun 522151 Belanja Jasa Profesi
+      const totalVol = (jasaProfesiJumlahOrg || 1) * (jasaProfesiJumlahKeg || 1);
+      const total = totalVol * jasaProfesiTarif;
+      const satTotal = jasaProfesiKategori === "narasumber" ? "OJ" : "OK";
+
+      newRowsToInsert.push({
+        id: `row-akun-522151-${Date.now()}`,
+        type: "akun",
+        kode: "522151",
+        uraian: "Belanja Jasa Profesi",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        sd: "A00",
+        jumlah: total,
+        parentSubkompKode: subkompRow.kode,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+      newRowsToInsert.push({
+        id: `row-detail-522151-${Date.now()}`,
+        type: "detail",
+        kode: "",
+        uraian: jasaProfesiItem,
+        parentAkunKode: "522151",
+        k1Nilai: jasaProfesiJumlahOrg,
+        k1Sat: "orang",
+        k2Nilai: jasaProfesiJumlahKeg,
+        k2Sat: "keg",
+        vol: totalVol,
+        sat: satTotal,
+        harga: jasaProfesiTarif,
+        jumlah: total,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+    } else {
+      // Kode Akun 522191 Belanja Jasa Lainnya
+      const totalVol = (jasaLainnyaVol1 || 1) * (jasaLainnyaVol2 || 1);
+      const total = totalVol * jasaLainnyaHarga;
+
+      newRowsToInsert.push({
+        id: `row-akun-522191-${Date.now()}`,
+        type: "akun",
+        kode: "522191",
+        uraian: "Belanja Jasa Lainnya",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        sd: "A00",
+        jumlah: total,
+        parentSubkompKode: subkompRow.kode,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+      newRowsToInsert.push({
+        id: `row-detail-522191-${Date.now()}`,
+        type: "detail",
+        kode: "",
+        uraian: jasaLainnyaUraian,
+        parentAkunKode: "522191",
+        k1Nilai: jasaLainnyaVol1,
+        k1Sat: "paket",
+        k2Nilai: jasaLainnyaVol2,
+        k2Sat: "keg",
+        vol: totalVol,
+        sat: "paket",
+        harga: jasaLainnyaHarga,
+        jumlah: total,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+    }
+
+    setWorksheetRows((prev) => {
+      const next = [...prev];
+      const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+      next.splice(insertIdx, 0, ...newRowsToInsert);
+      return calculateHierarchyAmounts(next);
+    });
+
+    triggerAlert(`Berhasil menambahkan baris Pengadaan Jasa ke kertas kerja!`);
+  }
 
   // Transisi dari Checklist ke Kertas Kerja (11 Kolom)
   function handleProceedToChecklistKertasKerja() {
@@ -3681,15 +4037,14 @@ export default function IsianRabPage() {
                 onClick={() => {
                   const targetSubId = selectedRow?.type === "subkomponen" ? selectedRow.id : (targetSubkompRowId || null);
                   setTargetSubkompRowId(targetSubId);
-                  setGuidedBelanjaStep("konfirmasi");
-                  setSelectedBelanjaItems([]);
-                  setModalMode("panduan_belanja_bahan");
+                  setSelectedJenisBelanjaList([]);
+                  setModalMode("panduan_jenis_belanja");
                 }}
-                title="Input dengan Panduan Belanja Bahan (Akun 521211 - Kertas Kerja 11 Kolom)"
+                title="Input dengan Panduan (7 Jenis Belanja Sesuai Panduan 2)"
                 className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-sm shadow-xs transition-colors cursor-pointer flex items-center gap-1"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
-                <span>Panduan Belanja Bahan</span>
+                <span>Input dengan Panduan</span>
               </button>
             </div>
 
@@ -6505,12 +6860,11 @@ export default function IsianRabPage() {
                 </div>
               </div>
 
-              {/* Opsi 2: Panduan */}
+              {/* Opsi 2: Panduan (7 Kategori Belanja Sesuai Panduan 2) */}
               <div
                 onClick={() => {
-                  setGuidedBelanjaStep("konfirmasi");
-                  setSelectedBelanjaItems([]);
-                  setModalMode("panduan_belanja_bahan");
+                  setSelectedJenisBelanjaList([]);
+                  setModalMode("panduan_jenis_belanja");
                 }}
                 className="group relative flex flex-col justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-white dark:bg-slate-800/80 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer shadow-sm hover:shadow"
               >
@@ -6523,12 +6877,12 @@ export default function IsianRabPage() {
                       2. Input dengan Panduan
                     </h4>
                     <p className="text-[0.68rem] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Panduan otomatis pengisian Belanja Bahan (Akun 521211) dengan tarif SBM sesuai lokasi KRO, checklist kebutuhan, dan kertas kerja interaktif 11 kolom.
+                      Pilih dari 7 jenis belanja (Komponen 001, 002, Belanja Bahan, Jasa, Perjadin DN/LN, Konsinyering) dengan otomatisasi dan tarif SBM.
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center text-[0.7rem] font-bold text-emerald-600 group-hover:translate-x-0.5 transition-transform">
-                  <span>Buka Panduan Belanja Bahan</span>
+                  <span>Pilih Jenis Belanja</span>
                   <ArrowRight className="w-3.5 h-3.5 ml-1" />
                 </div>
               </div>
@@ -6607,67 +6961,664 @@ export default function IsianRabPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN: MULTI-SELECT 7 PILIHAN JENIS BELANJA (PANDUAN 2)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_jenis_belanja" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Input dengan Panduan: Pilihan Jenis Belanja
+                  </h3>
+                  <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
+                    Pilih jenis belanja yang akan diisi (dapat memilih lebih dari satu pilihan)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalMode("pilih_metode")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Checklist 7 Jenis Belanja */}
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+              {/* 1. Komponen 001 Gaji dan Tunjangan (Hanya BINCANG & PATIH) */}
+              {(() => {
+                const isAllowed001 = currentUnitSingkatan === "BINCANG" || currentUnitSingkatan === "PATIH";
+                const isChecked = selectedJenisBelanjaList.includes("001");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                      !isAllowed001
+                        ? "bg-slate-100/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed"
+                        : isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs cursor-pointer"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 cursor-pointer"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={!isAllowed001}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "001"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "001"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          Komponen 001 Gaji dan Tunjangan
+                        </span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                          Khusus BINCANG &amp; PATIH
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {currentUnitSingkatan === "BINCANG"
+                          ? "Otomatis memuat rincian dari Pusat_RAB Gaji.xlsx"
+                          : currentUnitSingkatan === "PATIH"
+                          ? "Otomatis memuat rincian dari Pusdiklat_RAB Gaji.xlsx"
+                          : "Hanya unit kerja BINCANG dan PATIH yang berwenang mengisi komponen ini."}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 2. Komponen 002 Operasional Kantor (Hanya BIRU & PATIH) */}
+              {(() => {
+                const isAllowed002 = currentUnitSingkatan === "BIRU" || currentUnitSingkatan === "PATIH" || currentUnitSingkatan === "BINCANG";
+                const isChecked = selectedJenisBelanjaList.includes("002");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                      !isAllowed002
+                        ? "bg-slate-100/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed"
+                        : isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs cursor-pointer"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 cursor-pointer"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={!isAllowed002}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "002"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "002"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          Komponen 002 Operasional Kantor
+                        </span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                          Khusus BIRU &amp; PATIH
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {currentUnitSingkatan === "PATIH"
+                          ? "Otomatis memuat rincian dari Pusdiklat_RAB kantor.xlsx"
+                          : "Otomatis memuat rincian dari Pusat_RAB kantor.xlsx"}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 3. Pengadaan Belanja Bahan */}
+              {(() => {
+                const isChecked = selectedJenisBelanjaList.includes("bahan");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "bahan"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "bahan"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Pengadaan Belanja Bahan
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Konsumsi rapat, seminar kit, souvenir, diklat kit, dan pencetakan dengan tarif standar SBM ({currentKroLocation.tarifLabel}) &amp; kertas kerja 11 kolom.
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 4. Pengadaan Jasa (Konsultan, profesi, lainnya) */}
+              {(() => {
+                const isChecked = selectedJenisBelanjaList.includes("jasa");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "jasa"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "jasa"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Pengadaan Jasa (Konsultan, profesi, lainnya)
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Jasa Konsultan (Akun 522131), Jasa Profesi Narasumber/Panitia (Akun 522151), dan Jasa Lainnya (Akun 522191).
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 5. Perjalanan Dinas Dalam Negeri */}
+              {(() => {
+                const isChecked = selectedJenisBelanjaList.includes("spd_dn");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "spd_dn"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "spd_dn"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Perjalanan Dinas Dalam Negeri
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Belanja Perjalanan Dinas Biasa / Dalam Kota (Akun 524111 / 524113).
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 6. Perjalanan Dinas Luar Negeri */}
+              {(() => {
+                const isChecked = selectedJenisBelanjaList.includes("spd_ln");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "spd_ln"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "spd_ln"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Perjalanan Dinas Luar Negeri
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Belanja Perjalanan Dinas Luar Negeri (Akun 524211).
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* 7. Penyelenggaraan Konsinyering */}
+              {(() => {
+                const isChecked = selectedJenisBelanjaList.includes("konsinyering");
+                return (
+                  <label
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-xs"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJenisBelanjaList((prev) => [...prev, "konsinyering"]);
+                        } else {
+                          setSelectedJenisBelanjaList((prev) => prev.filter((x) => x !== "konsinyering"));
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Penyelenggaraan Konsinyering
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Paket Meeting Fullboard / Fullday / Halfday di luar kantor (Akun 524114 / 524119).
+                      </p>
+                    </div>
+                  </label>
+                );
+              })()}
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setModalMode("pilih_metode")}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Kembali
+              </button>
+
+              <button
+                type="button"
+                disabled={selectedJenisBelanjaList.length === 0}
+                onClick={() => {
+                  if (selectedJenisBelanjaList.length === 0) return;
+                  
+                  // Eksekusi otomatisasi Komponen 001 dan 002 jika dicentang
+                  if (selectedJenisBelanjaList.includes("001")) {
+                    handleImportKomponen001();
+                  }
+                  if (selectedJenisBelanjaList.includes("002")) {
+                    handleImportKomponen002();
+                  }
+
+                  // Cek apakah ada langkah lanjutan interaktif (Jasa atau Belanja Bahan)
+                  if (selectedJenisBelanjaList.includes("jasa")) {
+                    setModalMode("panduan_jasa");
+                  } else if (selectedJenisBelanjaList.includes("bahan")) {
+                    setGuidedBelanjaStep("checklist");
+                    setSelectedBelanjaItems([]);
+                    setModalMode("panduan_belanja_bahan");
+                  } else {
+                    setModalMode(null);
+                  }
+                }}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+              >
+                <span>Lanjutkan ({selectedJenisBelanjaList.length} Dipilih)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN PENGADAAN JASA (KONSULTAN, PROFESI, LAINNYA) - PANDUAN 2
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_jasa" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Panduan: Pengadaan Jasa
+                </h3>
+                <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
+                  Pilih jenis jasa: Konsultan, Profesi, atau Lainnya
+                </p>
+              </div>
+              <button
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Pilihan 3 Sub-Jasa */}
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+              <button
+                type="button"
+                onClick={() => setJasaSubPilihan("konsultan")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  jasaSubPilihan === "konsultan"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }`}
+              >
+                1. Jasa Konsultan (522131)
+              </button>
+              <button
+                type="button"
+                onClick={() => setJasaSubPilihan("profesi")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  jasaSubPilihan === "profesi"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }`}
+              >
+                2. Jasa Profesi (522151)
+              </button>
+              <button
+                type="button"
+                onClick={() => setJasaSubPilihan("lainnya")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  jasaSubPilihan === "lainnya"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }`}
+              >
+                3. Jasa Lainnya (522191)
+              </button>
+            </div>
+
+            {/* Form Jasa Konsultan */}
+            {jasaSubPilihan === "konsultan" && (
+              <div className="space-y-4 text-xs">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200">
+                  <span className="font-bold">Akun 522131 Belanja Jasa Konsultan</span>
+                  <p className="text-[11px] mt-1">
+                    Format otomatis sistem: <strong>Jasa Konsultan | 1 | paket | 1 | keg | | | 1 | paket | (Satuan Biaya) | (Total Biaya)</strong>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Satuan Biaya Jasa Konsultan (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    value={jasaKonsultanBiaya}
+                    onChange={(e) => setJasaKonsultanBiaya(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-mono font-bold text-base"
+                    placeholder="Contoh: 50000000"
+                  />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Terbilang: Rp {formatIndoNumber(jasaKonsultanBiaya)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Form Jasa Profesi */}
+            {jasaSubPilihan === "profesi" && (
+              <div className="space-y-4 text-xs">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200">
+                  <span className="font-bold">Akun 522151 Belanja Jasa Profesi</span>
+                  <p className="text-[11px] mt-1">
+                    Pilih jenis &amp; level honorarium narasumber / kepanitiaan. Tarif otomatis terisi sesuai SBM.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold">
+                    <input
+                      type="radio"
+                      name="jasaProfesiKat"
+                      checked={jasaProfesiKategori === "narasumber"}
+                      onChange={() => {
+                        setJasaProfesiKategori("narasumber");
+                        const firstItem = Object.keys(TARIF_JASA_PROFESI_NARASUMBER)[1];
+                        setJasaProfesiItem(firstItem);
+                        setJasaProfesiTarif(TARIF_JASA_PROFESI_NARASUMBER[firstItem]);
+                      }}
+                      className="accent-blue-600"
+                    />
+                    <span>Honorarium Narasumber (OJ)</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold">
+                    <input
+                      type="radio"
+                      name="jasaProfesiKat"
+                      checked={jasaProfesiKategori === "kepanitiaan"}
+                      onChange={() => {
+                        setJasaProfesiKategori("kepanitiaan");
+                        const firstItem = Object.keys(TARIF_JASA_PROFESI_PANITIA)[0];
+                        setJasaProfesiItem(firstItem);
+                        setJasaProfesiTarif(TARIF_JASA_PROFESI_PANITIA[firstItem]);
+                      }}
+                      className="accent-blue-600"
+                    />
+                    <span>Honorarium Kepanitiaan (OK)</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Jenis / Level {jasaProfesiKategori === "narasumber" ? "Narasumber" : "Kepanitiaan"}
+                  </label>
+                  <select
+                    value={jasaProfesiItem}
+                    onChange={(e) => {
+                      const item = e.target.value;
+                      setJasaProfesiItem(item);
+                      if (jasaProfesiKategori === "narasumber") {
+                        setJasaProfesiTarif(TARIF_JASA_PROFESI_NARASUMBER[item] || 0);
+                      } else {
+                        setJasaProfesiTarif(TARIF_JASA_PROFESI_PANITIA[item] || 0);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-bold"
+                  >
+                    {jasaProfesiKategori === "narasumber"
+                      ? Object.keys(TARIF_JASA_PROFESI_NARASUMBER).map((k) => (
+                          <option key={k} value={k}>
+                            {k} (Rp {formatIndoNumber(TARIF_JASA_PROFESI_NARASUMBER[k])})
+                          </option>
+                        ))
+                      : Object.keys(TARIF_JASA_PROFESI_PANITIA).map((k) => (
+                          <option key={k} value={k}>
+                            {k} (Rp {formatIndoNumber(TARIF_JASA_PROFESI_PANITIA[k])})
+                          </option>
+                        ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Jumlah Orang
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={jasaProfesiJumlahOrg}
+                      onChange={(e) => setJasaProfesiJumlahOrg(Number(e.target.value) || 1)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Jumlah Keg / Jam
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={jasaProfesiJumlahKeg}
+                      onChange={(e) => setJasaProfesiJumlahKeg(Number(e.target.value) || 1)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Total ({jasaProfesiKategori === "narasumber" ? "OJ" : "OK"})
+                    </label>
+                    <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-mono font-bold text-center">
+                      {(jasaProfesiJumlahOrg || 1) * (jasaProfesiJumlahKeg || 1)} {jasaProfesiKategori === "narasumber" ? "OJ" : "OK"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <span className="font-semibold text-slate-600 dark:text-slate-300">Total Biaya Jasa Profesi:</span>
+                  <span className="font-mono font-bold text-sm text-[#0078d4]">
+                    Rp {formatIndoNumber((jasaProfesiJumlahOrg || 1) * (jasaProfesiJumlahKeg || 1) * jasaProfesiTarif)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Form Jasa Lainnya */}
+            {jasaSubPilihan === "lainnya" && (
+              <div className="space-y-4 text-xs">
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200">
+                  <span className="font-bold">Akun 522191 Belanja Jasa Lainnya</span>
+                  <p className="text-[11px] mt-1">
+                    Format otomatis: <strong>(uraian) | (vol1) | paket | (vol2) | keg | | | (totalVol) | paket | (harga) | (total)</strong>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Uraian Jasa Lainnya
+                  </label>
+                  <input
+                    type="text"
+                    value={jasaLainnyaUraian}
+                    onChange={(e) => setJasaLainnyaUraian(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-bold"
+                    placeholder="Contoh: Sewa Cloud Server / Layanan Penyelenggaraan Acara"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Volume 1 (Paket)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={jasaLainnyaVol1}
+                      onChange={(e) => setJasaLainnyaVol1(Number(e.target.value) || 1)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Volume 2 (Kegiatan)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={jasaLainnyaVol2}
+                      onChange={(e) => setJasaLainnyaVol2(Number(e.target.value) || 1)}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-center"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Satuan Biaya (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    value={jasaLainnyaHarga}
+                    onChange={(e) => setJasaLainnyaHarga(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg font-mono font-bold text-base"
+                    placeholder="Contoh: 15000000"
+                  />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Total: Rp {formatIndoNumber((jasaLainnyaVol1 || 1) * (jasaLainnyaVol2 || 1) * jasaLainnyaHarga)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Tombol Simpan Jasa */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+              >
+                Kembali ke Jenis Belanja
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleSavePengadaanJasa();
+                  if (selectedJenisBelanjaList.includes("bahan")) {
+                    setGuidedBelanjaStep("checklist");
+                    setSelectedBelanjaItems([]);
+                    setModalMode("panduan_belanja_bahan");
+                  } else {
+                    setModalMode(null);
+                  }
+                }}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                <span>
+                  {selectedJenisBelanjaList.includes("bahan") ? "Simpan Jasa & Lanjut ke Belanja Bahan" : "Simpan Jasa ke Kertas Kerja"}
+                </span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
           MODAL PANDUAN PENGISIAN BELANJA BAHAN (AKUN 521211) & KERTAS KERJA 11 KOLOM
          ══════════════════════════════════════════════════════════════════════ */}
       {modalMode === "panduan_belanja_bahan" && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
-          {/* STEP 1: KONFIRMASI ALOKASI BELANJA BAHAN */}
-          {guidedBelanjaStep === "konfirmasi" && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-auto">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600">
-                    <HelpCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Panduan: Belanja Bahan (521211)
-                    </h3>
-                    <p className="text-[0.68rem] text-slate-500">Langkah 1: Konfirmasi Alokasi</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setModalMode("pilih_metode")}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{currentKroLocation.tarifLabel}</span>
-                </div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
-                  Apakah terdapat alokasi <span className="text-emerald-600 dark:text-emerald-400">Belanja Bahan</span> pada Sub Komponen ini?
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
-                  Panduan otomatis ini akan mengarahkan Anda pada pemilihan item konsumsi rapat, seminar kit, diklat kit, atau pencetakan dengan tarif standar SBM yang otomatis terhitung.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalMode("pilih_metode")}
-                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                >
-                  Tidak, Kembali ke Pilihan Metode
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGuidedBelanjaStep("checklist")}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <span>Ya, Lanjut ke Item Belanja</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: CHECKLIST ITEM BELANJA BAHAN */}
+          {/* STEP: CHECKLIST ITEM BELANJA BAHAN (LANGSUNG CHECKLIST SESUAI PANDUAN 2) */}
           {guidedBelanjaStep === "checklist" && (
             <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl my-auto">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">

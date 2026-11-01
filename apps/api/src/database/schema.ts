@@ -946,5 +946,58 @@ export const seriesAnggaran = pgTable('series_anggaran', {
 export type SeriesAnggaran = typeof seriesAnggaran.$inferSelect;
 export type NewSeriesAnggaran = typeof seriesAnggaran.$inferInsert;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 43. REF RAB TEMPLATE (Template Otomatisasi Komponen 001 Gaji & 002 Kantor)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refRabTemplate = pgTable('ref_rab_template', {
+  id: serial('id').primaryKey(),
+  tipeTemplate: varchar('tipe_template', { length: 50 }).notNull(), // 'pusatGaji' | 'pusdiklatGaji' | 'pusatKantor' | 'pusdiklatKantor'
+  komponenKode: varchar('komponen_kode', { length: 10 }).notNull(), // '001' | '002'
+  unitKerjaTarget: varchar('unit_kerja_target', { length: 50 }).notNull(), // 'BINCANG' | 'PATIH' | 'BIRU'
+  fileSumber: varchar('file_sumber', { length: 100 }).notNull(),
+  urutan: integer('urutan').notNull().default(1),
+  rowType: varchar('row_type', { length: 50 }).notNull(), // 'subkomponen' | 'akun' | 'detail'
+  kode: varchar('kode', { length: 50 }),
+  uraian: text('uraian').notNull(),
+  subUraian: text('sub_uraian'),
+  sd: varchar('sd', { length: 20 }).default('A00'),
+  vol: varchar('vol', { length: 50 }),
+  sat: varchar('sat', { length: 50 }),
+  k1Nilai: varchar('k1_nilai', { length: 50 }),
+  k1Sat: varchar('k1_sat', { length: 50 }),
+  k2Nilai: varchar('k2_nilai', { length: 50 }),
+  k2Sat: varchar('k2_sat', { length: 50 }),
+  k3Nilai: varchar('k3_nilai', { length: 50 }),
+  k3Sat: varchar('k3_sat', { length: 50 }),
+  harga: numeric('harga', { precision: 20, scale: 2 }).default('0'),
+  jumlah: numeric('jumlah', { precision: 20, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type RefRabTemplate = typeof refRabTemplate.$inferSelect;
+export type NewRefRabTemplate = typeof refRabTemplate.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 44. RAB ISIAN WORKSHEET (Kertas Kerja Penyusunan RAB Unit Kerja)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const rabIsianWorksheet = pgTable('rab_isian_worksheet', {
+  id: serial('id').primaryKey(),
+  unitSingkatan: varchar('unit_singkatan', { length: 50 }).notNull(),
+  unitNama: varchar('unit_nama', { length: 255 }),
+  tahunAnggaran: integer('tahun_anggaran').notNull().default(2027),
+  statusHistori: varchar('status_histori', { length: 50 }).default('DIPA Awal'),
+  kodeStsHistory: varchar('kode_sts_history', { length: 20 }).default('B00'),
+  worksheetJson: jsonb('worksheet_json').notNull(),
+  totalPagu: numeric('total_pagu', { precision: 20, scale: 2 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RabIsianWorksheet = typeof rabIsianWorksheet.$inferSelect;
+export type NewRabIsianWorksheet = typeof rabIsianWorksheet.$inferInsert;
+
+
 
 
