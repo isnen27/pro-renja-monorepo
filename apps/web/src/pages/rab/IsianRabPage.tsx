@@ -31,6 +31,7 @@ import {
   SlidersHorizontal,
   X,
   CheckSquare,
+  ClipboardList,
   FileUp,
   HelpCircle,
   PenTool,
@@ -213,11 +214,14 @@ export function parseIndoNumber(val: any): number {
 }
 
 // Helper format angka standar Indonesia (pemisah ribuan '.' dan desimal ',')
-export function formatIndoNumber(val: number): string {
+export function formatIndoNumber(val: number | string | undefined | null): string {
+  if (val === undefined || val === null || val === "") return "0";
+  const num = typeof val === "number" ? val : parseIndoNumber(val);
+  if (isNaN(num)) return "0";
   return new Intl.NumberFormat("id-ID", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(val);
+  }).format(num);
 }
 
 
@@ -392,7 +396,56 @@ function findParentRoForRow(rows: WorksheetRow[], targetIdx: number): WorksheetR
   return null;
 }
 
-export default function IsianRabPage() {
+// Error Boundary untuk mencegah blank screen jika terjadi runtime error tak terduga pada salah satu komponen
+class RabErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("RabErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
+          <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600 mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Terjadi Kendala Tampilan
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Sistem mendeteksi kesalahan rendering pada komponen ini:{" "}
+              <span className="font-mono text-rose-600">{this.state.error?.message || "Kesalahan tak dikenal"}</span>
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors"
+              >
+                Muat Ulang Halaman
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function IsianRabPageContent() {
   // Pengaturan role aktif
   const [currentUserRole] = useState<UserRole>(() => {
     try {
@@ -7719,10 +7772,10 @@ export default function IsianRabPage() {
               <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
-                  onClick={() => setGuidedBelanjaStep("konfirmasi")}
+                  onClick={() => setModalMode("panduan_jenis_belanja")}
                   className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
-                  Kembali
+                  Kembali ke Jenis Belanja
                 </button>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500">
@@ -7825,7 +7878,7 @@ export default function IsianRabPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs shrink-0">
                 <div className="flex items-center gap-2.5">
                   <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
-                    <Clipboard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <ClipboardList className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>Salin dari Excel lalu tekan <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[10px] font-bold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600">Ctrl + V</kbd> untuk tempel langsung.</span>
                   </span>
                   <span className="text-slate-400">&bull;</span>
@@ -8769,5 +8822,13 @@ export default function IsianRabPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function IsianRabPage() {
+  return (
+    <RabErrorBoundary>
+      <IsianRabPageContent />
+    </RabErrorBoundary>
   );
 }
