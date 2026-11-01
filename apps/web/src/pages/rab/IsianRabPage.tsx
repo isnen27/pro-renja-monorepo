@@ -479,6 +479,10 @@ export default function IsianRabPage() {
 
   // State baris yang sedang dipilih
   const [selectedRowId, setSelectedRowId] = useState<string>("row-komp");
+  const selectedRow = useMemo(
+    () => worksheetRows.find((r) => r.id === selectedRowId),
+    [worksheetRows, selectedRowId]
+  );
 
   // State Clipboard untuk Copy & Paste baris
   const [copiedRow, setCopiedRow] = useState<WorksheetRow | null>(null);
@@ -5448,19 +5452,21 @@ export default function IsianRabPage() {
                     const existingKroCodes = new Set(
                       worksheetRows
                         .filter((r) => r.type === "kro")
-                        .map((r) => r.kode.trim().toUpperCase())
+                        .map((r) => (r.kode || "").trim().toUpperCase())
                     );
                     const editingRow = editingRowId ? worksheetRows.find((r) => r.id === editingRowId) : null;
-                    const editingKroCode = editingRow?.kode.trim().toUpperCase();
+                    const editingKroCode = (editingRow?.kode || "").trim().toUpperCase();
 
                     return Array.from(kroMap.values()).map((kroItem, idx) => {
-                      const itemFullKroKode = `${kroItem.kodeAktivitas}.${kroItem.kodeKro}`.toUpperCase();
+                      const kodeAktivitasClean = (kroItem.kodeAktivitas || "").trim().toUpperCase();
+                      const kodeKroClean = (kroItem.kodeKro || "").trim().toUpperCase();
+                      const itemFullKroKode = `${kodeAktivitasClean}.${kodeKroClean}`;
                       const isAlreadyInWorksheet =
                         existingKroCodes.has(itemFullKroKode) ||
-                        Array.from(existingKroCodes).some((c) => c.endsWith(`.${kroItem.kodeKro.toUpperCase()}`) || c === kroItem.kodeKro.toUpperCase());
+                        Array.from(existingKroCodes).some((c) => (kodeKroClean && (c.endsWith(`.${kodeKroClean}`) || c === kodeKroClean)));
                       
                       // Jika sedang mengedit KRO yang sama, jangan disable KRO miliknya sendiri
-                      const isDisabled = isAlreadyInWorksheet && (!editingKroCode || (editingKroCode !== itemFullKroKode && !editingKroCode.endsWith(`.${kroItem.kodeKro.toUpperCase()}`)));
+                      const isDisabled = isAlreadyInWorksheet && (!editingKroCode || (editingKroCode !== itemFullKroKode && (!kodeKroClean || !editingKroCode.endsWith(`.${kodeKroClean}`))));
 
                       return (
                         <tr
