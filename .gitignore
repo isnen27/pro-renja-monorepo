@@ -9,6 +9,7 @@ __pycache__/
 dist/
 build/
 .cache/
+.next/
 *.log
 
 # Pengaturan Git & IDE
