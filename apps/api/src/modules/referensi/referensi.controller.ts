@@ -11,6 +11,7 @@ import {
   visiMisiService,
   unitKerjaService,
   satkerService,
+  lokasiService,
   informasiKinerjaService,
   sasaranKinerjaService,
   sbmService,
@@ -428,6 +429,51 @@ export class ReferensiController {
     return {
       success: true,
       message: 'Data Satker berhasil diambil',
+      data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REFERENSI LOKASI (KPPN & KABUPATEN/KOTA) ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/lokasi
+   * Get list of all Lokasi (KPPN, Provinsi, Kab/Kota)
+   */
+  @Get('lokasi')
+  async getLokasi(@Query('search') search?: string) {
+    const result = await lokasiService.getAll(search);
+
+    return {
+      success: true,
+      message: 'Data Referensi Lokasi berhasil diambil',
+      data: result,
+    };
+  }
+
+  /**
+   * GET /api/referensi/lokasi/:provinsi/:kabKota
+   * Get Lokasi by kode provinsi dan kode kab/kota
+   */
+  @Get('lokasi/:provinsi/:kabKota')
+  async getLokasiByKode(
+    @Param('provinsi') provinsi: string,
+    @Param('kabKota') kabKota: string,
+  ) {
+    const result = await lokasiService.getByProvinsiKabKota(provinsi, kabKota);
+
+    if (!result) {
+      return {
+        success: false,
+        message: `Lokasi ${provinsi}.${kabKota} tidak ditemukan`,
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Data Referensi Lokasi berhasil diambil',
       data: result,
     };
   }

@@ -49,6 +49,7 @@ import { baganAkunStandar } from "../../data/baganAkunStandar";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import sbkData from "../../data/sbkData.json";
 import rekapSasaranRenjaAllData from "../../data/rekapSasaranRenjaAllData.json";
+import lokasiData from "../../data/lokasiData.json";
 import {
   getIdentitasKinerjaByUnitKerja,
   getAvailableRoForUnit,
@@ -757,6 +758,7 @@ function IsianRabPageContent() {
   const [showKroPickerModal, setShowKroPickerModal] = useState(false);
   const [showIbPickerModal, setShowIbPickerModal] = useState(false);
   const [showLokasiPickerModal, setShowLokasiPickerModal] = useState(false);
+  const [lokasiSearchQuery, setLokasiSearchQuery] = useState("");
   const [showKewenanganPickerModal, setShowKewenanganPickerModal] = useState(false);
 
   // Form Isian KRO selection
@@ -5652,37 +5654,91 @@ function IsianRabPageContent() {
       {/* ── SUB-MODAL: PILIH LOKASI ── */}
       {showLokasiPickerModal && (
         <div className="fixed inset-0 z-60 bg-black/70 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Pilih Lokasi</h3>
-              <button onClick={() => setShowLokasiPickerModal(false)} className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer">✕</button>
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl max-w-2xl w-full p-5 space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Pilih Lokasi Wilayah (KPPN / Kab / Kota)</h3>
+                <p className="text-[11px] text-slate-500">Referensi resmi kode lokasi dan kabupaten/kota SAKTI</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowLokasiPickerModal(false);
+                  setLokasiSearchQuery("");
+                }}
+                className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer p-1 rounded"
+              >
+                ✕
+              </button>
             </div>
-            <div className="space-y-1 text-xs">
-              {[
-                { k1: "01", k2: "51", nama: "KOTA JAKARTA PUSAT" },
-                { k1: "01", k2: "52", nama: "KOTA JAKARTA UTARA" },
-                { k1: "01", k2: "53", nama: "KOTA JAKARTA BARAT" },
-                { k1: "01", k2: "54", nama: "KOTA JAKARTA SELATAN" },
-                { k1: "01", k2: "55", nama: "KOTA JAKARTA TIMUR" },
-                { k1: "02", k2: "58", nama: "KOTA DEPOK" },
-              ].map((loc, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setFormKroDialog((prev) => ({
-                      ...prev,
-                      lokasi1: loc.k1,
-                      lokasi2: loc.k2,
-                      lokasiNama: loc.nama,
-                    }));
-                    setShowLokasiPickerModal(false);
-                  }}
-                  className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer flex items-center justify-between font-medium"
-                >
-                  <span className="font-mono font-bold text-[#0078d4]">{loc.k1}.{loc.k2}</span>
-                  <span>{loc.nama}</span>
-                </div>
-              ))}
+
+            {/* Input Pencarian Lokasi */}
+            <div className="shrink-0">
+              <input
+                type="text"
+                autoFocus
+                value={lokasiSearchQuery}
+                onChange={(e) => setLokasiSearchQuery(e.target.value)}
+                placeholder="Cari nama kota, kabupaten, provinsi, atau kode (misal: Jakarta, Depok, 01.51)..."
+                className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1 text-xs pr-1">
+              {lokasiData
+                .filter((loc) => {
+                  if (!lokasiSearchQuery.trim()) return true;
+                  const q = lokasiSearchQuery.toLowerCase();
+                  return (
+                    loc.nama.toLowerCase().includes(q) ||
+                    loc.provinsi.toLowerCase().includes(q) ||
+                    loc.kppnNama.toLowerCase().includes(q) ||
+                    `${loc.k1}.${loc.k2}`.includes(q)
+                  );
+                })
+                .slice(0, 100)
+                .map((loc, idx) => (
+                  <div
+                    key={`${loc.k1}-${loc.k2}-${idx}`}
+                    onClick={() => {
+                      setFormKroDialog((prev) => ({
+                        ...prev,
+                        lokasi1: loc.k1,
+                        lokasi2: loc.k2,
+                        lokasiNama: loc.nama,
+                      }));
+                      setShowLokasiPickerModal(false);
+                      setLokasiSearchQuery("");
+                    }}
+                    className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono font-bold text-[#0078d4] bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                        {loc.k1}.{loc.k2}
+                      </span>
+                      <div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">{loc.nama}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">Provinsi: {loc.provinsi}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                      KPPN {loc.kppnKode} {loc.kppnNama}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 shrink-0">
+              <span>Total Referensi: <strong>{lokasiData.length}</strong> wilayah</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLokasiPickerModal(false);
+                  setLokasiSearchQuery("");
+                }}
+                className="px-3.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

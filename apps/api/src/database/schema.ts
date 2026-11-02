@@ -998,6 +998,27 @@ export const rabIsianWorksheet = pgTable('rab_isian_worksheet', {
 export type RabIsianWorksheet = typeof rabIsianWorksheet.$inferSelect;
 export type NewRabIsianWorksheet = typeof rabIsianWorksheet.$inferInsert;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 45. REFERENSI LOKASI KPPN & KABUPATEN/KOTA (SAKTI)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refLokasi = pgTable('ref_lokasi', {
+  id: serial('id').primaryKey(),
+  kppnKode: varchar('kppn_kode', { length: 10 }).notNull(),
+  kppnNama: varchar('kppn_nama', { length: 150 }).notNull(),
+  kodeLokasi: varchar('kode_lokasi', { length: 10 }).notNull(),
+  namaLokasi: varchar('nama_lokasi', { length: 150 }).notNull(),
+  kodeProvinsi: varchar('kode_provinsi', { length: 10 }).notNull(),
+  kodeKabKota: varchar('kode_kab_kota', { length: 10 }).notNull(),
+  namaKabKota: varchar('nama_kab_kota', { length: 150 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefLokasi = typeof refLokasi.$inferSelect;
+export type NewRefLokasi = typeof refLokasi.$inferInsert;
+
+
 
 
 

@@ -13,6 +13,7 @@ import {
   refSasaranKinerja,
   standarBiayaMasukan,
   seriesAnggaran,
+  refLokasi,
 } from '../../database/schema.js';
 import { eq, like, or, desc, asc, sql, count, and } from 'drizzle-orm';
 
@@ -328,6 +329,41 @@ export class SatkerService {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// REFERENSI LOKASI SERVICE (KPPN, PROVINSI, KABUPATEN/KOTA SAKTI)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class LokasiService {
+  async getAll(search?: string) {
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      return db
+        .select()
+        .from(refLokasi)
+        .where(
+          or(
+            like(refLokasi.namaKabKota, q),
+            like(refLokasi.namaLokasi, q),
+            like(refLokasi.kppnNama, q),
+            like(refLokasi.kodeProvinsi, q),
+            like(refLokasi.kodeKabKota, q)
+          )
+        )
+        .orderBy(asc(refLokasi.kodeProvinsi), asc(refLokasi.kodeKabKota));
+    }
+    return db.select().from(refLokasi).orderBy(asc(refLokasi.kodeProvinsi), asc(refLokasi.kodeKabKota));
+  }
+
+  async getByProvinsiKabKota(kodeProvinsi: string, kodeKabKota: string) {
+    const result = await db
+      .select()
+      .from(refLokasi)
+      .where(and(eq(refLokasi.kodeProvinsi, kodeProvinsi), eq(refLokasi.kodeKabKota, kodeKabKota)))
+      .limit(1);
+    return result[0] || null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INFORMASI KINERJA SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -536,6 +572,7 @@ export const opdService = new OpdService();
 export const visiMisiService = new VisiMisiService();
 export const unitKerjaService = new UnitKerjaService();
 export const satkerService = new SatkerService();
+export const lokasiService = new LokasiService();
 export const informasiKinerjaService = new InformasiKinerjaService();
 export const sasaranKinerjaService = new SasaranKinerjaService();
 export const sbmService = new SbmService();
