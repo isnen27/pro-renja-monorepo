@@ -44,6 +44,7 @@ const MonitoringSubmitApproveRabPage = lazy(() => import("./pages/rab/Monitoring
 
 // Referensi
 const SeriesAnggaranPage = lazy(() => import("./pages/referensi/SeriesAnggaranPage"));
+const LokasiPage = lazy(() => import("./pages/referensi/LokasiPage"));
 
 // Minimal loading placeholder for fast transitions
 function PageLoading() {
@@ -104,6 +105,7 @@ export default function App() {
 
             {/* Referensi - Series Anggaran (2020-2025) */}
             <Route path="/referensi/series-anggaran" element={<SeriesAnggaranPage />} />
+            <Route path="/referensi/lokasi" element={<LokasiPage />} />
 
             {/* Seluruh sub-modul perencanaan, penganggaran, monev, referensi, dan administrasi */}
             <Route path="*" element={<ModulePage />} />

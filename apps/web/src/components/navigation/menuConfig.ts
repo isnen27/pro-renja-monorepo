@@ -17,6 +17,7 @@ import {
   Shield,
   Activity,
   Settings,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 
@@ -165,6 +166,11 @@ export const menuConfig: MenuGroup[] = [
         label: "Data Pejabat",
         icon: BadgeCheck,
         href: "/referensi/pejabat",
+      },
+      {
+        label: "Lokasi",
+        icon: MapPin,
+        href: "/referensi/lokasi",
       },
       {
         label: "Series Anggaran",
