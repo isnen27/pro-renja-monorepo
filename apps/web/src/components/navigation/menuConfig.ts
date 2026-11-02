@@ -173,6 +173,13 @@ export const menuConfig: MenuGroup[] = [
         href: "/referensi/lokasi",
       },
       {
+        label: "Asumsi Ekonomi Makro",
+        icon: TrendingUp,
+        href: "/referensi/asumsi-makro",
+        badge: "2027",
+        badgeVariant: "primary",
+      },
+      {
         label: "Series Anggaran",
         icon: LineChart,
         href: "/referensi/series-anggaran",

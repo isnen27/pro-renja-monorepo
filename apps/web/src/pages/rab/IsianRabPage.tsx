@@ -50,6 +50,8 @@ import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import sbkData from "../../data/sbkData.json";
 import rekapSasaranRenjaAllData from "../../data/rekapSasaranRenjaAllData.json";
 import lokasiData from "../../data/lokasiData.json";
+import lokasiFullData from "../../data/lokasiFullData.json";
+import { getTarifPerjadinBiasa, cleanProvName, cleanKotaName } from "../../data/perjadinSbmHelper";
 import {
   getIdentitasKinerjaByUnitKerja,
   getAvailableRoForUnit,
@@ -630,6 +632,7 @@ function IsianRabPageContent() {
     | "panduan_jasa"
     | "panduan_wizard"
     | "panduan_belanja_bahan"
+    | "panduan_perjadin_dn"
     | "upload_excel"
     | null
   >("kro");
@@ -656,6 +659,49 @@ function IsianRabPageContent() {
   const [jasaLainnyaVol1, setJasaLainnyaVol1] = useState<number>(1);
   const [jasaLainnyaVol2, setJasaLainnyaVol2] = useState<number>(1);
   const [jasaLainnyaHarga, setJasaLainnyaHarga] = useState<number>(15000000);
+
+  // State Panduan Perjalanan Dinas Domestik (Panduan 3)
+  const [perjadinJenisPilihan, setPerjadinJenisPilihan] = useState<Array<"lokal" | "biasa">>(["lokal"]);
+  
+  // Perjadin Transport Lokal (524113)
+  const [perjadinLokalOrg, setPerjadinLokalOrg] = useState<number>(2);
+  const [perjadinLokalKeg, setPerjadinLokalKeg] = useState<number>(1);
+
+  // Perjadin Biasa (524111)
+  const [perjadinBiasaLokasiList, setPerjadinBiasaLokasiList] = useState<Array<{
+    id: string;
+    provinsi: string; // Header 1 (misal: "06 ACEH")
+    kabKota: string;  // Header 2 (misal: "06 51 KOTA BANDA ACEH")
+    // Input isian user untuk item 1a s.d 1k
+    tiket1aOrg: number; tiket1aKeg: number;
+    tiket1bOrg: number; tiket1bKeg: number;
+    taksi1cOrg: number; taksi1cKali: number; taksi1cKeg: number;
+    taksi1dOrg: number; taksi1dKali: number; taksi1dKeg: number;
+    inap1eOrg: number; inap1eHari: number; inap1eKeg: number;
+    inap1fOrg: number; inap1fHari: number; inap1fKeg: number;
+    inap1gOrg: number; inap1gHari: number; inap1gKeg: number;
+    inap1hOrg: number; inap1hHari: number; inap1hKeg: number;
+    uang1iOrg: number; uang1iHari: number; uang1iKeg: number;
+    rep1jOrg: number; rep1jHari: number; rep1jKeg: number;
+    rep1kOrg: number; rep1kHari: number; rep1kKeg: number;
+  }>>([
+    {
+      id: "lok-1",
+      provinsi: "06 ACEH",
+      kabKota: "06 51 KOTA BANDA ACEH",
+      tiket1aOrg: 1, tiket1aKeg: 1,
+      tiket1bOrg: 2, tiket1bKeg: 1,
+      taksi1cOrg: 3, taksi1cKali: 2, taksi1cKeg: 1,
+      taksi1dOrg: 3, taksi1dKali: 2, taksi1dKeg: 1,
+      inap1eOrg: 1, inap1eHari: 3, inap1eKeg: 1,
+      inap1fOrg: 0, inap1fHari: 3, inap1fKeg: 1,
+      inap1gOrg: 2, inap1gHari: 3, inap1gKeg: 1,
+      inap1hOrg: 0, inap1hHari: 3, inap1hKeg: 1,
+      uang1iOrg: 3, uang1iHari: 4, uang1iKeg: 1,
+      rep1jOrg: 1, rep1jHari: 4, rep1jKeg: 1,
+      rep1kOrg: 0, rep1kHari: 4, rep1kKeg: 1,
+    }
+  ]);
 
   // State Panduan Belanja Bahan (Akun 521211)
   const [guidedBelanjaStep, setGuidedBelanjaStep] = useState<"checklist" | "kertas_kerja">("checklist");
@@ -2863,6 +2909,211 @@ function IsianRabPageContent() {
     triggerAlert(`Berhasil menambahkan baris Pengadaan Jasa ke kertas kerja!`);
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // HANDLER: SIMPAN PERJALANAN DINAS DOMESTIK (PANDUAN 3)
+  // ══════════════════════════════════════════════════════════════════════
+  function handleSavePerjadinDomestik() {
+    if (perjadinJenisPilihan.length === 0) {
+      triggerAlert("Silakan pilih minimal satu jenis perjalanan dinas (Transport Lokal atau Perjalanan Dinas Biasa)!");
+      return;
+    }
+
+    const targetId = targetSubkompRowId || selectedRowId;
+    let subkompIdx = worksheetRows.findIndex((r) => r.id === targetId);
+    if (subkompIdx < 0) {
+      subkompIdx = worksheetRows.map((r) => r.type).lastIndexOf("subkomponen");
+    }
+    if (subkompIdx < 0) {
+      triggerAlert("Silakan pilih Sub Komponen terlebih dahulu!");
+      return;
+    }
+
+    const subkompRow = worksheetRows[subkompIdx];
+    const newRowsToInsert: WorksheetRow[] = [];
+
+    // 1. OPSI: TRANSPORT LOKAL -> AKUN 524113 Belanja Perjalanan Dinas Dalam Kota
+    if (perjadinJenisPilihan.includes("lokal")) {
+      const vol1 = Math.max(1, perjadinLokalOrg);
+      const vol2 = Math.max(1, perjadinLokalKeg);
+      const totalVol = vol1 * vol2;
+      const harga = 170000;
+      const total = totalVol * harga;
+
+      newRowsToInsert.push({
+        id: `row-akun-524113-${Date.now()}`,
+        type: "akun",
+        kode: "524113",
+        uraian: "Belanja Perjalanan Dinas Dalam Kota",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        sd: "A00",
+        jumlah: total,
+        parentSubkompKode: subkompRow.kode,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+
+      newRowsToInsert.push({
+        id: `row-detail-524113-${Date.now()}`,
+        type: "detail",
+        kode: "",
+        uraian: "Transport Lokal",
+        parentAkunKode: "524113",
+        k1Nilai: vol1,
+        k1Sat: "orang",
+        k2Nilai: vol2,
+        k2Sat: "Keg",
+        vol: totalVol,
+        sat: "OK",
+        harga: harga,
+        jumlah: total,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+    }
+
+    // 2. OPSI: PERJALANAN DINAS BIASA -> AKUN 524111 Belanja Perjalanan Dinas Biasa
+    if (perjadinJenisPilihan.includes("biasa") && perjadinBiasaLokasiList.length > 0) {
+      const akun524111Id = `row-akun-524111-${Date.now()}`;
+      
+      // Hitung total akumulasi seluruh lokasi & detail
+      let totalAkun524111 = 0;
+      const biasaRows: WorksheetRow[] = [];
+
+      perjadinBiasaLokasiList.forEach((lok, lokIdx) => {
+        const lokNum = lokIdx + 1; // 1, 2, 3...
+        const cleanProv = cleanProvName(lok.provinsi);
+        const cleanKota = cleanKotaName(lok.kabKota);
+        const tarif = getTarifPerjadinBiasa(lok.provinsi, lok.kabKota);
+
+        const header1Id = `row-hdr1-perjadin-${Date.now()}-${lokNum}`;
+        const header2Id = `row-hdr2-perjadin-${Date.now()}-${lokNum}`;
+
+        let totalHeader2 = 0;
+        const detailsForLokasi: WorksheetRow[] = [];
+
+        // Helper tambah detail
+        const addDetail = (
+          letter: string,
+          label: string,
+          v1: number,
+          s1: string,
+          v2: number,
+          s2: string,
+          v3: number | undefined,
+          s3: string | undefined,
+          satTotal: string,
+          hargaSat: number
+        ) => {
+          if (v1 <= 0 || v2 <= 0 || (v3 !== undefined && v3 <= 0)) return;
+          const totalVol = v1 * v2 * (v3 !== undefined ? v3 : 1);
+          const rawTotal = totalVol * hargaSat;
+          const roundedTotal = Math.floor(rawTotal / 1000) * 1000;
+          totalHeader2 += roundedTotal;
+
+          detailsForLokasi.push({
+            id: `row-detail-perjadin-${Date.now()}-${lokNum}${letter}`,
+            type: "detail",
+            kode: "",
+            uraian: `${lokNum}${letter}. ${label}`,
+            parentAkunKode: "524111",
+            k1Nilai: v1,
+            k1Sat: s1,
+            k2Nilai: v2,
+            k2Sat: s2,
+            k3Nilai: v3,
+            k3Sat: s3,
+            vol: totalVol,
+            sat: satTotal,
+            harga: hargaSat,
+            jumlah: roundedTotal,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+        };
+
+        // 1a. Tiket Pesawat (PP) Eselon I : orang & kegiatan | OK
+        addDetail("a", "Tiket Pesawat (PP) Eselon I", lok.tiket1aOrg, "orang", lok.tiket1aKeg, "Keg", undefined, undefined, "OK", tarif.tiketBisnis);
+
+        // 1b. Tiket Pesawat (PP) Eselon II ke Bawah : orang & kegiatan | OK
+        addDetail("b", "Tiket Pesawat (PP) Eselon II ke Bawah", lok.tiket1bOrg, "orang", lok.tiket1bKeg, "Keg", undefined, undefined, "OK", tarif.tiketEkonomi);
+
+        // 1c. Taksi Jakarta : orang, kali, kegiatan | OK
+        addDetail("c", "Taksi Jakarta", lok.taksi1cOrg, "orang", lok.taksi1cKali, "kali", lok.taksi1cKeg, "Keg", "OK", tarif.taksiJakarta);
+
+        // 1d. Taksi (Lokasi Tujuan) : orang, kali, kegiatan | OK
+        addDetail("d", `Taksi (${cleanProv || "Lokasi Tujuan"})`, lok.taksi1dOrg, "orang", lok.taksi1dKali, "kali", lok.taksi1dKeg, "Keg", "OK", tarif.taksiTujuan);
+
+        // 1e. Penginapan Eselon I : orang, hari, kegiatan | OH
+        addDetail("e", "Penginapan Eselon I", lok.inap1eOrg, "orang", lok.inap1eHari, "hari", lok.inap1eKeg, "Keg", "OH", tarif.penginapanEselonI);
+
+        // 1f. Penginapan Eselon II : orang, hari, kegiatan | OH
+        addDetail("f", "Penginapan Eselon II", lok.inap1fOrg, "orang", lok.inap1fHari, "hari", lok.inap1fKeg, "Keg", "OH", tarif.penginapanEselonII);
+
+        // 1g. Penginapan Eselon III : orang, hari, kegiatan | OH
+        addDetail("g", "Penginapan Eselon III", lok.inap1gOrg, "orang", lok.inap1gHari, "hari", lok.inap1gKeg, "Keg", "OH", tarif.penginapanEselonIII);
+
+        // 1h. Penginapan Gol. III ke bawah : orang, hari, kegiatan | OH
+        addDetail("h", "Penginapan Gol. III ke bawah", lok.inap1hOrg, "orang", lok.inap1hHari, "hari", lok.inap1hKeg, "Keg", "OH", tarif.penginapanGolIII);
+
+        // 1i. Uang Harian : orang, hari, kegiatan | OH
+        addDetail("i", "Uang Harian", lok.uang1iOrg, "orang", lok.uang1iHari, "hari", lok.uang1iKeg, "Keg", "OH", tarif.uangHarian);
+
+        // 1j. Uang Representasi Eselon I : orang, hari, kegiatan | OH
+        addDetail("j", "Uang Representasi Eselon I", lok.rep1jOrg, "orang", lok.rep1jHari, "hari", lok.rep1jKeg, "Keg", "OH", tarif.uangRepresentasiEselonI);
+
+        // 1k. Uang Representasi Eselon II : orang, hari, kegiatan | OH
+        addDetail("k", "Uang Representasi Eselon II", lok.rep1kOrg, "orang", lok.rep1kHari, "hari", lok.rep1kKeg, "Keg", "OH", tarif.uangRepresentasiEselonII);
+
+        totalAkun524111 += totalHeader2;
+
+        // Header 1: Lokasi Tujuan (misal: "06 ACEH" atau nama provinsi)
+        biasaRows.push({
+          id: header1Id,
+          type: "header1",
+          kode: "",
+          uraian: lok.provinsi,
+          parentAkunKode: "524111",
+          jumlah: totalHeader2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+
+        // Header 2: Kota Tujuan (misal: "06 51 KOTA BANDA ACEH" atau nama kota)
+        biasaRows.push({
+          id: header2Id,
+          type: "header2",
+          kode: "",
+          uraian: lok.kabKota,
+          parentAkunKode: "524111",
+          jumlah: totalHeader2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+
+        // Seluruh detail belanja 1a s.d 1k
+        biasaRows.push(...detailsForLokasi);
+      });
+
+      newRowsToInsert.push({
+        id: akun524111Id,
+        type: "akun",
+        kode: "524111",
+        uraian: "Belanja Perjalanan Dinas Biasa",
+        subUraian: "(KPPN.175-Jakarta VI)",
+        sd: "A00",
+        jumlah: totalAkun524111,
+        parentSubkompKode: subkompRow.kode,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+
+      newRowsToInsert.push(...biasaRows);
+    }
+
+    setWorksheetRows((prev) => {
+      const next = [...prev];
+      const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+      next.splice(insertIdx, 0, ...newRowsToInsert);
+      return calculateHierarchyAmounts(next);
+    });
+
+    triggerAlert("Berhasil menyusun dan menyimpan rincian Perjalanan Dinas Domestik ke kertas kerja!");
+  }
+
   // Transisi dari Checklist ke Kertas Kerja (11 Kolom)
   function handleProceedToChecklistKertasKerja() {
     if (selectedBelanjaItems.length === 0) {
@@ -3330,10 +3581,15 @@ function IsianRabPageContent() {
     });
 
     const grandTotal = validRows.reduce((sum, r) => sum + r.totalBiaya, 0);
-    setModalMode(null);
     triggerAlert(
       `Berhasil menambahkan ${validRows.length} baris Belanja Bahan (Akun 521211) ke kertas kerja! Total: Rp ${formatRupiah(grandTotal)}`
     );
+
+    if (selectedJenisBelanjaList.includes("spd_dn")) {
+      setModalMode("panduan_perjadin_dn");
+    } else {
+      setModalMode(null);
+    }
   }
 
   // Handler Unggah File Excel (.xls, .xlsx)
@@ -7403,13 +7659,15 @@ function IsianRabPageContent() {
                     handleImportKomponen002();
                   }
 
-                  // Cek apakah ada langkah lanjutan interaktif (Jasa atau Belanja Bahan)
+                  // Cek apakah ada langkah lanjutan interaktif (Jasa, Belanja Bahan, atau Perjadin DN)
                   if (selectedJenisBelanjaList.includes("jasa")) {
                     setModalMode("panduan_jasa");
                   } else if (selectedJenisBelanjaList.includes("bahan")) {
                     setGuidedBelanjaStep("checklist");
                     setSelectedBelanjaItems([]);
                     setModalMode("panduan_belanja_bahan");
+                  } else if (selectedJenisBelanjaList.includes("spd_dn")) {
+                    setModalMode("panduan_perjadin_dn");
                   } else {
                     setModalMode(null);
                   }
@@ -7716,6 +7974,8 @@ function IsianRabPageContent() {
                     setGuidedBelanjaStep("checklist");
                     setSelectedBelanjaItems([]);
                     setModalMode("panduan_belanja_bahan");
+                  } else if (selectedJenisBelanjaList.includes("spd_dn")) {
+                    setModalMode("panduan_perjadin_dn");
                   } else {
                     setModalMode(null);
                   }
@@ -7723,7 +7983,11 @@ function IsianRabPageContent() {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-1.5"
               >
                 <span>
-                  {selectedJenisBelanjaList.includes("bahan") ? "Simpan Jasa & Lanjut ke Belanja Bahan" : "Simpan Jasa ke Kertas Kerja"}
+                  {selectedJenisBelanjaList.includes("bahan")
+                    ? "Simpan Jasa & Lanjut ke Belanja Bahan"
+                    : selectedJenisBelanjaList.includes("spd_dn")
+                    ? "Simpan Jasa & Lanjut ke Perjadin DN"
+                    : "Simpan Jasa ke Kertas Kerja"}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -8494,6 +8758,997 @@ function IsianRabPageContent() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN: PERJALANAN DINAS DALAM NEGERI (PANDUAN 3)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_perjadin_dn" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-4xl w-full p-6 space-y-6 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950/60 flex items-center justify-center text-sky-600">
+                  <Plane className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Panduan: Perjalanan Dinas Domestik</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                      SBM TA 2027
+                    </span>
+                  </h3>
+                  <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
+                    Otomatisasi pengisian Transport Lokal (Akun 524113) dan Perjalanan Dinas Biasa (Akun 524111) sesuai SBM
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Checklist Jenis Perjalanan Dinas: Transport Lokal dan/atau Perjalanan Dinas Biasa */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Pilih Jenis Perjalanan Dinas:
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* 1. Transport Lokal */}
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    perjadinJenisPilihan.includes("lokal")
+                      ? "bg-sky-50 dark:bg-sky-950/40 border-sky-500 shadow-xs"
+                      : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={perjadinJenisPilihan.includes("lokal")}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setPerjadinJenisPilihan((prev) => [...prev, "lokal"]);
+                      } else {
+                        setPerjadinJenisPilihan((prev) => prev.filter((x) => x !== "lokal"));
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 accent-sky-600 rounded cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Transport Lokal (Dalam Kota)
+                    </span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Akun 524113 • Tarif standar SBM <strong>Rp170.000 / OK</strong>
+                    </p>
+                  </div>
+                </label>
+
+                {/* 2. Perjalanan Dinas Biasa */}
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    perjadinJenisPilihan.includes("biasa")
+                      ? "bg-sky-50 dark:bg-sky-950/40 border-sky-500 shadow-xs"
+                      : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={perjadinJenisPilihan.includes("biasa")}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setPerjadinJenisPilihan((prev) => [...prev, "biasa"]);
+                      } else {
+                        setPerjadinJenisPilihan((prev) => prev.filter((x) => x !== "biasa"));
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 accent-sky-600 rounded cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Perjalanan Dinas Biasa (Luar Kota)
+                    </span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Akun 524111 • Tiket, Taksi, Penginapan, Uang Harian &amp; Representasi
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* SEKSI 1: INPUT TRANSPORT LOKAL */}
+            {perjadinJenisPilihan.includes("lokal") && (
+              <div className="p-4 rounded-xl border border-sky-200 dark:border-sky-800/50 bg-sky-50/50 dark:bg-sky-950/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                    <Car className="w-4 h-4 text-sky-600" />
+                    <span>Rincian Transport Lokal (Akun 524113)</span>
+                  </h4>
+                  <span className="text-[11px] font-mono font-bold text-sky-700 dark:text-sky-300">
+                    Total: Rp {formatIndoNumber(perjadinLokalOrg * perjadinLokalKeg * 170000)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Jumlah Orang (Vol 1)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={1}
+                        value={perjadinLokalOrg}
+                        onChange={(e) => setPerjadinLokalOrg(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800"
+                      />
+                      <span className="text-xs text-slate-500">orang</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Jumlah Kegiatan (Vol 2)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={1}
+                        value={perjadinLokalKeg}
+                        onChange={(e) => setPerjadinLokalKeg(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800"
+                      />
+                      <span className="text-xs text-slate-500">Keg</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Tarif SBM (Satuan OK)
+                    </label>
+                    <div className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                      Rp 170.000 / OK
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SEKSI 2: INPUT PERJALANAN DINAS BIASA */}
+            {perjadinJenisPilihan.includes("biasa") && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-sky-600" />
+                    <span>Daftar Lokasi Tujuan Perjalanan Dinas Biasa (Akun 524111)</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstProv = Array.from(new Set(LOKASI_FULL_DATA.map((l) => l.namaLokasi))).sort()[0] || "06 ACEH";
+                      const kabKotakFiltered = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === firstProv);
+                      const firstKota = kabKotakFiltered[0]?.namaKabKota || "";
+                      setPerjadinBiasaLokasiList((prev) => [
+                        ...prev,
+                        {
+                          id: `lok-${Date.now()}`,
+                          provinsi: firstProv,
+                          kabKota: firstKota,
+                          tiket1aOrg: 0, tiket1aKeg: 1,
+                          tiket1bOrg: 1, tiket1bKeg: 1,
+                          taksi1cOrg: 1, taksi1cKali: 2, taksi1cKeg: 1,
+                          taksi1dOrg: 1, taksi1dKali: 2, taksi1dKeg: 1,
+                          inap1eOrg: 0, inap1eHari: 1, inap1eKeg: 1,
+                          inap1fOrg: 0, inap1fHari: 1, inap1fKeg: 1,
+                          inap1gOrg: 0, inap1gHari: 1, inap1gKeg: 1,
+                          inap1hOrg: 1, inap1hHari: 2, inap1hKeg: 1,
+                          uang1iOrg: 1, uang1iHari: 3, uang1iKeg: 1,
+                          rep1jOrg: 0, rep1jHari: 1, rep1jKeg: 1,
+                          rep1kOrg: 0, rep1kHari: 1, rep1kKeg: 1,
+                        },
+                      ]);
+                    }}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Lokasi Tujuan</span>
+                  </button>
+                </div>
+
+                {perjadinBiasaLokasiList.length === 0 ? (
+                  <div className="p-6 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-slate-500 text-xs">
+                    Belum ada lokasi tujuan yang ditambahkan. Klik tombol <strong>+ Tambah Lokasi Tujuan</strong> di atas.
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {perjadinBiasaLokasiList.map((lokasi, idx) => {
+                      const num = idx + 1;
+                      const provList = Array.from(new Set(LOKASI_FULL_DATA.map((l) => l.namaLokasi))).sort();
+                      const kabKotaList = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === lokasi.provinsi).sort((a, b) =>
+                        a.namaKabKota.localeCompare(b.namaKabKota)
+                      );
+                      const tarif = getTarifPerjadinBiasa(lokasi.provinsi, lokasi.kabKota);
+
+                      // Hitung total perkiraan per lokasi
+                      const totalLokasi =
+                        (lokasi.tiket1aOrg * lokasi.tiket1aKeg * tarif.tiketBisnis) +
+                        (lokasi.tiket1bOrg * lokasi.tiket1bKeg * tarif.tiketEkonomi) +
+                        (lokasi.taksi1cOrg * lokasi.taksi1cKali * lokasi.taksi1cKeg * tarif.taksiJakarta) +
+                        (lokasi.taksi1dOrg * lokasi.taksi1dKali * lokasi.taksi1dKeg * tarif.taksiTujuan) +
+                        (lokasi.inap1eOrg * lokasi.inap1eHari * lokasi.inap1eKeg * tarif.penginapanEselonI) +
+                        (lokasi.inap1fOrg * lokasi.inap1fHari * lokasi.inap1fKeg * tarif.penginapanEselonII) +
+                        (lokasi.inap1gOrg * lokasi.inap1gHari * lokasi.inap1gKeg * tarif.penginapanEselonIII) +
+                        (lokasi.inap1hOrg * lokasi.inap1hHari * lokasi.inap1hKeg * tarif.penginapanGolIII) +
+                        (lokasi.uang1iOrg * lokasi.uang1iHari * lokasi.uang1iKeg * tarif.uangHarian) +
+                        (lokasi.rep1jOrg * lokasi.rep1jHari * lokasi.rep1jKeg * tarif.uangRepresentasiEselonI) +
+                        (lokasi.rep1kOrg * lokasi.rep1kHari * lokasi.rep1kKeg * tarif.uangRepresentasiEselonII);
+
+                      return (
+                        <div
+                          key={lokasi.id}
+                          className="border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800/90 shadow-xs"
+                        >
+                          {/* Header Card Lokasi */}
+                          <div className="bg-slate-100 dark:bg-slate-800 p-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">
+                                {num}
+                              </span>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                Lokasi Tujuan #{num}: {lokasi.provinsi} — {lokasi.kabKota}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">
+                                Subtotal: Rp {formatIndoNumber(totalLokasi)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPerjadinBiasaLokasiList((prev) => prev.filter((_, i) => i !== idx))
+                                }
+                                className="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                title="Hapus Lokasi"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Pemilihan Dropdown Lokasi & Kota */}
+                          <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                                  Header 1: Lokasi Tujuan (Provinsi)
+                                </label>
+                                <select
+                                  value={lokasi.provinsi}
+                                  onChange={(e) => {
+                                    const newProv = e.target.value;
+                                    const nextKabKotak = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === newProv);
+                                    setPerjadinBiasaLokasiList((prev) =>
+                                      prev.map((item, i) =>
+                                        i === idx
+                                          ? {
+                                              ...item,
+                                              provinsi: newProv,
+                                              kabKota: nextKabKotak[0]?.namaKabKota || "",
+                                            }
+                                          : item
+                                      )
+                                    );
+                                  }}
+                                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold"
+                                >
+                                  {provList.map((p) => (
+                                    <option key={p} value={p}>
+                                      {p}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                                  Header 2: Kota Tujuan (Kabupaten/Kota)
+                                </label>
+                                <select
+                                  value={lokasi.kabKota}
+                                  onChange={(e) => {
+                                    const newKota = e.target.value;
+                                    setPerjadinBiasaLokasiList((prev) =>
+                                      prev.map((item, i) => (i === idx ? { ...item, kabKota: newKota } : item))
+                                    );
+                                  }}
+                                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold"
+                                >
+                                  {kabKotaList.map((k) => (
+                                    <option key={k.kodeKabKota} value={k.namaKabKota}>
+                                      {k.namaKabKota}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Form Input Parameter 1a s.d 1k */}
+                            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                              <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50 dark:bg-slate-800 text-[10px] text-slate-500 uppercase border-b border-slate-200 dark:border-slate-700">
+                                  <tr>
+                                    <th className="p-2.5 w-12 text-center">Kode</th>
+                                    <th className="p-2.5">Uraian Komponen Biaya</th>
+                                    <th className="p-2.5 w-48 text-center">Volume Multiplier</th>
+                                    <th className="p-2.5 w-24 text-center">Satuan</th>
+                                    <th className="p-2.5 w-28 text-right">Tarif SBM (Rp)</th>
+                                    <th className="p-2.5 w-32 text-right">Subtotal (Rp)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                  {/* 1a. Tiket Pesawat Eselon I */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}a</td>
+                                    <td className="p-2 font-medium">Tiket Pesawat (PP) Eselon I</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.tiket1aOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, tiket1aOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-16 px-1.5 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.tiket1aKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, tiket1aKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-16 px-1.5 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OK</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.tiketBisnis)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.tiket1aOrg * lokasi.tiket1aKeg * tarif.tiketBisnis)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1b. Tiket Pesawat Eselon II ke Bawah */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}b</td>
+                                    <td className="p-2 font-medium">Tiket Pesawat (PP) Eselon II ke Bawah</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.tiket1bOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, tiket1bOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-16 px-1.5 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.tiket1bKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, tiket1bKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-16 px-1.5 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OK</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.tiketEkonomi)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.tiket1bOrg * lokasi.tiket1bKeg * tarif.tiketEkonomi)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1c. Taksi Jakarta */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}c</td>
+                                    <td className="p-2 font-medium">Taksi Jakarta</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.taksi1cOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1cOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.taksi1cKali}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1cKali: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">kl ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.taksi1cKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1cKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OK</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.taksiJakarta)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.taksi1cOrg * lokasi.taksi1cKali * lokasi.taksi1cKeg * tarif.taksiJakarta)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1d. Taksi Lokasi Tujuan */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}d</td>
+                                    <td className="p-2 font-medium">Taksi ({cleanProvName(lokasi.provinsi) || "Lokasi Tujuan"})</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.taksi1dOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1dOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.taksi1dKali}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1dKali: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">kl ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.taksi1dKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, taksi1dKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OK</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.taksiTujuan)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.taksi1dOrg * lokasi.taksi1dKali * lokasi.taksi1dKeg * tarif.taksiTujuan)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1e. Penginapan Eselon I */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}e</td>
+                                    <td className="p-2 font-medium">Penginapan Eselon I</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.inap1eOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1eOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1eHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1eHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1eKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1eKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.penginapanEselonI)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.inap1eOrg * lokasi.inap1eHari * lokasi.inap1eKeg * tarif.penginapanEselonI)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1f. Penginapan Eselon II */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}f</td>
+                                    <td className="p-2 font-medium">Penginapan Eselon II</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.inap1fOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1fOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1fHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1fHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1fKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1fKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.penginapanEselonII)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.inap1fOrg * lokasi.inap1fHari * lokasi.inap1fKeg * tarif.penginapanEselonII)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1g. Penginapan Eselon III */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}g</td>
+                                    <td className="p-2 font-medium">Penginapan Eselon III</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.inap1gOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1gOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1gHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1gHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1gKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1gKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.penginapanEselonIII)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.inap1gOrg * lokasi.inap1gHari * lokasi.inap1gKeg * tarif.penginapanEselonIII)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1h. Penginapan Gol. III ke bawah */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}h</td>
+                                    <td className="p-2 font-medium">Penginapan Gol. III ke bawah</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.inap1hOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1hOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1hHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1hHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.inap1hKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, inap1hKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.penginapanGolIII)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.inap1hOrg * lokasi.inap1hHari * lokasi.inap1hKeg * tarif.penginapanGolIII)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1i. Uang Harian */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}i</td>
+                                    <td className="p-2 font-medium">Uang Harian (Luar Kota)</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.uang1iOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, uang1iOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.uang1iHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, uang1iHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.uang1iKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, uang1iKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.uangHarian)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.uang1iOrg * lokasi.uang1iHari * lokasi.uang1iKeg * tarif.uangHarian)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1j. Uang Representasi Eselon I */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}j</td>
+                                    <td className="p-2 font-medium">Uang Representasi Eselon I</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.rep1jOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1jOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.rep1jHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1jHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.rep1jKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1jKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.uangRepresentasiEselonI)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.rep1jOrg * lokasi.rep1jHari * lokasi.rep1jKeg * tarif.uangRepresentasiEselonI)}
+                                    </td>
+                                  </tr>
+
+                                  {/* 1k. Uang Representasi Eselon II */}
+                                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="p-2 text-center font-bold text-slate-600">{num}k</td>
+                                    <td className="p-2 font-medium">Uang Representasi Eselon II</td>
+                                    <td className="p-2">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={lokasi.rep1kOrg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1kOrg: Math.max(0, Number(e.target.value) || 0) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">org ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.rep1kHari}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1kHari: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">hari ×</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          value={lokasi.rep1kKeg}
+                                          onChange={(e) =>
+                                            setPerjadinBiasaLokasiList((prev) =>
+                                              prev.map((item, i) =>
+                                                i === idx ? { ...item, rep1kKeg: Math.max(1, Number(e.target.value) || 1) } : item
+                                              )
+                                            )
+                                          }
+                                          className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                        />
+                                        <span className="text-[10px] text-slate-500">keg</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-2 text-center text-[11px] font-semibold text-slate-600">OH</td>
+                                    <td className="p-2 text-right font-mono text-[11px]">
+                                      {formatIndoNumber(tarif.uangRepresentasiEselonII)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-sky-700 dark:text-sky-300">
+                                      {formatIndoNumber(lokasi.rep1kOrg * lokasi.rep1kHari * lokasi.rep1kKeg * tarif.uangRepresentasiEselonII)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer Aksi Simpan */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
+              <button
+                type="button"
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Kembali ke Jenis Belanja
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleSavePerjadinDomestik();
+                  setModalMode(null);
+                }}
+                disabled={
+                  perjadinJenisPilihan.length === 0 ||
+                  (perjadinJenisPilihan.includes("biasa") && perjadinBiasaLokasiList.length === 0)
+                }
+                className="px-6 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Perjalanan Dinas ke Kertas Kerja</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
