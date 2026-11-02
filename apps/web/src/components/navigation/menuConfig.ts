@@ -18,6 +18,7 @@ import {
   Activity,
   Settings,
   MapPin,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 

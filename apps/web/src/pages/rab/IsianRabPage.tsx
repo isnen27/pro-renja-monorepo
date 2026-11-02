@@ -71,6 +71,8 @@ export type WorksheetRowType =
   | "komponen"
   | "subkomponen" // Header 1 / Sub Komponen
   | "subkomponen_sub" // Sub Komponen Level 2 (misal: > Singapore, > Taiwan)
+  | "header1"     // Header 1 Perjalanan Dinas / Pengelompokan 1
+  | "header2"     // Header 2 Perjalanan Dinas / Pengelompokan 2
   | "akun"        // Header 2 / Akun Belanja
   | "detail";     // Detail Item
 
@@ -8929,8 +8931,8 @@ function IsianRabPageContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      const firstProv = Array.from(new Set(LOKASI_FULL_DATA.map((l) => l.namaLokasi))).sort()[0] || "06 ACEH";
-                      const kabKotakFiltered = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === firstProv);
+                      const firstProv = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi))).sort()[0] || "06 ACEH";
+                      const kabKotakFiltered = lokasiFullData.filter((l) => l.namaLokasi === firstProv);
                       const firstKota = kabKotakFiltered[0]?.namaKabKota || "";
                       setPerjadinBiasaLokasiList((prev) => [
                         ...prev,
@@ -8967,8 +8969,8 @@ function IsianRabPageContent() {
                   <div className="space-y-5">
                     {perjadinBiasaLokasiList.map((lokasi, idx) => {
                       const num = idx + 1;
-                      const provList = Array.from(new Set(LOKASI_FULL_DATA.map((l) => l.namaLokasi))).sort();
-                      const kabKotaList = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === lokasi.provinsi).sort((a, b) =>
+                      const provList = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi))).sort();
+                      const kabKotaList = lokasiFullData.filter((l) => l.namaLokasi === lokasi.provinsi).sort((a, b) =>
                         a.namaKabKota.localeCompare(b.namaKabKota)
                       );
                       const tarif = getTarifPerjadinBiasa(lokasi.provinsi, lokasi.kabKota);
@@ -9030,7 +9032,7 @@ function IsianRabPageContent() {
                                   value={lokasi.provinsi}
                                   onChange={(e) => {
                                     const newProv = e.target.value;
-                                    const nextKabKotak = LOKASI_FULL_DATA.filter((l) => l.namaLokasi === newProv);
+                                    const nextKabKotak = lokasiFullData.filter((l) => l.namaLokasi === newProv);
                                     setPerjadinBiasaLokasiList((prev) =>
                                       prev.map((item, i) =>
                                         i === idx
