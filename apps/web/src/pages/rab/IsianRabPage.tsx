@@ -42,6 +42,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Plane,
+  Car,
+  MapPin,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
 import templateRabGajiKantor from "../../data/templateRabGajiKantor.json";
