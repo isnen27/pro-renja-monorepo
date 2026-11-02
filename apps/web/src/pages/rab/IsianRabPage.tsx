@@ -54,7 +54,14 @@ import sbkData from "../../data/sbkData.json";
 import rekapSasaranRenjaAllData from "../../data/rekapSasaranRenjaAllData.json";
 import lokasiData from "../../data/lokasiData.json";
 import lokasiFullData from "../../data/lokasiFullData.json";
-import { getTarifPerjadinBiasa, cleanProvName, cleanKotaName } from "../../data/perjadinSbmHelper";
+import {
+  getTarifPerjadinBiasa,
+  cleanProvName,
+  cleanKotaName,
+  formatDisplayProv,
+  formatDisplayKota,
+  cleanHeaderUraian,
+} from "../../data/perjadinSbmHelper";
 import {
   getIdentitasKinerjaByUnitKerja,
   getAvailableRoForUnit,
@@ -404,6 +411,307 @@ function findParentRoForRow(rows: WorksheetRow[], targetIdx: number): WorksheetR
     }
   }
   return null;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// HIERARKI POHON, VALIDASI DUPLIKASI & SORTING ASCENDING WORKSHEET
+// ══════════════════════════════════════════════════════════════════════
+export interface WorksheetTreeNode {
+  row: WorksheetRow;
+  children: WorksheetTreeNode[];
+}
+
+export function buildWorksheetTree(rows: WorksheetRow[]): WorksheetTreeNode[] {
+  const rootNodes: WorksheetTreeNode[] = [];
+  const stack: { level: number; node: WorksheetTreeNode }[] = [];
+
+  for (const row of rows) {
+    const level = getRowHierarchyLevel(row);
+    const node: WorksheetTreeNode = { row: { ...row }, children: [] };
+
+    while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      rootNodes.push(node);
+    } else {
+      stack[stack.length - 1].node.children.push(node);
+    }
+
+    stack.push({ level, node });
+  }
+
+  return rootNodes;
+}
+
+export interface DuplicateValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+// Validasi Duplikasi: Memeriksa apakah terdapat KRO, RO, Komponen, Sub Komponen, Akun, Header 1, atau Header 2 yang double
+export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateValidationResult {
+  const errors: string[] = [];
+  const tree = buildWorksheetTree(rows);
+
+  function checkNode(node: WorksheetTreeNode) {
+    const byType = new Map<string, WorksheetTreeNode[]>();
+    for (const child of node.children) {
+      const t = child.row.type;
+      if (!byType.has(t)) byType.set(t, []);
+      byType.get(t)!.push(child);
+    }
+
+    // A. KRO ganda di bawah Kegiatan
+    const kroChildren = byType.get("kro") || [];
+    const kroCodeCounts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of kroChildren) {
+      const code = (c.row.kode || "").trim();
+      if (!kroCodeCounts.has(code)) kroCodeCounts.set(code, []);
+      kroCodeCounts.get(code)!.push(c);
+    }
+    for (const [code, items] of kroCodeCounts.entries()) {
+      if (items.length > 1) {
+        errors.push(`Kegiatan ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} KRO dengan kode ${code}`);
+      }
+    }
+
+    // B. RO ganda di bawah KRO
+    const roChildren = byType.get("ro") || [];
+    const roCodeCounts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of roChildren) {
+      const code = (c.row.kode || "").trim();
+      if (!roCodeCounts.has(code)) roCodeCounts.set(code, []);
+      roCodeCounts.get(code)!.push(c);
+    }
+    for (const [code, items] of roCodeCounts.entries()) {
+      if (items.length > 1) {
+        errors.push(`KRO ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} RO dengan kode ${code}`);
+      }
+    }
+
+    // C. Komponen ganda di bawah RO
+    const kompChildren = byType.get("komponen") || [];
+    const kompCodeCounts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of kompChildren) {
+      const code = (c.row.kode || "").trim();
+      if (!kompCodeCounts.has(code)) kompCodeCounts.set(code, []);
+      kompCodeCounts.get(code)!.push(c);
+    }
+    for (const [code, items] of kompCodeCounts.entries()) {
+      if (items.length > 1) {
+        errors.push(`RO ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Komponen dengan kode ${code}`);
+      }
+    }
+
+    // D. Sub Komponen ganda di bawah Komponen
+    const subkompChildren = byType.get("subkomponen") || [];
+    const subkompCodeCounts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of subkompChildren) {
+      const code = (c.row.kode || c.row.uraian || "").trim();
+      if (!subkompCodeCounts.has(code)) subkompCodeCounts.set(code, []);
+      subkompCodeCounts.get(code)!.push(c);
+    }
+    for (const [code, items] of subkompCodeCounts.entries()) {
+      if (items.length > 1) {
+        errors.push(`Komponen ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Sub Komponen ${code}`);
+      }
+    }
+
+    // E. Akun ganda di bawah Sub Komponen atau langsung di bawah Komponen
+    const akunChildren = byType.get("akun") || [];
+    const akunCodeCounts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of akunChildren) {
+      const code = (c.row.kode || "").trim();
+      if (!akunCodeCounts.has(code)) akunCodeCounts.set(code, []);
+      akunCodeCounts.get(code)!.push(c);
+    }
+    for (const [code, items] of akunCodeCounts.entries()) {
+      if (items.length > 1) {
+        const parentDesc = `${node.row.type === "subkomponen" ? "Sub Komponen" : "Komponen"} ${node.row.kode || ""} ${node.row.uraian}`;
+        errors.push(`${parentDesc} terdapat ${items.length} akun ${code}`);
+      }
+    }
+
+    // Khusus level Komponen: cek juga seluruh Akun di dalam Komponen (termasuk yang berada di dalam subkomponen-subkomponen di bawahnya)
+    if (node.row.type === "komponen") {
+      const allAkunsInKomp: WorksheetTreeNode[] = [];
+      function collectAkuns(n: WorksheetTreeNode) {
+        if (n.row.type === "akun") {
+          allAkunsInKomp.push(n);
+        }
+        for (const child of n.children) {
+          collectAkuns(child);
+        }
+      }
+      for (const child of node.children) {
+        collectAkuns(child);
+      }
+      const allAkunCounts = new Map<string, WorksheetTreeNode[]>();
+      for (const a of allAkunsInKomp) {
+        const code = (a.row.kode || "").trim();
+        if (!allAkunCounts.has(code)) allAkunCounts.set(code, []);
+        allAkunCounts.get(code)!.push(a);
+      }
+      for (const [code, items] of allAkunCounts.entries()) {
+        if (items.length > 1) {
+          const err = `Komponen ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} akun ${code}`;
+          if (!errors.includes(err)) {
+            errors.push(err);
+          }
+        }
+      }
+    }
+
+    // F. Header 1 ganda di bawah Akun
+    const h1Children = byType.get("header1") || [];
+    const h1Counts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of h1Children) {
+      const name = cleanHeaderUraian(c.row.uraian);
+      if (!h1Counts.has(name)) h1Counts.set(name, []);
+      h1Counts.get(name)!.push(c);
+    }
+    for (const [name, items] of h1Counts.entries()) {
+      if (items.length > 1) {
+        errors.push(`Akun ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Header 1 '${name}' yang duplikat.`);
+      }
+    }
+
+    // G. Header 2 ganda di bawah Header 1
+    const h2Children = byType.get("header2") || [];
+    const h2Counts = new Map<string, WorksheetTreeNode[]>();
+    for (const c of h2Children) {
+      const name = cleanHeaderUraian(c.row.uraian);
+      if (!h2Counts.has(name)) h2Counts.set(name, []);
+      h2Counts.get(name)!.push(c);
+    }
+    for (const [name, items] of h2Counts.entries()) {
+      if (items.length > 1) {
+        errors.push(`Header 1 '${node.row.uraian}' terdapat ${items.length} Header 2 '${name}' yang duplikat.`);
+      }
+    }
+
+    // Periksa anak secara rekursif
+    for (const child of node.children) {
+      checkNode(child);
+    }
+  }
+
+  for (const root of tree) {
+    checkNode(root);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+// Mengurutkan pohon hierarki secara ascending dan melakukan penomoran ulang Header 1 & 2
+export function sortAndRenumberWorksheet(rows: WorksheetRow[]): WorksheetRow[] {
+  const tree = buildWorksheetTree(rows);
+
+  // 1. Urutkan seluruh tingkatan anak secara rekursif
+  function sortNode(node: WorksheetTreeNode) {
+    node.children.sort((a, b) => {
+      const lvlA = getRowHierarchyLevel(a.row);
+      const lvlB = getRowHierarchyLevel(b.row);
+      if (lvlA !== lvlB) return lvlA - lvlB;
+
+      const type = a.row.type;
+      if (type === "kro" || type === "ro" || type === "komponen" || type === "subkomponen" || type === "akun") {
+        const kA = (a.row.kode || "").trim();
+        const kB = (b.row.kode || "").trim();
+        if (kA && kB && kA !== kB) {
+          return kA.localeCompare(kB, undefined, { numeric: true, sensitivity: "base" });
+        }
+        return (a.row.uraian || "").localeCompare(b.row.uraian || "", undefined, { numeric: true, sensitivity: "base" });
+      }
+
+      if (type === "header1") {
+        const uA = cleanHeaderUraian(a.row.uraian);
+        const uB = cleanHeaderUraian(b.row.uraian);
+        return uA.localeCompare(uB, undefined, { numeric: true, sensitivity: "base" });
+      }
+
+      if (type === "header2") {
+        const uA = cleanHeaderUraian(a.row.uraian);
+        const uB = cleanHeaderUraian(b.row.uraian);
+        return uA.localeCompare(uB, undefined, { numeric: true, sensitivity: "base" });
+      }
+
+      return 0;
+    });
+
+    for (const child of node.children) {
+      sortNode(child);
+    }
+  }
+
+  for (const root of tree) {
+    sortNode(root);
+  }
+
+  // 2. Renumber Header 1, Header 2, dan detail baris di bawah Akun
+  function renumberAkunSubtree(akunNode: WorksheetTreeNode) {
+    let h1Index = 0;
+    for (const child of akunNode.children) {
+      if (child.row.type === "header1") {
+        h1Index++;
+        const cleanH1 = cleanHeaderUraian(child.row.uraian);
+        child.row.uraian = `${h1Index}. ${cleanH1}`;
+
+        let h2Index = 0;
+        for (const subChild of child.children) {
+          if (subChild.row.type === "header2") {
+            const letter = String.fromCharCode(97 + h2Index); // 'a', 'b', 'c'...
+            h2Index++;
+            const cleanH2 = cleanHeaderUraian(subChild.row.uraian);
+            subChild.row.uraian = `${h1Index}${letter}. ${cleanH2}`;
+
+            // Renumber detail di bawah Header 2 agar nomor prefiks sinkron dengan h1Index
+            for (const detailChild of subChild.children) {
+              if (detailChild.row.type === "detail") {
+                detailChild.row.uraian = detailChild.row.uraian.replace(
+                  /^(\d+)([a-z]\.\s*)/i,
+                  `${h1Index}$2`
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function walkTreeForRenumber(node: WorksheetTreeNode) {
+    if (node.row.type === "akun") {
+      renumberAkunSubtree(node);
+    }
+    for (const child of node.children) {
+      walkTreeForRenumber(child);
+    }
+  }
+
+  for (const root of tree) {
+    walkTreeForRenumber(root);
+  }
+
+  // 3. Flatten pohon kembali menjadi flat array WorksheetRow
+  const result: WorksheetRow[] = [];
+  function flatten(node: WorksheetTreeNode) {
+    result.push(node.row);
+    for (const child of node.children) {
+      flatten(child);
+    }
+  }
+
+  for (const root of tree) {
+    flatten(root);
+  }
+
+  return result;
 }
 
 // Error Boundary untuk mencegah blank screen jika terjadi runtime error tak terduga pada salah satu komponen
@@ -947,6 +1255,7 @@ function IsianRabPageContent() {
   }, [filteredInformasiKinerja]);
 
   const [actionAlert, setActionAlert] = useState<string | null>(null);
+  const [duplicateErrors, setDuplicateErrors] = useState<string[]>([]);
 
   function triggerAlert(msg: string) {
     setActionAlert(msg);
@@ -2436,12 +2745,41 @@ function IsianRabPageContent() {
   // Handler Rekam Header 1
   function handleSaveHeader1() {
     if (!formHeader1.nomenklatur.trim()) return;
+    const cleanInput = cleanHeaderUraian(formHeader1.nomenklatur);
+
+    // Cek apakah di bawah Akun induk sudah ada Header 1 yang sama
+    const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+    let parentAkunIdx = -1;
+    if (selIdx >= 0) {
+      for (let i = selIdx; i >= 0; i--) {
+        if (worksheetRows[i].type === "akun") {
+          parentAkunIdx = i;
+          break;
+        }
+        if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen"].includes(worksheetRows[i].type)) {
+          break;
+        }
+      }
+    }
+    if (parentAkunIdx >= 0) {
+      for (let i = parentAkunIdx + 1; i < worksheetRows.length; i++) {
+        const row = worksheetRows[i];
+        if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen", "akun"].includes(row.type)) break;
+        if (row.type === "header1" || (row.type === "subkomponen_sub" && row.headerLevel === 1)) {
+          if (cleanHeaderUraian(row.uraian) === cleanInput) {
+            triggerAlert(`Header 1 "${formHeader1.nomenklatur}" sudah ada di bawah Akun ini! Tidak boleh ada duplikasi Header 1.`);
+            return;
+          }
+        }
+      }
+    }
+
     const newRow: WorksheetRow = {
       id: `row-hdr1-${Date.now()}`,
-      type: "subkomponen_sub",
+      type: "header1",
       headerLevel: 1,
       kode: "",
-      uraian: `> ${formHeader1.nomenklatur}`,
+      uraian: formHeader1.nomenklatur.startsWith(">") ? formHeader1.nomenklatur : `> ${formHeader1.nomenklatur}`,
       jumlah: 0,
       cO: false,
       cS: false,
@@ -2450,10 +2788,10 @@ function IsianRabPageContent() {
       cD: false,
     };
     setWorksheetRows((prev) => {
-      const selIdx = prev.findIndex((r) => r.id === selectedRowId);
+      const targetIdx = selIdx;
       const next = [...prev];
-      if (selIdx >= 0) {
-        const insertIdx = findInsertionIndexForSubtree(selIdx, prev[selIdx].type);
+      if (targetIdx >= 0) {
+        const insertIdx = findInsertionIndexForSubtree(targetIdx, prev[targetIdx].type);
         next.splice(insertIdx, 0, newRow);
       } else {
         const lastAkunIdx = prev.map((r) => r.type).lastIndexOf("akun");
@@ -2475,12 +2813,41 @@ function IsianRabPageContent() {
   // Handler Rekam Header 2
   function handleSaveHeader2() {
     if (!formHeader2.nomenklatur.trim()) return;
+    const cleanInput = cleanHeaderUraian(formHeader2.nomenklatur);
+
+    // Cek apakah di bawah Header 1 induk sudah ada Header 2 yang sama
+    const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+    let parentH1Idx = -1;
+    if (selIdx >= 0) {
+      for (let i = selIdx; i >= 0; i--) {
+        if (worksheetRows[i].type === "header1" || (worksheetRows[i].type === "subkomponen_sub" && worksheetRows[i].headerLevel === 1)) {
+          parentH1Idx = i;
+          break;
+        }
+        if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen", "akun"].includes(worksheetRows[i].type)) {
+          break;
+        }
+      }
+    }
+    if (parentH1Idx >= 0) {
+      for (let i = parentH1Idx + 1; i < worksheetRows.length; i++) {
+        const row = worksheetRows[i];
+        if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen", "akun", "header1"].includes(row.type)) break;
+        if (row.type === "header2" || (row.type === "subkomponen_sub" && row.headerLevel === 2)) {
+          if (cleanHeaderUraian(row.uraian) === cleanInput) {
+            triggerAlert(`Header 2 "${formHeader2.nomenklatur}" sudah ada di bawah Header 1 ini! Tidak boleh ada duplikasi Header 2.`);
+            return;
+          }
+        }
+      }
+    }
+
     const newRow: WorksheetRow = {
       id: `row-hdr2-${Date.now()}`,
-      type: "subkomponen_sub",
+      type: "header2",
       headerLevel: 2,
       kode: "",
-      uraian: `>> ${formHeader2.nomenklatur}`,
+      uraian: formHeader2.nomenklatur.startsWith(">>") ? formHeader2.nomenklatur : `>> ${formHeader2.nomenklatur}`,
       jumlah: 0,
       cO: false,
       cS: false,
@@ -2489,15 +2856,15 @@ function IsianRabPageContent() {
       cD: false,
     };
     setWorksheetRows((prev) => {
-      const selIdx = prev.findIndex((r) => r.id === selectedRowId);
+      const targetIdx = selIdx;
       const next = [...prev];
-      if (selIdx >= 0) {
-        const insertIdx = findInsertionIndexForSubtree(selIdx, prev[selIdx].type);
+      if (targetIdx >= 0) {
+        const insertIdx = findInsertionIndexForSubtree(targetIdx, prev[targetIdx].type);
         next.splice(insertIdx, 0, newRow);
       } else {
-        const lastHdrIdx = prev.map((r) => r.type).lastIndexOf("subkomponen_sub");
+        const lastHdrIdx = prev.map((r) => r.type).lastIndexOf("header2");
         if (lastHdrIdx >= 0) {
-          const insertIdx = findInsertionIndexForSubtree(lastHdrIdx, "subkomponen_sub");
+          const insertIdx = findInsertionIndexForSubtree(lastHdrIdx, "header2");
           next.splice(insertIdx, 0, newRow);
         } else {
           next.push(newRow);
@@ -2922,10 +3289,10 @@ function IsianRabPageContent() {
   // ══════════════════════════════════════════════════════════════════════
   // HANDLER: SIMPAN PERJALANAN DINAS DOMESTIK (PANDUAN 3)
   // ══════════════════════════════════════════════════════════════════════
-  function handleSavePerjadinDomestik() {
+  function handleSavePerjadinDomestik(): boolean {
     if (perjadinJenisPilihan.length === 0) {
       triggerAlert("Silakan pilih minimal satu jenis perjalanan dinas (Transport Lokal atau Perjalanan Dinas Biasa)!");
-      return;
+      return false;
     }
 
     const targetId = targetSubkompRowId || selectedRowId;
@@ -2935,11 +3302,41 @@ function IsianRabPageContent() {
     }
     if (subkompIdx < 0) {
       triggerAlert("Silakan pilih Sub Komponen terlebih dahulu!");
-      return;
+      return false;
     }
 
     const subkompRow = worksheetRows[subkompIdx];
-    const newRowsToInsert: WorksheetRow[] = [];
+
+    // Deteksi apakah Akun 524113 atau 524111 sudah ada di bawah Sub Komponen ini
+    let existingAkun524113Idx = -1;
+    let existingAkun524111Idx = -1;
+    for (let i = subkompIdx + 1; i < worksheetRows.length; i++) {
+      const t = worksheetRows[i].type;
+      if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen"].includes(t)) {
+        break;
+      }
+      if (t === "akun") {
+        if (worksheetRows[i].kode === "524113") existingAkun524113Idx = i;
+        if (worksheetRows[i].kode === "524111") existingAkun524111Idx = i;
+      }
+    }
+
+    // Validasi duplikasi internal pada perjadinBiasaLokasiList sebelum proses simpan
+    if (perjadinJenisPilihan.includes("biasa")) {
+      const seenLoc = new Set<string>();
+      for (const lok of perjadinBiasaLokasiList) {
+        const cleanProv = formatDisplayProv(lok.provinsi);
+        const cleanKota = formatDisplayKota(lok.kabKota);
+        const key = `${cleanProv}__${cleanKota}`;
+        if (seenLoc.has(key)) {
+          triggerAlert(`Terdapat lokasi tujuan ganda untuk ${cleanKota} di Provinsi ${cleanProv}! Harap pilih kota yang berbeda.`);
+          return false;
+        }
+        seenLoc.add(key);
+      }
+    }
+
+    let nextRows = [...worksheetRows];
 
     // 1. OPSI: TRANSPORT LOKAL -> AKUN 524113 Belanja Perjalanan Dinas Dalam Kota
     if (perjadinJenisPilihan.includes("lokal")) {
@@ -2949,19 +3346,7 @@ function IsianRabPageContent() {
       const harga = 170000;
       const total = totalVol * harga;
 
-      newRowsToInsert.push({
-        id: `row-akun-524113-${Date.now()}`,
-        type: "akun",
-        kode: "524113",
-        uraian: "Belanja Perjalanan Dinas Dalam Kota",
-        subUraian: "(KPPN.175-Jakarta VI)",
-        sd: "A00",
-        jumlah: total,
-        parentSubkompKode: subkompRow.kode,
-        cO: false, cS: false, cU: false, cK: false, cD: false,
-      });
-
-      newRowsToInsert.push({
+      const detailRow: WorksheetRow = {
         id: `row-detail-524113-${Date.now()}`,
         type: "detail",
         kode: "",
@@ -2976,32 +3361,138 @@ function IsianRabPageContent() {
         harga: harga,
         jumlah: total,
         cO: false, cS: false, cU: false, cK: false, cD: false,
-      });
+      };
+
+      // Periksa posisi akun 524113 di bawah subkomponen
+      const cur524113Idx = nextRows.findIndex(
+        (r, idx) => idx > subkompIdx && r.type === "akun" && r.kode === "524113"
+      );
+
+      if (cur524113Idx >= 0) {
+        // Akun 524113 sudah ada: sisipkan baris detail di bawah akun yang ada
+        const insertIdx = findInsertionIndexForSubtree(cur524113Idx, "akun");
+        nextRows.splice(insertIdx, 0, detailRow);
+      } else {
+        // Belum ada akun 524113: buat baris akun dan detail di bawah Sub Komponen
+        const akunRow: WorksheetRow = {
+          id: `row-akun-524113-${Date.now()}`,
+          type: "akun",
+          kode: "524113",
+          uraian: "Belanja Perjalanan Dinas Dalam Kota",
+          subUraian: "(KPPN.175-Jakarta VI)",
+          sd: "A00",
+          jumlah: total,
+          parentSubkompKode: subkompRow.kode,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        };
+        const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        nextRows.splice(insertIdx, 0, akunRow, detailRow);
+      }
     }
 
     // 2. OPSI: PERJALANAN DINAS BIASA -> AKUN 524111 Belanja Perjalanan Dinas Biasa
     if (perjadinJenisPilihan.includes("biasa") && perjadinBiasaLokasiList.length > 0) {
-      const akun524111Id = `row-akun-524111-${Date.now()}`;
-      
-      // Hitung total akumulasi seluruh lokasi & detail
-      let totalAkun524111 = 0;
-      const biasaRows: WorksheetRow[] = [];
+      // Cari posisi Akun 524111 di bawah subkomponen
+      let cur524111Idx = nextRows.findIndex(
+        (r, idx) => idx > subkompIdx && r.type === "akun" && r.kode === "524111"
+      );
+
+      // Kumpulkan Header 1 yang sudah ada di bawah Akun 524111
+      const existingH1Map = new Map<string, { h1Idx: number; h1Num: number; row: WorksheetRow }>();
+      let maxH1Num = 0;
+
+      if (cur524111Idx >= 0) {
+        for (let i = cur524111Idx + 1; i < nextRows.length; i++) {
+          const row = nextRows[i];
+          if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen", "akun"].includes(row.type)) break;
+          if (row.type === "header1") {
+            const cleanName = cleanHeaderUraian(row.uraian);
+            const numMatch = row.uraian.match(/^(\d+)\./);
+            const h1Num = numMatch ? parseInt(numMatch[1], 10) : existingH1Map.size + 1;
+            if (h1Num > maxH1Num) maxH1Num = h1Num;
+            existingH1Map.set(cleanName, { h1Idx: i, h1Num, row });
+          }
+        }
+      }
+
+      // Validasi apakah ada Header 2 yang sudah terdaftar sebelumnya di worksheet
+      if (cur524111Idx >= 0) {
+        for (const lok of perjadinBiasaLokasiList) {
+          const cleanProv = formatDisplayProv(lok.provinsi);
+          const cleanKota = formatDisplayKota(lok.kabKota);
+          if (existingH1Map.has(cleanProv)) {
+            const h1Info = existingH1Map.get(cleanProv)!;
+            // Cek apakah Header 2 dengan kota ini sudah ada di bawah Header 1 tersebut
+            for (let i = h1Info.h1Idx + 1; i < nextRows.length; i++) {
+              const row = nextRows[i];
+              if (["program", "kegiatan", "kro", "ro", "komponen", "subkomponen", "akun", "header1"].includes(row.type)) break;
+              if (row.type === "header2") {
+                if (cleanHeaderUraian(row.uraian) === cleanKota) {
+                  triggerAlert(`Header 2 '${cleanKota}' sudah ada di bawah Provinsi ${cleanProv} pada Akun 524111! Tidak boleh ada duplikasi.`);
+                  return false;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Buat baris akun 524111 jika belum ada
+      if (cur524111Idx < 0) {
+        const akun524111Row: WorksheetRow = {
+          id: `row-akun-524111-${Date.now()}`,
+          type: "akun",
+          kode: "524111",
+          uraian: "Belanja Perjalanan Dinas Biasa",
+          subUraian: "(KPPN.175-Jakarta VI)",
+          sd: "A00",
+          jumlah: 0,
+          parentSubkompKode: subkompRow.kode,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        };
+        const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        nextRows.splice(insertIdx, 0, akun524111Row);
+        cur524111Idx = insertIdx;
+      }
+
+      // Bangun Header 1, Header 2, dan detail per lokasi tujuan
+      let currentH1Counter = maxH1Num;
+      const provAssignedMap = new Map<string, number>();
 
       perjadinBiasaLokasiList.forEach((lok, lokIdx) => {
-        const lokNum = lokIdx + 1; // 1, 2, 3...
-        const cleanProv = cleanProvName(lok.provinsi);
-        const cleanKota = cleanKotaName(lok.kabKota);
+        const cleanProv = formatDisplayProv(lok.provinsi);
+        const cleanKota = formatDisplayKota(lok.kabKota);
         const tarif = getTarifPerjadinBiasa(lok.provinsi, lok.kabKota);
 
-        const header1Id = `row-hdr1-perjadin-${Date.now()}-${lokNum}`;
-        const header2Id = `row-hdr2-perjadin-${Date.now()}-${lokNum}`;
+        let h1Num: number;
+        let isExistingH1 = false;
+        let h1InsertIdx = -1;
+
+        if (existingH1Map.has(cleanProv)) {
+          h1Num = existingH1Map.get(cleanProv)!.h1Num;
+          isExistingH1 = true;
+          h1InsertIdx = existingH1Map.get(cleanProv)!.h1Idx;
+        } else if (provAssignedMap.has(cleanProv)) {
+          h1Num = provAssignedMap.get(cleanProv)!;
+          isExistingH1 = true;
+        } else {
+          currentH1Counter++;
+          h1Num = currentH1Counter;
+          provAssignedMap.set(cleanProv, h1Num);
+        }
+
+        const letter = "a";
+        const header1Uraian = `${h1Num}. ${cleanProv}`;
+        const header2Uraian = `${h1Num}${letter}. ${cleanKota}`;
+
+        const header1Id = `row-hdr1-perjadin-${Date.now()}-${lokIdx}`;
+        const header2Id = `row-hdr2-perjadin-${Date.now()}-${lokIdx}`;
 
         let totalHeader2 = 0;
         const detailsForLokasi: WorksheetRow[] = [];
 
-        // Helper tambah detail
         const addDetail = (
-          letter: string,
+          detLetter: string,
           label: string,
           v1: number,
           s1: string,
@@ -3019,10 +3510,10 @@ function IsianRabPageContent() {
           totalHeader2 += roundedTotal;
 
           detailsForLokasi.push({
-            id: `row-detail-perjadin-${Date.now()}-${lokNum}${letter}`,
+            id: `row-detail-perjadin-${Date.now()}-${lokIdx}-${detLetter}`,
             type: "detail",
             kode: "",
-            uraian: `${lokNum}${letter}. ${label}`,
+            uraian: `${h1Num}${detLetter}. ${label}`,
             parentAkunKode: "524111",
             k1Nilai: v1,
             k1Sat: s1,
@@ -3038,90 +3529,67 @@ function IsianRabPageContent() {
           });
         };
 
-        // 1a. Tiket Pesawat (PP) Eselon I : orang & kegiatan | OK
+        // 1a. Tiket Pesawat Eselon I
         addDetail("a", "Tiket Pesawat (PP) Eselon I", lok.tiket1aOrg, "orang", lok.tiket1aKeg, "Keg", undefined, undefined, "OK", tarif.tiketBisnis);
-
-        // 1b. Tiket Pesawat (PP) Eselon II ke Bawah : orang & kegiatan | OK
+        // 1b. Tiket Pesawat Eselon II ke Bawah
         addDetail("b", "Tiket Pesawat (PP) Eselon II ke Bawah", lok.tiket1bOrg, "orang", lok.tiket1bKeg, "Keg", undefined, undefined, "OK", tarif.tiketEkonomi);
-
-        // 1c. Taksi Jakarta : orang, kali, kegiatan | OK
+        // 1c. Taksi Jakarta
         addDetail("c", "Taksi Jakarta", lok.taksi1cOrg, "orang", lok.taksi1cKali, "kali", lok.taksi1cKeg, "Keg", "OK", tarif.taksiJakarta);
-
-        // 1d. Taksi (Lokasi Tujuan) : orang, kali, kegiatan | OK
+        // 1d. Taksi Lokasi Tujuan
         addDetail("d", `Taksi (${cleanProv || "Lokasi Tujuan"})`, lok.taksi1dOrg, "orang", lok.taksi1dKali, "kali", lok.taksi1dKeg, "Keg", "OK", tarif.taksiTujuan);
-
-        // 1e. Penginapan Eselon I : orang, hari, kegiatan | OH
+        // 1e. Penginapan Eselon I
         addDetail("e", "Penginapan Eselon I", lok.inap1eOrg, "orang", lok.inap1eHari, "hari", lok.inap1eKeg, "Keg", "OH", tarif.penginapanEselonI);
-
-        // 1f. Penginapan Eselon II : orang, hari, kegiatan | OH
+        // 1f. Penginapan Eselon II
         addDetail("f", "Penginapan Eselon II", lok.inap1fOrg, "orang", lok.inap1fHari, "hari", lok.inap1fKeg, "Keg", "OH", tarif.penginapanEselonII);
-
-        // 1g. Penginapan Eselon III : orang, hari, kegiatan | OH
+        // 1g. Penginapan Eselon III
         addDetail("g", "Penginapan Eselon III", lok.inap1gOrg, "orang", lok.inap1gHari, "hari", lok.inap1gKeg, "Keg", "OH", tarif.penginapanEselonIII);
-
-        // 1h. Penginapan Gol. III ke bawah : orang, hari, kegiatan | OH
+        // 1h. Penginapan Gol. III ke bawah
         addDetail("h", "Penginapan Gol. III ke bawah", lok.inap1hOrg, "orang", lok.inap1hHari, "hari", lok.inap1hKeg, "Keg", "OH", tarif.penginapanGolIII);
-
-        // 1i. Uang Harian : orang, hari, kegiatan | OH
+        // 1i. Uang Harian
         addDetail("i", "Uang Harian", lok.uang1iOrg, "orang", lok.uang1iHari, "hari", lok.uang1iKeg, "Keg", "OH", tarif.uangHarian);
-
-        // 1j. Uang Representasi Eselon I : orang, hari, kegiatan | OH
+        // 1j. Uang Representasi Eselon I
         addDetail("j", "Uang Representasi Eselon I", lok.rep1jOrg, "orang", lok.rep1jHari, "hari", lok.rep1jKeg, "Keg", "OH", tarif.uangRepresentasiEselonI);
-
-        // 1k. Uang Representasi Eselon II : orang, hari, kegiatan | OH
+        // 1k. Uang Representasi Eselon II
         addDetail("k", "Uang Representasi Eselon II", lok.rep1kOrg, "orang", lok.rep1kHari, "hari", lok.rep1kKeg, "Keg", "OH", tarif.uangRepresentasiEselonII);
 
-        totalAkun524111 += totalHeader2;
-
-        // Header 1: Lokasi Tujuan (misal: "06 ACEH" atau nama provinsi)
-        biasaRows.push({
-          id: header1Id,
-          type: "header1",
-          kode: "",
-          uraian: lok.provinsi,
-          parentAkunKode: "524111",
-          jumlah: totalHeader2,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
-        });
-
-        // Header 2: Kota Tujuan (misal: "06 51 KOTA BANDA ACEH" atau nama kota)
-        biasaRows.push({
+        const rowsForThisLok: WorksheetRow[] = [];
+        if (!isExistingH1) {
+          rowsForThisLok.push({
+            id: header1Id,
+            type: "header1",
+            kode: "",
+            uraian: header1Uraian,
+            parentAkunKode: "524111",
+            jumlah: totalHeader2,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+        }
+        rowsForThisLok.push({
           id: header2Id,
           type: "header2",
           kode: "",
-          uraian: lok.kabKota,
+          uraian: header2Uraian,
           parentAkunKode: "524111",
           jumlah: totalHeader2,
           cO: false, cS: false, cU: false, cK: false, cD: false,
         });
+        rowsForThisLok.push(...detailsForLokasi);
 
-        // Seluruh detail belanja 1a s.d 1k
-        biasaRows.push(...detailsForLokasi);
+        // Sisipkan ke dalam nextRows di posisi yang tepat
+        if (isExistingH1 && h1InsertIdx >= 0) {
+          const insertPos = findInsertionIndexForSubtree(h1InsertIdx, "header1");
+          nextRows.splice(insertPos, 0, ...rowsForThisLok);
+        } else {
+          const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524111");
+          const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+          nextRows.splice(insertPos, 0, ...rowsForThisLok);
+        }
       });
-
-      newRowsToInsert.push({
-        id: akun524111Id,
-        type: "akun",
-        kode: "524111",
-        uraian: "Belanja Perjalanan Dinas Biasa",
-        subUraian: "(KPPN.175-Jakarta VI)",
-        sd: "A00",
-        jumlah: totalAkun524111,
-        parentSubkompKode: subkompRow.kode,
-        cO: false, cS: false, cU: false, cK: false, cD: false,
-      });
-
-      newRowsToInsert.push(...biasaRows);
     }
 
-    setWorksheetRows((prev) => {
-      const next = [...prev];
-      const insertIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
-      next.splice(insertIdx, 0, ...newRowsToInsert);
-      return calculateHierarchyAmounts(next);
-    });
-
+    setWorksheetRows(calculateHierarchyAmounts(nextRows));
     triggerAlert("Berhasil menyusun dan menyimpan rincian Perjalanan Dinas Domestik ke kertas kerja!");
+    return true;
   }
 
   // Transisi dari Checklist ke Kertas Kerja (11 Kolom)
@@ -3853,16 +4321,51 @@ function IsianRabPageContent() {
     XLSX.writeFile(wb, "Template_Import_RAB_SubKomponen.xlsx");
   }
 
-  // Handler Hapus Baris Terpilih
+  // Handler Hapus Baris Terpilih (termasuk seluruh baris subtree di bawahnya)
   function handleDeleteSelected() {
     if (!selectedRowId) {
       triggerAlert("Pilih baris yang ingin dihapus terlebih dahulu.");
       return;
     }
-    const target = worksheetRows.find((r) => r.id === selectedRowId);
-    setWorksheetRows((prev) => calculateHierarchyAmounts(prev.filter((r) => r.id !== selectedRowId)));
+    const targetIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+    if (targetIdx < 0) return;
+    const target = worksheetRows[targetIdx];
+    const targetRank = getRowHierarchyLevel(target);
+    const idsToDelete = new Set<string>([target.id]);
+
+    for (let i = targetIdx + 1; i < worksheetRows.length; i++) {
+      if (getRowHierarchyLevel(worksheetRows[i]) > targetRank) {
+        idsToDelete.add(worksheetRows[i].id);
+      } else {
+        break;
+      }
+    }
+
+    setWorksheetRows((prev) => calculateHierarchyAmounts(prev.filter((r) => !idsToDelete.has(r.id))));
     setSelectedRowId("");
-    triggerAlert(`Baris "${target?.uraian || selectedRowId}" berhasil dihapus.`);
+    triggerAlert(`Baris "${target.kode ? target.kode + ' - ' : ''}${target.uraian || selectedRowId}" berhasil dihapus.`);
+  }
+
+  // Handler Simpan Data Toolbar Worksheet: Validasi Duplikasi & Pengurutan Ascending
+  function handleSaveAndValidateWorksheet() {
+    // 1. Validasi Duplikasi pada seluruh hierarki (KRO, RO, Komponen, Sub Komponen, Akun, Header 1, Header 2)
+    const validationResult = validateWorksheetDuplicates(worksheetRows);
+    if (!validationResult.isValid) {
+      setDuplicateErrors(validationResult.errors);
+      triggerAlert(`Gagal menyimpan! Ditemukan ${validationResult.errors.length} bagian yang duplikat.`);
+      return;
+    }
+
+    // 2. Jika valid, urutkan seluruh tingkatan hierarki secara ascending dan berikan penomoran ulang Header 1 & 2
+    const sortedAndRenumbered = sortAndRenumberWorksheet(worksheetRows);
+
+    // 3. Hitung ulang total nilai pada seluruh level hierarki
+    const finalRows = calculateHierarchyAmounts(sortedAndRenumbered);
+
+    // 4. Perbarui state worksheet
+    setWorksheetRows(finalRows);
+    setDuplicateErrors([]);
+    triggerAlert("Worksheet Isian RAB berhasil disimpan! Seluruh tingkatan telah divalidasi dan diurutkan secara ascending.");
   }
 
   // State Inline Cell Editing (Spreadsheet Excel Style: Klik 2x langsung edit di cell tanpa pop up menu)
@@ -3915,14 +4418,50 @@ function IsianRabPageContent() {
   }
 
   // Handler toggle status baris individual (O, S, U, K, D)
+  // Mendukung cascade checklist ke seluruh level anak (misal: Header 1 -> Header 2 & Detail, Header 2 -> Detail)
   function handleToggleRowStatus(rowId: string, field: "cO" | "cS" | "cU" | "cK" | "cD") {
-    setWorksheetRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== rowId) return r;
-        const currentVal = field === "cO" ? (r.cO ?? r.c0 ?? false) : !!r[field];
-        return { ...r, [field]: !currentVal, ...(field === "cO" ? { c0: !currentVal } : {}) };
-      })
-    );
+    setWorksheetRows((prev) => {
+      const targetIdx = prev.findIndex((r) => r.id === rowId);
+      if (targetIdx < 0) return prev;
+      const targetRow = prev[targetIdx];
+      const currentVal = field === "cO" ? (targetRow.cO ?? targetRow.c0 ?? false) : !!targetRow[field];
+      const nextVal = !currentVal;
+
+      // Ambil seluruh index subtree baris ini
+      const targetRanks: Record<WorksheetRowType, number> = {
+        program: 1,
+        kegiatan: 2,
+        kro: 3,
+        ro: 4,
+        komponen: 5,
+        subkomponen: 6,
+        akun: 7,
+        header1: 8,
+        header2: 9,
+        subkomponen_sub: 9,
+        detail: 10,
+      };
+      const parentRank = targetRanks[targetRow.type] || 99;
+      const affectedIndices = new Set<number>([targetIdx]);
+
+      for (let i = targetIdx + 1; i < prev.length; i++) {
+        const curRank = targetRanks[prev[i].type] || 99;
+        if (curRank > parentRank) {
+          affectedIndices.add(i);
+        } else {
+          break;
+        }
+      }
+
+      return prev.map((r, i) => {
+        if (!affectedIndices.has(i)) return r;
+        return {
+          ...r,
+          [field]: nextVal,
+          ...(field === "cO" ? { c0: nextVal } : {}),
+        };
+      });
+    });
   }
 
   // Handler checklist massal per kolom status (O, S, U, K, D)
@@ -4576,8 +5115,8 @@ function IsianRabPageContent() {
 
               {/* Tombol 9: Save/simpan */}
               <button
-                onClick={() => triggerAlert("Worksheet Isian RAB berhasil disimpan!")}
-                title="Save / Simpan Data"
+                onClick={handleSaveAndValidateWorksheet}
+                title="Save / Simpan Data (Validasi Duplikasi & Urutkan Ascending)"
                 className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-emerald-600 rounded transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
@@ -9790,8 +10329,10 @@ function IsianRabPageContent() {
               <button
                 type="button"
                 onClick={() => {
-                  handleSavePerjadinDomestik();
-                  setModalMode(null);
+                  const success = handleSavePerjadinDomestik();
+                  if (success) {
+                    setModalMode(null);
+                  }
                 }}
                 disabled={
                   perjadinJenisPilihan.length === 0 ||
@@ -10182,6 +10723,56 @@ function IsianRabPageContent() {
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Impor ke Kertas Kerja</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL: NOTIFIKASI ERROR DUPLIKASI DATA SAAT SIMPAN WORKSHEET
+         ══════════════════════════════════════════════════════════════════════ */}
+      {duplicateErrors.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/60 text-rose-600 rounded-xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Gagal Menyimpan: Terdeteksi Duplikasi Data
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Input data tidak dapat disimpan karena terdapat bagian yang double. Aturan sistem mewajibkan seluruh level (KRO, RO, Komponen, Sub Komponen, Akun, Header 1, dan Header 2) bersifat unik.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl p-3.5 space-y-2 max-h-60 overflow-y-auto">
+              <div className="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">
+                Daftar Bagian yang Double ({duplicateErrors.length}):
+              </div>
+              <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+                {duplicateErrors.map((err, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-rose-500 font-bold shrink-0">•</span>
+                    <span className="font-medium">{err}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-[0.68rem] text-slate-500">
+                Silakan hapus baris yang double untuk dapat menyimpan.
+              </span>
+              <button
+                type="button"
+                onClick={() => setDuplicateErrors([])}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer transition-colors"
+              >
+                Tutup &amp; Periksa Baris Double
               </button>
             </div>
           </div>

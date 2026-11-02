@@ -30,6 +30,36 @@ export function cleanKotaName(k: string): string {
     .toUpperCase();
 }
 
+// Format tampilan Header 1: membersihkan kode numerik wilayah di awal tapi menjaga spasi antar kata
+export function formatDisplayProv(p: string): string {
+  if (!p) return "";
+  return p
+    .replace(/^[\d\.\s\-]+/, "")
+    .replace(/^[a-z]\.?\s+/i, "")
+    .trim()
+    .toUpperCase();
+}
+
+// Format tampilan Header 2: membersihkan kode numerik wilayah di awal tapi menjaga nama kota lengkap
+export function formatDisplayKota(k: string): string {
+  if (!k) return "";
+  return k
+    .replace(/^[\d\.\s\-]+/, "")
+    .replace(/^[a-z]\.?\s+/i, "")
+    .trim()
+    .toUpperCase();
+}
+
+// Membersihkan uraian Header untuk perbandingan duplikasi atau pengurutan (menghilangkan prefiks penomoran seperti "1. ", "1a. ", "> ")
+export function cleanHeaderUraian(uraian: string): string {
+  if (!uraian) return "";
+  let s = uraian.trim();
+  if (s.startsWith(">")) s = s.replace(/^>+\s*/, "");
+  s = s.replace(/^\d+[a-z]?[\.\s\-]+/i, "");
+  s = s.replace(/^[\d\s]+/, "");
+  return s.trim().toUpperCase();
+}
+
 export function getTarifPerjadinBiasa(provinsiRaw: string, kabKotaRaw: string): TarifPerjadinBiasaResult {
   const cleanProv = cleanProvName(provinsiRaw);
   const cleanKota = cleanKotaName(kabKotaRaw);
