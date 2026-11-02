@@ -305,7 +305,9 @@ function parseInformasiKinerjaRow(ikRow: any) {
 }
 
 function getRowHierarchyLevel(row: WorksheetRow): number {
-  if (row.type === "subkomponen_sub" || row.type === "header1" || row.type === "header2") {
+  if (row.type === "header1") return 7;
+  if (row.type === "header2") return 8;
+  if (row.type === "subkomponen_sub") {
     if (row.headerLevel === 1) return 7;
     if (row.headerLevel === 2) return 8;
     return 7;
@@ -673,6 +675,7 @@ function IsianRabPageContent() {
   const [perjadinLokalKeg, setPerjadinLokalKeg] = useState<number>(1);
 
   // Perjadin Biasa (524111)
+  const [jumlahLokasiBaruInput, setJumlahLokasiBaruInput] = useState<number>(1);
   const [perjadinBiasaLokasiList, setPerjadinBiasaLokasiList] = useState<Array<{
     id: string;
     provinsi: string; // Header 1 (misal: "06 ACEH")
@@ -1723,8 +1726,10 @@ function IsianRabPageContent() {
       komponen: 5,
       subkomponen: 6,
       akun: 7,
-      subkomponen_sub: 8,
-      detail: 9,
+      header1: 8,
+      header2: 9,
+      subkomponen_sub: 9,
+      detail: 10,
     };
     const parentRank = typeRanks[parentType];
     let insertIdx = startIdx + 1;
@@ -4134,7 +4139,7 @@ function IsianRabPageContent() {
     }
 
     // Klik 2x hanya dapat mengedit langsung pada level Header 1, Header 2, dan Detail Belanja
-    const canInlineEdit = row.type === "subkomponen_sub" || row.type === "detail";
+    const canInlineEdit = row.type === "subkomponen_sub" || row.type === "header1" || row.type === "header2" || row.type === "detail";
 
     return (
       <div
@@ -5311,8 +5316,12 @@ function IsianRabPageContent() {
                   );
                 }
 
-                // 8. Tipe: SUBKOMPONEN SUB-LEVEL (misal: > Singapore, > Taiwan)
-                if (row.type === "subkomponen_sub") {
+                // 8. Tipe: SUBKOMPONEN SUB-LEVEL (misal: > Singapore, > Taiwan) & HEADER 1 / HEADER 2
+                if (row.type === "subkomponen_sub" || row.type === "header1" || row.type === "header2") {
+                  const indentClass =
+                    row.type === "header2" || row.headerLevel === 2
+                      ? "pl-8 text-slate-700 dark:text-slate-300 font-semibold"
+                      : "pl-4 text-slate-900 dark:text-white font-bold";
                   return (
                     <tr
                       key={row.id}
@@ -5320,8 +5329,8 @@ function IsianRabPageContent() {
                       className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-50"}`}
                     >
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700"></td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 font-bold pl-4">
-                        {renderEditableCell(row, "uraian", row.uraian, "font-bold text-left pl-2")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${indentClass}`}>
+                        {renderEditableCell(row, "uraian", row.uraian, `${indentClass} text-left pl-2`)}
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -8931,16 +8940,41 @@ function IsianRabPageContent() {
                     <MapPin className="w-4 h-4 text-sky-600" />
                     <span>Daftar Lokasi Tujuan Perjalanan Dinas Biasa (Akun 524111)</span>
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const firstProv = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi))).sort()[0] || "06 ACEH";
-                      const kabKotakFiltered = lokasiFullData.filter((l) => l.namaLokasi === firstProv);
-                      const firstKota = kabKotakFiltered[0]?.namaKabKota || "";
-                      setPerjadinBiasaLokasiList((prev) => [
-                        ...prev,
-                        {
-                          id: `lok-${Date.now()}`,
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800">
+                      <span className="px-2 py-1 text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700/60 border-r border-slate-300 dark:border-slate-700">
+                        Jml
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={jumlahLokasiBaruInput}
+                        onChange={(e) => setJumlahLokasiBaruInput(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                        className="w-14 px-2 py-1 text-xs font-mono font-bold text-center bg-transparent focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const provEntries = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi)))
+                          .map((name) => {
+                            const item = lokasiFullData.find((l) => l.namaLokasi === name);
+                            return {
+                              namaLokasi: name,
+                              kodeProvinsi: item ? item.kodeProvinsi : "",
+                            };
+                          })
+                          .sort((a, b) => a.kodeProvinsi.localeCompare(b.kodeProvinsi) || a.namaLokasi.localeCompare(b.namaLokasi));
+                        const firstProv = provEntries[0]?.namaLokasi || "DKI JAKARTA";
+                        const kabKotakFiltered = lokasiFullData
+                          .filter((l) => l.namaLokasi === firstProv)
+                          .sort((a, b) => a.fullKode.localeCompare(b.fullKode));
+                        const firstKota = kabKotakFiltered[0]?.namaKabKota || "";
+
+                        const count = Math.max(1, jumlahLokasiBaruInput);
+                        const newEntries = Array.from({ length: count }).map((_, i) => ({
+                          id: `lok-${Date.now()}-${i}`,
                           provinsi: firstProv,
                           kabKota: firstKota,
                           tiket1aOrg: 0, tiket1aKeg: 1,
@@ -8954,14 +8988,15 @@ function IsianRabPageContent() {
                           uang1iOrg: 1, uang1iHari: 3, uang1iKeg: 1,
                           rep1jOrg: 0, rep1jHari: 1, rep1jKeg: 1,
                           rep1kOrg: 0, rep1kHari: 1, rep1kKeg: 1,
-                        },
-                      ]);
-                    }}
-                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Lokasi Tujuan</span>
-                  </button>
+                        }));
+                        setPerjadinBiasaLokasiList((prev) => [...prev, ...newEntries]);
+                      }}
+                      className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Lokasi Tujuan ({jumlahLokasiBaruInput})</span>
+                    </button>
+                  </div>
                 </div>
 
                 {perjadinBiasaLokasiList.length === 0 ? (
@@ -8972,10 +9007,25 @@ function IsianRabPageContent() {
                   <div className="space-y-5">
                     {perjadinBiasaLokasiList.map((lokasi, idx) => {
                       const num = idx + 1;
-                      const provList = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi))).sort();
-                      const kabKotaList = lokasiFullData.filter((l) => l.namaLokasi === lokasi.provinsi).sort((a, b) =>
-                        a.namaKabKota.localeCompare(b.namaKabKota)
-                      );
+                      const provList = Array.from(new Set(lokasiFullData.map((l) => l.namaLokasi)))
+                        .map((name) => {
+                          const item = lokasiFullData.find((l) => l.namaLokasi === name);
+                          return {
+                            namaLokasi: name,
+                            kodeProvinsi: item ? item.kodeProvinsi : "",
+                            label: `${item ? item.kodeProvinsi : ""} - ${name}`,
+                          };
+                        })
+                        .sort((a, b) => a.kodeProvinsi.localeCompare(b.kodeProvinsi) || a.namaLokasi.localeCompare(b.namaLokasi));
+
+                      const kabKotaList = lokasiFullData
+                        .filter((l) => l.namaLokasi === lokasi.provinsi)
+                        .map((k) => ({
+                          ...k,
+                          label: `${k.fullKode} - ${k.namaKabKota}`,
+                        }))
+                        .sort((a, b) => a.fullKode.localeCompare(b.fullKode) || a.namaKabKota.localeCompare(b.namaKabKota));
+
                       const tarif = getTarifPerjadinBiasa(lokasi.provinsi, lokasi.kabKota);
 
                       // Hitung total perkiraan per lokasi
@@ -9051,8 +9101,8 @@ function IsianRabPageContent() {
                                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold"
                                 >
                                   {provList.map((p) => (
-                                    <option key={p} value={p}>
-                                      {p}
+                                    <option key={p.namaLokasi} value={p.namaLokasi}>
+                                      {p.label}
                                     </option>
                                   ))}
                                 </select>
@@ -9073,8 +9123,8 @@ function IsianRabPageContent() {
                                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold"
                                 >
                                   {kabKotaList.map((k) => (
-                                    <option key={k.kodeKabKota} value={k.namaKabKota}>
-                                      {k.namaKabKota}
+                                    <option key={k.fullKode || k.namaKabKota} value={k.namaKabKota}>
+                                      {k.label}
                                     </option>
                                   ))}
                                 </select>
