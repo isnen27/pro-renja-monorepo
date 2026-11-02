@@ -448,11 +448,13 @@ export function buildWorksheetTree(rows: WorksheetRow[]): WorksheetTreeNode[] {
 export interface DuplicateValidationResult {
   isValid: boolean;
   errors: string[];
+  duplicateRowIds: string[];
 }
 
 // Validasi Duplikasi: Memeriksa apakah terdapat KRO, RO, Komponen, Sub Komponen, Akun, Header 1, atau Header 2 yang double
 export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateValidationResult {
   const errors: string[] = [];
+  const duplicateRowIds: string[] = [];
   const tree = buildWorksheetTree(rows);
 
   function checkNode(node: WorksheetTreeNode) {
@@ -474,6 +476,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [code, items] of kroCodeCounts.entries()) {
       if (items.length > 1) {
         errors.push(`Kegiatan ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} KRO dengan kode ${code}`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -488,6 +491,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [code, items] of roCodeCounts.entries()) {
       if (items.length > 1) {
         errors.push(`KRO ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} RO dengan kode ${code}`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -502,6 +506,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [code, items] of kompCodeCounts.entries()) {
       if (items.length > 1) {
         errors.push(`RO ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Komponen dengan kode ${code}`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -516,6 +521,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [code, items] of subkompCodeCounts.entries()) {
       if (items.length > 1) {
         errors.push(`Komponen ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Sub Komponen ${code}`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -531,6 +537,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
       if (items.length > 1) {
         const parentDesc = `${node.row.type === "subkomponen" ? "Sub Komponen" : "Komponen"} ${node.row.kode || ""} ${node.row.uraian}`;
         errors.push(`${parentDesc} terdapat ${items.length} akun ${code}`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -560,6 +567,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
           if (!errors.includes(err)) {
             errors.push(err);
           }
+          items.forEach((it) => duplicateRowIds.push(it.row.id));
         }
       }
     }
@@ -575,6 +583,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [name, items] of h1Counts.entries()) {
       if (items.length > 1) {
         errors.push(`Akun ${node.row.kode || ""} ${node.row.uraian} terdapat ${items.length} Header 1 '${name}' yang duplikat.`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -589,6 +598,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
     for (const [name, items] of h2Counts.entries()) {
       if (items.length > 1) {
         errors.push(`Header 1 '${node.row.uraian}' terdapat ${items.length} Header 2 '${name}' yang duplikat.`);
+        items.forEach((it) => duplicateRowIds.push(it.row.id));
       }
     }
 
@@ -605,6 +615,7 @@ export function validateWorksheetDuplicates(rows: WorksheetRow[]): DuplicateVali
   return {
     isValid: errors.length === 0,
     errors,
+    duplicateRowIds: Array.from(new Set(duplicateRowIds)),
   };
 }
 
@@ -851,8 +862,8 @@ function IsianRabPageContent() {
   // State baris yang sedang dipilih
   const [selectedRowId, setSelectedRowId] = useState<string>("row-komp");
 
-  // State Clipboard untuk Copy & Paste baris
-  const [copiedRow, setCopiedRow] = useState<WorksheetRow | null>(null);
+  // State Clipboard untuk Copy & Paste baris (Mendukung satu baris maupun seluruh subtree anak)
+  const [copiedRows, setCopiedRows] = useState<WorksheetRow[]>([]);
 
   // State Modal Calculator (Sesuai Gambar Aplikasi Kalkulator Basic)
   const [showCalculator, setShowCalculator] = useState(false);
@@ -1256,6 +1267,7 @@ function IsianRabPageContent() {
 
   const [actionAlert, setActionAlert] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<string[]>([]);
+  const [duplicateRowIds, setDuplicateRowIds] = useState<string[]>([]);
 
   function triggerAlert(msg: string) {
     setActionAlert(msg);
@@ -4352,9 +4364,14 @@ function IsianRabPageContent() {
     const validationResult = validateWorksheetDuplicates(worksheetRows);
     if (!validationResult.isValid) {
       setDuplicateErrors(validationResult.errors);
-      triggerAlert(`Gagal menyimpan! Ditemukan ${validationResult.errors.length} bagian yang duplikat.`);
+      setDuplicateRowIds(validationResult.duplicateRowIds);
+      triggerAlert(`Gagal menyimpan! Ditemukan ${validationResult.errors.length} data duplikat (ditandai warna merah pada tabel).`);
       return;
     }
+
+    // Bersihkan penanda error duplikasi jika valid
+    setDuplicateErrors([]);
+    setDuplicateRowIds([]);
 
     // 2. Jika valid, urutkan seluruh tingkatan hierarki secara ascending dan berikan penomoran ulang Header 1 & 2
     const sortedAndRenumbered = sortAndRenumberWorksheet(worksheetRows);
@@ -4364,7 +4381,6 @@ function IsianRabPageContent() {
 
     // 4. Perbarui state worksheet
     setWorksheetRows(finalRows);
-    setDuplicateErrors([]);
     triggerAlert("Worksheet Isian RAB berhasil disimpan! Seluruh tingkatan telah divalidasi dan diurutkan secara ascending.");
   }
 
@@ -4595,41 +4611,98 @@ function IsianRabPageContent() {
     setEditingCell({ rowId: selectedRowId, field: "uraian" });
   }
 
-  // Handler Copy (Salin baris terpilih ke clipboard)
+  // Handler Copy (Salin baris terpilih beserta seluruh rincian/subtree di bawahnya)
   function handleCopySelected() {
-    const target = worksheetRows.find((r) => r.id === selectedRowId);
-    if (!target) {
-      triggerAlert("Pilih baris yang ingin disalin terlebih dahulu.");
+    let targetIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
+
+    // Jika selectedRowId belum dipilih, ambil dari baris pertama yang dichecklist
+    if (targetIdx < 0) {
+      targetIdx = worksheetRows.findIndex((r) => !!(r.cO ?? r.c0 ?? r.cS ?? r.cU ?? r.cK ?? r.cD));
+    }
+
+    if (targetIdx < 0) {
+      triggerAlert("Pilih atau checklist baris yang ingin disalin (Copy) terlebih dahulu.");
       return;
     }
-    setCopiedRow({ ...target });
-    triggerAlert(`Baris "${target.uraian}" berhasil disalin (Copy). Klik ikon Paste untuk menempelkan.`);
+
+    const targetRow = worksheetRows[targetIdx];
+    const targetRank = getRowHierarchyLevel(targetRow);
+
+    // Ambil baris target beserta SELURUH subtree anak di bawahnya
+    // Misal: Header 1 -> seluruh Header 2 & Detail belanja di bawahnya ikut ter-copy
+    const subtreeRows: WorksheetRow[] = [targetRow];
+    for (let i = targetIdx + 1; i < worksheetRows.length; i++) {
+      if (getRowHierarchyLevel(worksheetRows[i]) > targetRank) {
+        subtreeRows.push(worksheetRows[i]);
+      } else {
+        break;
+      }
+    }
+
+    setCopiedRows(subtreeRows.map((r) => ({ ...r })));
+    setSelectedRowId(targetRow.id);
+
+    const desc = subtreeRows.length > 1
+      ? `"${targetRow.uraian}" beserta ${subtreeRows.length - 1} rincian di bawahnya`
+      : `"${targetRow.uraian}"`;
+
+    triggerAlert(`Berhasil menyalin (Copy) ${desc}. Klik baris tujuan lalu klik ikon Paste untuk menempelkan.`);
   }
 
-  // Handler Paste (Tempelkan baris yang disalin di bawah baris terpilih)
+  // Handler Paste (Tempelkan baris beserta seluruh rincian anak di bawah baris terpilih)
   function handlePaste() {
-    if (!copiedRow) {
+    if (copiedRows.length === 0) {
       triggerAlert("Belum ada baris yang disalin (Copy). Silakan klik ikon Copy pada baris yang diinginkan.");
       return;
     }
-    const clone: WorksheetRow = {
-      ...copiedRow,
-      id: `row-${copiedRow.type}-${Date.now()}`,
-      uraian: `${copiedRow.uraian} (Salinan)`,
-    };
 
-    setWorksheetRows((prev) => {
-      const idx = prev.findIndex((r) => r.id === selectedRowId);
-      if (idx >= 0) {
-        const next = [...prev];
-        next.splice(idx + 1, 0, clone);
-        return next;
+    const timeStamp = Date.now();
+    // Buat ID baru unik untuk setiap baris yang dipaste
+    const clonedRows: WorksheetRow[] = copiedRows.map((r, i) => {
+      const isTopLevel = i === 0;
+      let newUraian = r.uraian;
+      if (isTopLevel && (r.type === "header1" || r.type === "header2" || r.type === "subkomponen_sub" || r.type === "detail")) {
+        newUraian = r.uraian.includes("(Salinan)") ? r.uraian : `${r.uraian} (Salinan)`;
       }
-      return [...prev, clone];
+
+      return {
+        ...r,
+        id: `row-${r.type}-pasted-${timeStamp}-${i}`,
+        uraian: newUraian,
+        cO: false,
+        cS: false,
+        cU: false,
+        cK: false,
+        cD: false,
+        c0: false,
+      };
     });
 
-    setSelectedRowId(clone.id);
-    triggerAlert(`Baris "${clone.uraian}" berhasil ditempelkan (Paste)!`);
+    setWorksheetRows((prev) => {
+      let destIdx = prev.findIndex((r) => r.id === selectedRowId);
+      const next = [...prev];
+
+      if (destIdx >= 0) {
+        const destRow = prev[destIdx];
+        const destRank = getRowHierarchyLevel(destRow);
+        const topCopiedRank = getRowHierarchyLevel(clonedRows[0]);
+
+        let insertIdx = destIdx + 1;
+        // Jika target paste adalah selevel atau lebih tinggi (misal target Header 1 dan kita paste Header 1),
+        // sisipkan setelah seluruh subtree target agar tidak terpotong di tengah-tengah anak
+        if (destRank <= topCopiedRank) {
+          insertIdx = findInsertionIndexForSubtree(destIdx, destRow.type);
+        }
+        next.splice(insertIdx, 0, ...clonedRows);
+      } else {
+        next.push(...clonedRows);
+      }
+
+      return calculateHierarchyAmounts(next);
+    });
+
+    setSelectedRowId(clonedRows[0].id);
+    triggerAlert(`Berhasil menempelkan (Paste) ${clonedRows.length} baris ke kertas kerja!`);
   }
 
   // Evaluasi kalkulator sederhana
@@ -4709,7 +4782,10 @@ function IsianRabPageContent() {
           <input
             type="checkbox"
             checked={!!(row.cO ?? row.c0)}
-            onChange={() => handleToggleRowStatus(row.id, "cO")}
+            onChange={() => {
+              setSelectedRowId(row.id);
+              handleToggleRowStatus(row.id, "cO");
+            }}
             className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
           />
         </td>
@@ -4718,7 +4794,10 @@ function IsianRabPageContent() {
           <input
             type="checkbox"
             checked={!!row.cS}
-            onChange={() => handleToggleRowStatus(row.id, "cS")}
+            onChange={() => {
+              setSelectedRowId(row.id);
+              handleToggleRowStatus(row.id, "cS");
+            }}
             className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
           />
         </td>
@@ -4727,7 +4806,10 @@ function IsianRabPageContent() {
           <input
             type="checkbox"
             checked={!!row.cU}
-            onChange={() => handleToggleRowStatus(row.id, "cU")}
+            onChange={() => {
+              setSelectedRowId(row.id);
+              handleToggleRowStatus(row.id, "cU");
+            }}
             className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
           />
         </td>
@@ -4736,7 +4818,10 @@ function IsianRabPageContent() {
           <input
             type="checkbox"
             checked={!!row.cK}
-            onChange={() => handleToggleRowStatus(row.id, "cK")}
+            onChange={() => {
+              setSelectedRowId(row.id);
+              handleToggleRowStatus(row.id, "cK");
+            }}
             className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
           />
         </td>
@@ -4745,7 +4830,10 @@ function IsianRabPageContent() {
           <input
             type="checkbox"
             checked={!!row.cD}
-            onChange={() => handleToggleRowStatus(row.id, "cD")}
+            onChange={() => {
+              setSelectedRowId(row.id);
+              handleToggleRowStatus(row.id, "cD");
+            }}
             className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
           />
         </td>
@@ -5099,7 +5187,7 @@ function IsianRabPageContent() {
               <button
                 onClick={handlePaste}
                 title="Tempelkan / Paste Baris"
-                className={`p-1.5 rounded transition-colors cursor-pointer ${copiedRow ? "text-blue-600 hover:bg-blue-50" : "opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700"}`}
+                className={`p-1.5 rounded transition-colors cursor-pointer ${copiedRows.length > 0 ? "text-blue-600 hover:bg-blue-50" : "opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700"}`}
               >
                 <ClipboardPaste className="w-4 h-4" />
               </button>
@@ -5567,6 +5655,14 @@ function IsianRabPageContent() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700/80">
               {visibleRows.map((row) => {
                 const isSelected = selectedRowId === row.id;
+                const isDuplicate = duplicateRowIds.includes(row.id);
+
+                // Badge duplikat merah yang kontras dan jelas
+                const duplicateBadge = isDuplicate ? (
+                  <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[0.62rem] font-bold bg-rose-600 text-white shadow-xs shrink-0 tracking-wide">
+                    ⚠️ Duplikat
+                  </span>
+                ) : null;
 
                 // 1. Tipe: PROGRAM
                 if (row.type === "program") {
@@ -5574,13 +5670,22 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-amber-50/50"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-amber-50/50"
+                      }`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold ${isSelected ? "bg-[#006bbd] text-white" : "bg-slate-200/80 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold ${isSelected ? "bg-[#006bbd] text-white" : isDuplicate ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100" : "bg-slate-200/80 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200"}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold text-center")}
                       </td>
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-bold ${isSelected ? "bg-[#0078d4] text-white" : "bg-[#fef9c3] dark:bg-yellow-950/40 text-slate-900 dark:text-yellow-200"}`}>
-                        {renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-bold ${isSelected ? "bg-[#0078d4] text-white" : isDuplicate ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : "bg-[#fef9c3] dark:bg-yellow-950/40 text-slate-900 dark:text-yellow-200"}`}>
+                        <div className="flex items-center justify-between">
+                          <span>{renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}</span>
+                          {duplicateBadge}
+                        </div>
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center w-[35px]"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center w-[35px]"></td>
@@ -5607,13 +5712,22 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-100"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-slate-100"
+                      }`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold text-center ${isSelected ? "bg-[#006bbd] text-white" : "bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold text-center ${isSelected ? "bg-[#006bbd] text-white" : isDuplicate ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100" : "bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100"}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold text-center")}
                       </td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 underline font-semibold">
-                        {renderEditableCell(row, "uraian", row.uraian, "underline font-semibold text-left")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 underline font-semibold ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <span>{renderEditableCell(row, "uraian", row.uraian, "underline font-semibold text-left")}</span>
+                          {duplicateBadge}
+                        </div>
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -5640,17 +5754,26 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-50"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-slate-50"
+                      }`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${isSelected ? "bg-[#006bbd] text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${isSelected ? "bg-[#006bbd] text-white" : isDuplicate ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100 font-semibold" : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold"}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono text-center font-semibold")}
                       </td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700">
-                        <div className="italic font-medium">
-                          {renderEditableCell(row, "uraian", row.uraian, "italic font-medium text-left")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="italic font-medium">
+                            {renderEditableCell(row, "uraian", row.uraian, "italic font-medium text-left")}
+                          </div>
+                          {duplicateBadge}
                         </div>
                         {row.subUraian && (
-                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>
+                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : isDuplicate ? "text-rose-800 dark:text-rose-300 font-medium" : "text-slate-500 dark:text-slate-400"}`}>
                             {renderEditableCell(row, "subUraian", row.subUraian, "text-[0.65rem] text-left")}
                           </div>
                         )}
@@ -5685,16 +5808,41 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : isOverLimit ? "bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100/80" : "hover:bg-amber-50/40"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : isOverLimit
+                          ? "bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100/80"
+                          : "hover:bg-amber-50/40"
+                      }`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${isSelected ? "bg-[#006bbd] text-white" : isOverLimit ? "bg-rose-200 dark:bg-rose-900/80 text-rose-900 dark:text-rose-100 font-bold" : "bg-[#fef08a] dark:bg-yellow-950/60 text-slate-900 dark:text-yellow-200 font-bold"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono text-center ${
+                        isSelected
+                          ? "bg-[#006bbd] text-white"
+                          : isDuplicate
+                          ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100 font-bold"
+                          : isOverLimit
+                          ? "bg-rose-200 dark:bg-rose-900/80 text-rose-900 dark:text-rose-100 font-bold"
+                          : "bg-[#fef08a] dark:bg-yellow-950/60 text-slate-900 dark:text-yellow-200 font-bold"
+                      }`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold text-center")}
                       </td>
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${isSelected ? "" : isOverLimit ? "bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-100 font-bold" : "bg-[#fef9c3] dark:bg-yellow-950/40 font-bold text-slate-900 dark:text-yellow-100"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${
+                        isSelected
+                          ? ""
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100 font-bold"
+                          : isOverLimit
+                          ? "bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-100 font-bold"
+                          : "bg-[#fef9c3] dark:bg-yellow-950/40 font-bold text-slate-900 dark:text-yellow-100"
+                      }`}>
                         <div className="font-semibold flex items-center gap-1.5 flex-wrap">
                           <span className="flex-1">
                             {renderEditableCell(row, "uraian", row.uraian, "font-semibold text-left")}
                           </span>
+                          {duplicateBadge}
                           {row.isSbk && (
                             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.62rem] font-bold shadow-xs ${
                               isSelected
@@ -5714,7 +5862,7 @@ function IsianRabPageContent() {
                           )}
                         </div>
                         {row.subUraian && (
-                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : isOverLimit ? "text-rose-700 dark:text-rose-300 font-semibold" : "text-slate-500 dark:text-slate-400 font-normal"}`}>
+                          <div className={`text-[0.65rem] ${isSelected ? "text-blue-100" : isOverLimit || isDuplicate ? "text-rose-700 dark:text-rose-300 font-semibold" : "text-slate-500 dark:text-slate-400 font-normal"}`}>
                             {renderEditableCell(row, "subUraian", row.subUraian, "text-[0.65rem] text-left")}
                           </div>
                         )}
@@ -5753,13 +5901,34 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-blue-50/60"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-blue-50/60"
+                      }`}
                     >
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold text-center ${isSelected ? "bg-[#006bbd] text-white" : "bg-[#dbeafe] dark:bg-blue-950/60 text-blue-900 dark:text-blue-200"}`}>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold text-center ${
+                        isSelected
+                          ? "bg-[#006bbd] text-white"
+                          : isDuplicate
+                          ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100"
+                          : "bg-[#dbeafe] dark:bg-blue-950/60 text-blue-900 dark:text-blue-200"
+                      }`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold text-center")}
                       </td>
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-bold ${isSelected ? "" : "bg-[#e0e7ff] dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200"}`}>
-                        {renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-bold ${
+                        isSelected
+                          ? ""
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100"
+                          : "bg-[#e0e7ff] dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200"
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span>{renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}</span>
+                          {duplicateBadge}
+                        </div>
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -5788,13 +5957,22 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-50"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-slate-50"
+                      }`}
                     >
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 font-mono italic text-center font-bold">
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono italic text-center font-bold ${isDuplicate && !isSelected ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100" : ""}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono italic text-center font-bold")}
                       </td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 italic font-medium">
-                        {renderEditableCell(row, "uraian", row.uraian, "italic font-medium text-left")}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 italic font-medium ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <span>{renderEditableCell(row, "uraian", row.uraian, "italic font-medium text-left")}</span>
+                          {duplicateBadge}
+                        </div>
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -5821,15 +5999,24 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-50"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-slate-50"
+                      }`}
                     >
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold underline">
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-mono font-bold underline ${isDuplicate && !isSelected ? "bg-rose-200/90 dark:bg-rose-900/80 text-rose-950 dark:text-rose-100" : ""}`}>
                         {renderEditableCell(row, "kode", row.kode, "font-mono font-bold underline text-center")}
                       </td>
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700 font-bold">
-                        <div>{renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}</div>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 font-bold ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <div>{renderEditableCell(row, "uraian", row.uraian, "font-bold text-left")}</div>
+                          {duplicateBadge}
+                        </div>
                         {row.subUraian && (
-                          <div className={`text-[0.65rem] font-normal ${isSelected ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>
+                          <div className={`text-[0.65rem] font-normal ${isSelected ? "text-blue-100" : isDuplicate ? "text-rose-800 dark:text-rose-300 font-medium" : "text-slate-500 dark:text-slate-400"}`}>
                             {renderEditableCell(row, "subUraian", row.subUraian, "text-[0.65rem] text-left")}
                           </div>
                         )}
@@ -5865,11 +6052,20 @@ function IsianRabPageContent() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRowId(row.id)}
-                      className={`cursor-pointer transition-colors ${isSelected ? "bg-[#0078d4] text-white" : "hover:bg-slate-50"}`}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-[#0078d4] text-white"
+                          : isDuplicate
+                          ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600"
+                          : "hover:bg-slate-50"
+                      }`}
                     >
-                      <td className="p-2 border-r border-slate-200 dark:border-slate-700"></td>
-                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${indentClass}`}>
-                        {renderEditableCell(row, "uraian", row.uraian, `${indentClass} text-left pl-2`)}
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${isDuplicate && !isSelected ? "bg-rose-200/90 dark:bg-rose-900/80" : ""}`}></td>
+                      <td className={`p-2 border-r border-slate-200 dark:border-slate-700 ${indentClass} ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <span>{renderEditableCell(row, "uraian", row.uraian, `${indentClass} text-left pl-2`)}</span>
+                          {duplicateBadge}
+                        </div>
                       </td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-1 border-r border-slate-200 dark:border-slate-700 text-center"></td>
@@ -5898,14 +6094,19 @@ function IsianRabPageContent() {
                     className={`cursor-pointer transition-colors ${
                       isSelected
                         ? "bg-[#0078d4] text-white font-medium shadow-inner"
+                        : isDuplicate
+                        ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600 font-semibold"
                         : "hover:bg-blue-50/40 text-slate-800 dark:text-slate-200"
                     }`}
                   >
-                    <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center">
+                    <td className={`p-2 border-r border-slate-200 dark:border-slate-700 text-center ${isDuplicate && !isSelected ? "bg-rose-200/90 dark:bg-rose-900/80" : ""}`}>
                       {renderEditableCell(row, "kode", row.kode, "text-center font-mono")}
                     </td>
-                    <td className="p-2 border-r border-slate-200 dark:border-slate-700 pl-6 font-mono text-[0.72rem]">
-                      {renderEditableCell(row, "uraian", row.uraian, "text-left font-mono")}
+                    <td className={`p-2 border-r border-slate-200 dark:border-slate-700 pl-6 font-mono text-[0.72rem] ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                      <div className="flex items-center justify-between">
+                        <span>{renderEditableCell(row, "uraian", row.uraian, "text-left font-mono")}</span>
+                        {duplicateBadge}
+                      </div>
                     </td>
 
                     {/* 6 KOLOM RINCIAN PERHITUNGAN: Komponen I s.d. III (Editable Excel) */}
@@ -10730,49 +10931,43 @@ function IsianRabPageContent() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          MODAL: NOTIFIKASI ERROR DUPLIKASI DATA SAAT SIMPAN WORKSHEET
+          MODAL: NOTIFIKASI ERROR DUPLIKASI DATA SAAT SIMPAN WORKSHEET (SIMPEL & ELEGAN)
          ══════════════════════════════════════════════════════════════════════ */}
       {duplicateErrors.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-xl">
             <div className="flex items-start gap-3">
-              <div className="p-3 bg-rose-100 dark:bg-rose-950/60 text-rose-600 rounded-xl shrink-0">
-                <AlertTriangle className="w-6 h-6" />
+              <div className="p-2.5 bg-rose-100 dark:bg-rose-950/70 text-rose-600 rounded-xl shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Gagal Menyimpan: Terdeteksi Duplikasi Data
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Gagal Menyimpan: Terdapat Baris Duplikat
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Input data tidak dapat disimpan karena terdapat bagian yang double. Aturan sistem mewajibkan seluruh level (KRO, RO, Komponen, Sub Komponen, Akun, Header 1, dan Header 2) bersifat unik.
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Baris yang bermasalah telah ditandai dengan warna merah di tabel kerja:
                 </p>
               </div>
             </div>
 
-            <div className="bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl p-3.5 space-y-2 max-h-60 overflow-y-auto">
-              <div className="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">
-                Daftar Bagian yang Double ({duplicateErrors.length}):
-              </div>
-              <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+            <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl p-3 max-h-48 overflow-y-auto">
+              <ul className="space-y-1.5 text-xs text-rose-900 dark:text-rose-200 font-medium">
                 {duplicateErrors.map((err, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <span className="text-rose-500 font-bold shrink-0">•</span>
-                    <span className="font-medium">{err}</span>
+                    <span>{err}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-[0.68rem] text-slate-500">
-                Silakan hapus baris yang double untuk dapat menyimpan.
-              </span>
+            <div className="flex items-center justify-end pt-1">
               <button
                 type="button"
                 onClick={() => setDuplicateErrors([])}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer transition-colors"
+                className="w-full sm:w-auto px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
               >
-                Tutup &amp; Periksa Baris Double
+                Tutup &amp; Periksa
               </button>
             </div>
           </div>
