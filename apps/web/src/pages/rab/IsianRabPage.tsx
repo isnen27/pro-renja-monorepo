@@ -1194,6 +1194,47 @@ function IsianRabPageContent() {
   const [isProcessingUpload, setIsProcessingUpload] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ══════════════════════════════════════════════════════════════════════
+  // HELPER MULTI-STEP WIZARD PANDUAN JENIS BELANJA
+  // ══════════════════════════════════════════════════════════════════════
+  const GUIDED_STEP_ORDER: { key: JenisBelanjaPanduan; mode: ModalMode; label: string }[] = [
+    { key: "jasa", mode: "panduan_jasa", label: "Pengadaan Jasa" },
+    { key: "bahan", mode: "panduan_belanja_bahan", label: "Belanja Bahan" },
+    { key: "spd_dn", mode: "panduan_perjadin_dn", label: "Perjalanan Dinas Dalam Negeri" },
+    { key: "spd_ln", mode: "panduan_perjadin_ln", label: "Perjalanan Dinas Luar Negeri" },
+    { key: "konsinyering", mode: "panduan_konsinyering", label: "Penyelenggaraan Konsinyering" },
+  ];
+
+  function getActiveGuidedSteps(): { key: JenisBelanjaPanduan; mode: ModalMode; label: string }[] {
+    return GUIDED_STEP_ORDER.filter((s) => selectedJenisBelanjaList.includes(s.key));
+  }
+
+  function getNextGuidedStep(currentMode: ModalMode): { key: JenisBelanjaPanduan; mode: ModalMode; label: string } | null {
+    const active = getActiveGuidedSteps();
+    const currIdx = active.findIndex((s) => s.mode === currentMode);
+    if (currIdx >= 0 && currIdx < active.length - 1) {
+      return active[currIdx + 1];
+    }
+    return null;
+  }
+
+  function getPrevGuidedStep(currentMode: ModalMode): { key: JenisBelanjaPanduan; mode: ModalMode; label: string } | null {
+    const active = getActiveGuidedSteps();
+    const currIdx = active.findIndex((s) => s.mode === currentMode);
+    if (currIdx > 0) {
+      return active[currIdx - 1];
+    }
+    return null;
+  }
+
+  function handleTransitionToGuidedStep(targetMode: ModalMode) {
+    if (targetMode === "panduan_belanja_bahan") {
+      setGuidedBelanjaStep("checklist");
+      setSelectedBelanjaItems([]);
+    }
+    setModalMode(targetMode);
+  }
+
   // State ID baris yang sedang diedit melalui dialog box modal
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
 
@@ -4600,8 +4641,9 @@ function IsianRabPageContent() {
       `Berhasil menambahkan ${validRows.length} baris Belanja Bahan (Akun 521211) ke kertas kerja! Total: Rp ${formatRupiah(grandTotal)}`
     );
 
-    if (selectedJenisBelanjaList.includes("spd_dn")) {
-      setModalMode("panduan_perjadin_dn");
+    const nextStep = getNextGuidedStep("panduan_belanja_bahan");
+    if (nextStep) {
+      handleTransitionToGuidedStep(nextStep.mode);
     } else {
       setModalMode(null);
     }
@@ -8939,18 +8981,9 @@ function IsianRabPageContent() {
                   }
 
                   // Cek apakah ada langkah lanjutan interaktif (Jasa, Belanja Bahan, Perjadin DN, Perjadin LN, atau Konsinyering)
-                  if (selectedJenisBelanjaList.includes("jasa")) {
-                    setModalMode("panduan_jasa");
-                  } else if (selectedJenisBelanjaList.includes("bahan")) {
-                    setGuidedBelanjaStep("checklist");
-                    setSelectedBelanjaItems([]);
-                    setModalMode("panduan_belanja_bahan");
-                  } else if (selectedJenisBelanjaList.includes("spd_dn")) {
-                    setModalMode("panduan_perjadin_dn");
-                  } else if (selectedJenisBelanjaList.includes("spd_ln")) {
-                    setModalMode("panduan_perjadin_ln");
-                  } else if (selectedJenisBelanjaList.includes("konsinyering")) {
-                    setModalMode("panduan_konsinyering");
+                  const firstInteractive = getActiveGuidedSteps()[0];
+                  if (firstInteractive) {
+                    handleTransitionToGuidedStep(firstInteractive.mode);
                   } else {
                     setModalMode(null);
                   }
@@ -9243,22 +9276,28 @@ function IsianRabPageContent() {
             <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="button"
-                onClick={() => setModalMode("panduan_jenis_belanja")}
+                onClick={() => {
+                  const prevStep = getPrevGuidedStep("panduan_jasa");
+                  if (prevStep) {
+                    handleTransitionToGuidedStep(prevStep.mode);
+                  } else {
+                    setModalMode("panduan_jenis_belanja");
+                  }
+                }}
                 className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
-                Kembali ke Jenis Belanja
+                {getPrevGuidedStep("panduan_jasa")
+                  ? `← Kembali ke ${getPrevGuidedStep("panduan_jasa")?.label}`
+                  : "Kembali ke Jenis Belanja"}
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   handleSavePengadaanJasa();
-                  if (selectedJenisBelanjaList.includes("bahan")) {
-                    setGuidedBelanjaStep("checklist");
-                    setSelectedBelanjaItems([]);
-                    setModalMode("panduan_belanja_bahan");
-                  } else if (selectedJenisBelanjaList.includes("spd_dn")) {
-                    setModalMode("panduan_perjadin_dn");
+                  const nextStep = getNextGuidedStep("panduan_jasa");
+                  if (nextStep) {
+                    handleTransitionToGuidedStep(nextStep.mode);
                   } else {
                     setModalMode(null);
                   }
@@ -9266,10 +9305,8 @@ function IsianRabPageContent() {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-1.5"
               >
                 <span>
-                  {selectedJenisBelanjaList.includes("bahan")
-                    ? "Simpan Jasa & Lanjut ke Belanja Bahan"
-                    : selectedJenisBelanjaList.includes("spd_dn")
-                    ? "Simpan Jasa & Lanjut ke Perjadin DN"
+                  {getNextGuidedStep("panduan_jasa")
+                    ? `Simpan & Lanjut ke ${getNextGuidedStep("panduan_jasa")?.label}`
                     : "Simpan Jasa ke Kertas Kerja"}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -9375,10 +9412,19 @@ function IsianRabPageContent() {
               <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
-                  onClick={() => setModalMode("panduan_jenis_belanja")}
+                  onClick={() => {
+                    const prevStep = getPrevGuidedStep("panduan_belanja_bahan");
+                    if (prevStep) {
+                      handleTransitionToGuidedStep(prevStep.mode);
+                    } else {
+                      setModalMode("panduan_jenis_belanja");
+                    }
+                  }}
                   className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
-                  Kembali ke Jenis Belanja
+                  {getPrevGuidedStep("panduan_belanja_bahan")
+                    ? `← Kembali ke ${getPrevGuidedStep("panduan_belanja_bahan")?.label}`
+                    : "Kembali ke Jenis Belanja"}
                 </button>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500">
@@ -9923,7 +9969,12 @@ function IsianRabPageContent() {
                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" />
-                    <span>Simpan ke Kertas Kerja (Akun 521211)</span>
+                    <span>
+                      {getNextGuidedStep("panduan_belanja_bahan")
+                        ? `Simpan & Lanjut ke ${getNextGuidedStep("panduan_belanja_bahan")?.label}`
+                        : "Simpan ke Kertas Kerja (Akun 521211)"}
+                    </span>
+                    {getNextGuidedStep("panduan_belanja_bahan") && <ArrowRight className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -11050,10 +11101,19 @@ function IsianRabPageContent() {
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
               <button
                 type="button"
-                onClick={() => setModalMode("panduan_jenis_belanja")}
+                onClick={() => {
+                  const prevStep = getPrevGuidedStep("panduan_perjadin_dn");
+                  if (prevStep) {
+                    handleTransitionToGuidedStep(prevStep.mode);
+                  } else {
+                    setModalMode("panduan_jenis_belanja");
+                  }
+                }}
                 className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
-                Kembali ke Jenis Belanja
+                {getPrevGuidedStep("panduan_perjadin_dn")
+                  ? `← Kembali ke ${getPrevGuidedStep("panduan_perjadin_dn")?.label}`
+                  : "Kembali ke Jenis Belanja"}
               </button>
 
               <button
@@ -11061,7 +11121,12 @@ function IsianRabPageContent() {
                 onClick={() => {
                   const success = handleSavePerjadinDomestik();
                   if (success) {
-                    setModalMode(null);
+                    const nextStep = getNextGuidedStep("panduan_perjadin_dn");
+                    if (nextStep) {
+                      handleTransitionToGuidedStep(nextStep.mode);
+                    } else {
+                      setModalMode(null);
+                    }
                   }
                 }}
                 disabled={
@@ -11071,7 +11136,12 @@ function IsianRabPageContent() {
                 className="px-6 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >
                 <Save className="w-4 h-4" />
-                <span>Simpan Perjalanan Dinas ke Kertas Kerja</span>
+                <span>
+                  {getNextGuidedStep("panduan_perjadin_dn")
+                    ? `Simpan & Lanjut ke ${getNextGuidedStep("panduan_perjadin_dn")?.label}`
+                    : "Simpan Perjalanan Dinas ke Kertas Kerja"}
+                </span>
+                {getNextGuidedStep("panduan_perjadin_dn") && <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -11921,10 +11991,19 @@ function IsianRabPageContent() {
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
               <button
                 type="button"
-                onClick={() => setModalMode("panduan_jenis_belanja")}
+                onClick={() => {
+                  const prevStep = getPrevGuidedStep("panduan_perjadin_ln");
+                  if (prevStep) {
+                    handleTransitionToGuidedStep(prevStep.mode);
+                  } else {
+                    setModalMode("panduan_jenis_belanja");
+                  }
+                }}
                 className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
-                Kembali ke Jenis Belanja
+                {getPrevGuidedStep("panduan_perjadin_ln")
+                  ? `← Kembali ke ${getPrevGuidedStep("panduan_perjadin_ln")?.label}`
+                  : "Kembali ke Jenis Belanja"}
               </button>
 
               <button
@@ -11932,14 +12011,24 @@ function IsianRabPageContent() {
                 onClick={() => {
                   const success = handleSavePerjadinLN();
                   if (success) {
-                    setModalMode(null);
+                    const nextStep = getNextGuidedStep("panduan_perjadin_ln");
+                    if (nextStep) {
+                      handleTransitionToGuidedStep(nextStep.mode);
+                    } else {
+                      setModalMode(null);
+                    }
                   }
                 }}
                 disabled={perjadinLNDestinasiList.length === 0}
                 className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >
                 <Save className="w-4 h-4" />
-                <span>Simpan Perjalanan Dinas Luar Negeri ke Kertas Kerja</span>
+                <span>
+                  {getNextGuidedStep("panduan_perjadin_ln")
+                    ? `Simpan & Lanjut ke ${getNextGuidedStep("panduan_perjadin_ln")?.label}`
+                    : "Simpan Perjalanan Dinas Luar Negeri ke Kertas Kerja"}
+                </span>
+                {getNextGuidedStep("panduan_perjadin_ln") && <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -13313,10 +13402,19 @@ function IsianRabPageContent() {
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
               <button
                 type="button"
-                onClick={() => setModalMode("panduan_jenis_belanja")}
+                onClick={() => {
+                  const prevStep = getPrevGuidedStep("panduan_konsinyering");
+                  if (prevStep) {
+                    handleTransitionToGuidedStep(prevStep.mode);
+                  } else {
+                    setModalMode("panduan_jenis_belanja");
+                  }
+                }}
                 className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
-                Kembali ke Jenis Belanja
+                {getPrevGuidedStep("panduan_konsinyering")
+                  ? `← Kembali ke ${getPrevGuidedStep("panduan_konsinyering")?.label}`
+                  : "Kembali ke Jenis Belanja"}
               </button>
 
               <button
@@ -13324,13 +13422,23 @@ function IsianRabPageContent() {
                 onClick={() => {
                   const success = handleSaveKonsinyering();
                   if (success) {
-                    setModalMode(null);
+                    const nextStep = getNextGuidedStep("panduan_konsinyering");
+                    if (nextStep) {
+                      handleTransitionToGuidedStep(nextStep.mode);
+                    } else {
+                      setModalMode(null);
+                    }
                   }
                 }}
                 className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-2 transition-colors"
               >
                 <Save className="w-4 h-4" />
-                <span>Simpan Konsinyering ke Kertas Kerja</span>
+                <span>
+                  {getNextGuidedStep("panduan_konsinyering")
+                    ? `Simpan & Lanjut ke ${getNextGuidedStep("panduan_konsinyering")?.label}`
+                    : "Simpan Konsinyering ke Kertas Kerja"}
+                </span>
+                {getNextGuidedStep("panduan_konsinyering") && <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
           </div>
