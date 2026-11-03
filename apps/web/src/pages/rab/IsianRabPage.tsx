@@ -45,6 +45,8 @@ import {
   Plane,
   Car,
   MapPin,
+  Globe,
+  Users,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
 import templateRabGajiKantor from "../../data/templateRabGajiKantor.json";
@@ -61,6 +63,11 @@ import {
   formatDisplayProv,
   formatDisplayKota,
   cleanHeaderUraian,
+  getDaftarDestinasiLN,
+  getTarifPerjadinLN,
+  getTarifKonsinyeringDalamKota,
+  getTarifKonsinyeringLuarKota,
+  KURS_USD_ASUMSI_MAKRO,
 } from "../../data/perjadinSbmHelper";
 import {
   getIdentitasKinerjaByUnitKerja,
@@ -959,6 +966,8 @@ function IsianRabPageContent() {
     | "panduan_wizard"
     | "panduan_belanja_bahan"
     | "panduan_perjadin_dn"
+    | "panduan_perjadin_ln"
+    | "panduan_konsinyering"
     | "upload_excel"
     | null
   >("kro");
@@ -1027,6 +1036,118 @@ function IsianRabPageContent() {
       uang1iOrg: 3, uang1iHari: 4, uang1iKeg: 1,
       rep1jOrg: 1, rep1jHari: 4, rep1jKeg: 1,
       rep1kOrg: 0, rep1kHari: 4, rep1kKeg: 1,
+    }
+  ]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STATE PANDUAN PERJALANAN DINAS LUAR NEGERI (AKUN 524211)
+  // ─────────────────────────────────────────────────────────────────────────
+  const [perjadinLNJumlahNegara, setPerjadinLNJumlahNegara] = useState<number>(1);
+  const [perjadinLNJudulKegiatan, setPerjadinLNJudulKegiatan] = useState<string>("Sidang / Pertemuan Tingkat Internasional");
+  const [perjadinLNDestinasiList, setPerjadinLNDestinasiList] = useState<Array<{
+    id: string;
+    destinasiKey: string; // Misal: "JAKARTA - AMERIKA UTARA - Chicago"
+    benua: string;        // "AMERIKA UTARA"
+    negara: string;       // "Amerika Serikat"
+    kota: string;         // "Chicago"
+    labelHeader2: string; // "AMERIKA UTARA-Amerika Serikat - Chicago"
+    // Rincian Input 1a s.d 1m
+    tiket1aOrg: number; tiket1aKeg: number;
+    tiket1bOrg: number; tiket1bKeg: number;
+    tiket1cOrg: number; tiket1cKeg: number;
+    tiket1dOrg: number; tiket1dKeg: number;
+    taksi1eOrg: number; taksi1eKali: number; taksi1eKeg: number;
+    uang1fOrg: number; uang1fHari: number; uang1fKeg: number;
+    uang1gOrg: number; uang1gHari: number; uang1gKeg: number;
+    uang1hOrg: number; uang1hHari: number; uang1hKeg: number;
+    uang1iOrg: number; uang1iHari: number; uang1iKeg: number;
+    perj1jOrg: number; perj1jHari: number; perj1jKeg: number;
+    perj1kOrg: number; perj1kHari: number; perj1kKeg: number;
+    perj1lOrg: number; perj1lHari: number; perj1lKeg: number;
+    perj1mOrg: number; perj1mHari: number; perj1mKeg: number;
+  }>>([
+    {
+      id: "ln-1",
+      destinasiKey: "JAKARTA - AMERIKA UTARA - Chicago",
+      benua: "AMERIKA UTARA",
+      negara: "Amerika Serikat",
+      kota: "Chicago",
+      labelHeader2: "AMERIKA UTARA-Amerika Serikat - Chicago",
+      tiket1aOrg: 1, tiket1aKeg: 1,
+      tiket1bOrg: 1, tiket1bKeg: 1,
+      tiket1cOrg: 1, tiket1cKeg: 1,
+      tiket1dOrg: 0, tiket1dKeg: 1,
+      taksi1eOrg: 3, taksi1eKali: 2, taksi1eKeg: 1,
+      uang1fOrg: 1, uang1fHari: 5, uang1fKeg: 1,
+      uang1gOrg: 1, uang1gHari: 5, uang1gKeg: 1,
+      uang1hOrg: 1, uang1hHari: 5, uang1hKeg: 1,
+      uang1iOrg: 0, uang1iHari: 5, uang1iKeg: 1,
+      perj1jOrg: 1, perj1jHari: 2, perj1jKeg: 1,
+      perj1kOrg: 1, perj1kHari: 2, perj1kKeg: 1,
+      perj1lOrg: 1, perj1lHari: 2, perj1lKeg: 1,
+      perj1mOrg: 0, perj1mHari: 2, perj1mKeg: 1,
+    }
+  ]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STATE PANDUAN PENYELENGGARAAN KONSINYERING (AKUN 524114 & 524119)
+  // ─────────────────────────────────────────────────────────────────────────
+  const [konsinyeringTipe, setKonsinyeringTipe] = useState<"dalam_kota" | "luar_kota">("dalam_kota");
+  const [konsinyeringNamaKegiatan, setKonsinyeringNamaKegiatan] = useState<string>("Konsinyering Penyusunan Rencana Kerja dan Anggaran");
+
+  // Konsinyering Dalam Kota (524114)
+  const [konsinyeringDKJumlahKeg, setKonsinyeringDKJumlahKeg] = useState<number>(1);
+  const [konsinyeringDKItems, setKonsinyeringDKItems] = useState({
+    trans1aOrg: 20, trans1aKeg: 1,
+    fb1bOrg: 1, fb1bHari: 2, fb1bKeg: 1,
+    fb1cOrg: 3, fb1cHari: 2, fb1cKeg: 1,
+    fb1dOrg: 16, fb1dHari: 2, fb1dKeg: 1,
+    fd1eOrg: 0, fd1eKeg: 1,
+    fd1fOrg: 0, fd1fKeg: 1,
+    fd1gOrg: 0, fd1gKeg: 1,
+    uh1hOrg: 20, uh1hHari: 2, uh1hKeg: 1,
+  });
+
+  // Konsinyering Luar Kota (524119)
+  const [konsinyeringLKProvinsiList, setKonsinyeringLKProvinsiList] = useState<Array<{
+    id: string;
+    provinsi: string; // Misal: "06 ACEH"
+    tiket1aOrg: number; tiket1aKeg: number;
+    tiket1bOrg: number; tiket1bKeg: number;
+    taksi1cOrg: number; taksi1cKali: number; taksi1cKeg: number;
+    taksi1dOrg: number; taksi1dKali: number; taksi1dKeg: number;
+    inap1eOrg: number; inap1eHari: number; inap1eKeg: number;
+    inap1fOrg: number; inap1fHari: number; inap1fKeg: number;
+    inap1gOrg: number; inap1gHari: number; inap1gKeg: number;
+    inap1hOrg: number; inap1hHari: number; inap1hKeg: number;
+    fb1iOrg: number; fb1iHari: number; fb1iKeg: number;
+    fb1jOrg: number; fb1jHari: number; fb1jKeg: number;
+    fb1kOrg: number; fb1kHari: number; fb1kKeg: number;
+    fd1lOrg: number; fd1lKeg: number;
+    fd1mOrg: number; fd1mKeg: number;
+    fd1nOrg: number; fd1nKeg: number;
+    uhfb1oOrg: number; uhfb1oHari: number; uhfb1oKeg: number;
+    uh1pOrg: number; uh1pHari: number; uh1pKeg: number;
+  }>>([
+    {
+      id: "klk-1",
+      provinsi: "06 ACEH",
+      tiket1aOrg: 1, tiket1aKeg: 1,
+      tiket1bOrg: 5, tiket1bKeg: 1,
+      taksi1cOrg: 6, taksi1cKali: 2, taksi1cKeg: 1,
+      taksi1dOrg: 6, taksi1dKali: 2, taksi1dKeg: 1,
+      inap1eOrg: 1, inap1eHari: 3, inap1eKeg: 1,
+      inap1fOrg: 1, inap1fHari: 3, inap1fKeg: 1,
+      inap1gOrg: 4, inap1gHari: 3, inap1gKeg: 1,
+      inap1hOrg: 0, inap1hHari: 3, inap1hKeg: 1,
+      fb1iOrg: 1, fb1iHari: 3, fb1iKeg: 1,
+      fb1jOrg: 1, fb1jHari: 3, fb1jKeg: 1,
+      fb1kOrg: 4, fb1kHari: 3, fb1kKeg: 1,
+      fd1lOrg: 0, fd1lKeg: 1,
+      fd1mOrg: 0, fd1mKeg: 1,
+      fd1nOrg: 0, fd1nKeg: 1,
+      uhfb1oOrg: 6, uhfb1oHari: 3, uhfb1oKeg: 1,
+      uh1pOrg: 6, uh1pHari: 3, uh1pKeg: 1,
     }
   ]);
 
@@ -3601,6 +3722,410 @@ function IsianRabPageContent() {
 
     setWorksheetRows(calculateHierarchyAmounts(nextRows));
     triggerAlert("Berhasil menyusun dan menyimpan rincian Perjalanan Dinas Domestik ke kertas kerja!");
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // EKSEKUSI SIMPAN PERJALANAN DINAS LUAR NEGERI (AKUN 524211)
+  // ─────────────────────────────────────────────────────────────────────────
+  function handleSavePerjadinLN(): boolean {
+    if (perjadinLNDestinasiList.length === 0) {
+      triggerAlert("Silakan pilih minimal satu negara/kota tujuan luar negeri!");
+      return false;
+    }
+
+    const timeStamp = Date.now();
+    let nextRows = [...worksheetRows];
+
+    // Pastikan Akun 524211 ada
+    let akunIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524211");
+    if (akunIdx === -1) {
+      let insertAkunIdx = nextRows.length;
+      const subkompIdx = nextRows.findIndex((r) => r.type === "subkomponen" || r.id === targetSubkompRowId);
+      if (subkompIdx >= 0) {
+        insertAkunIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+      } else {
+        const kompIdx = nextRows.findIndex((r) => r.type === "komponen");
+        if (kompIdx >= 0) {
+          insertAkunIdx = findInsertionIndexForSubtree(kompIdx, "komponen");
+        }
+      }
+
+      const newAkun: WorksheetRow = {
+        id: `row-akun-524211-${timeStamp}`,
+        type: "akun",
+        kode: "524211",
+        uraian: "Belanja Perjalanan Dinas Biasa - Luar Negeri",
+        jumlah: 0,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      };
+      nextRows.splice(insertAkunIdx, 0, newAkun);
+      akunIdx = insertAkunIdx;
+    }
+
+    // Header 1: Judul Kegiatan
+    const header1Id = `h1-ln-${timeStamp}`;
+    const header1Uraian = perjadinLNJudulKegiatan.trim() || "Sidang / Pertemuan Tingkat Internasional";
+
+    // Hitung prefix nomor Header 1 baru jika diperlukan
+    const existingH1s = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524211");
+    let targetH1Uraian = header1Uraian;
+    const existingH1Match = existingH1s.find(
+      (h) => cleanHeaderUraian(h.uraian) === cleanHeaderUraian(header1Uraian)
+    );
+    const isExistingH1 = !!existingH1Match;
+    if (isExistingH1) {
+      targetH1Uraian = existingH1Match.uraian;
+    } else {
+      const nextH1Num = existingH1s.length + 1;
+      targetH1Uraian = `${nextH1Num}. ${header1Uraian}`;
+    }
+
+    // Generate Header 2 & Detail untuk setiap destinasi
+    let totalAllH1 = 0;
+    const rowsToAdd: WorksheetRow[] = [];
+
+    if (!isExistingH1) {
+      rowsToAdd.push({
+        id: header1Id,
+        type: "header1",
+        kode: "",
+        uraian: targetH1Uraian,
+        parentAkunKode: "524211",
+        jumlah: 0,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+    }
+
+    perjadinLNDestinasiList.forEach((dest, destIdx) => {
+      const numPrefix = `${destIdx + 1}`;
+      const header2Uraian = dest.labelHeader2 || `${dest.benua}-${dest.negara} - ${dest.kota}`;
+      const header2Id = `h2-ln-${destIdx}-${timeStamp}`;
+      const tarif = getTarifPerjadinLN(dest.destinasiKey || dest.kota, KURS_USD_ASUMSI_MAKRO);
+
+      const detailsForDest: WorksheetRow[] = [];
+      let totalHeader2 = 0;
+
+      const addDetailLN = (
+        subLetter: string,
+        uraianNama: string,
+        vOrg: number,
+        vSat1: string,
+        vHariOrKali: number,
+        vSat2: string,
+        vKeg: number,
+        vSat3: string,
+        finalSat: string,
+        biayaSatuan: number
+      ) => {
+        const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
+        const subTotal = totalVol * (biayaSatuan || 0);
+        if (subTotal <= 0 && vOrg <= 0) return;
+
+        totalHeader2 += subTotal;
+        detailsForDest.push({
+          id: `det-ln-${destIdx}-${subLetter}-${timeStamp}`,
+          type: "detail",
+          kode: "",
+          uraian: `${numPrefix}${subLetter}. ${uraianNama}`,
+          parentAkunKode: "524211",
+          k1Nilai: vOrg > 0 ? vOrg : undefined,
+          k1Sat: vOrg > 0 ? vSat1 : undefined,
+          k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
+          k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
+          k3Nilai: vKeg > 0 ? vKeg : undefined,
+          k3Sat: vKeg > 0 ? vSat3 : undefined,
+          vol: totalVol > 0 ? totalVol : undefined,
+          sat: finalSat,
+          harga: biayaSatuan,
+          jumlah: subTotal,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+      };
+
+      // 1a s.d 1d: Tiket Pesawat
+      addDetailLN("a", "Tiket Pesawat (PP) Eselon I", dest.tiket1aOrg, "orang", 1, "kali", dest.tiket1aKeg, "Keg", "OK", tarif.tiketBisnisIDR);
+      addDetailLN("b", "Tiket Pesawat (PP) Eselon II", dest.tiket1bOrg, "orang", 1, "kali", dest.tiket1bKeg, "Keg", "OK", tarif.tiketBisnisIDR);
+      addDetailLN("c", "Tiket Pesawat (PP) Eselon III ke bawah", dest.tiket1cOrg, "orang", 1, "kali", dest.tiket1cKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
+      addDetailLN("d", "Tiket Pesawat (PP) Golongan III ke bawah", dest.tiket1dOrg, "orang", 1, "kali", dest.tiket1dKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
+      // 1e: Taksi Jakarta
+      addDetailLN("e", "Taksi Jakarta", dest.taksi1eOrg, "orang", dest.taksi1eKali, "kali", dest.taksi1eKeg, "Keg", "OK", tarif.taksiJakarta);
+      // 1f s.d 1i: Uang Harian Gol A - D
+      addDetailLN("f", "Uang Harian Gol A", dest.uang1fOrg, "orang", dest.uang1fHari, "hari", dest.uang1fKeg, "Keg", "OH", tarif.uangHarianGolA_IDR);
+      addDetailLN("g", "Uang Harian Gol B", dest.uang1gOrg, "orang", dest.uang1gHari, "hari", dest.uang1gKeg, "Keg", "OH", tarif.uangHarianGolB_IDR);
+      addDetailLN("h", "Uang Harian Gol C", dest.uang1hOrg, "orang", dest.uang1hHari, "hari", dest.uang1hKeg, "Keg", "OH", tarif.uangHarianGolC_IDR);
+      addDetailLN("i", "Uang Harian Gol D", dest.uang1iOrg, "orang", dest.uang1iHari, "hari", dest.uang1iKeg, "Keg", "OH", tarif.uangHarianGolD_IDR);
+      // 1j s.d 1m: Uang Harian Perjalanan Gol A - D (30%)
+      addDetailLN("j", "Uang Harian Perjalanan Gol A", dest.perj1jOrg, "orang", dest.perj1jHari, "hari", dest.perj1jKeg, "Keg", "OH", tarif.uangHarianPerjadinGolA_IDR);
+      addDetailLN("k", "Uang Harian Perjalanan Gol B", dest.perj1kOrg, "orang", dest.perj1kHari, "hari", dest.perj1kKeg, "Keg", "OH", tarif.uangHarianPerjadinGolB_IDR);
+      addDetailLN("l", "Uang Harian Perjalanan Gol C", dest.perj1lOrg, "orang", dest.perj1lHari, "hari", dest.perj1lKeg, "Keg", "OH", tarif.uangHarianPerjadinGolC_IDR);
+      addDetailLN("m", "Uang Harian Perjalanan Gol D", dest.perj1mOrg, "orang", dest.perj1mHari, "hari", dest.perj1mKeg, "Keg", "OH", tarif.uangHarianPerjadinGolD_IDR);
+
+      totalAllH1 += totalHeader2;
+      rowsToAdd.push({
+        id: header2Id,
+        type: "header2",
+        kode: "",
+        uraian: header2Uraian,
+        parentAkunKode: "524211",
+        jumlah: totalHeader2,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+      rowsToAdd.push(...detailsForDest);
+    });
+
+    // Sisipkan ke worksheetRows
+    if (isExistingH1 && existingH1Match) {
+      const h1Idx = nextRows.findIndex((r) => r.id === existingH1Match.id);
+      const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
+      nextRows.splice(insertPos, 0, ...rowsToAdd);
+    } else {
+      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524211");
+      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+      nextRows.splice(insertPos, 0, ...rowsToAdd);
+    }
+
+    setWorksheetRows(calculateHierarchyAmounts(nextRows));
+    triggerAlert("Berhasil menyusun dan menyimpan rincian Perjalanan Dinas Luar Negeri ke kertas kerja!");
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // EKSEKUSI SIMPAN PENYELENGGARAAN KONSINYERING (524114 & 524119)
+  // ─────────────────────────────────────────────────────────────────────────
+  function handleSaveKonsinyering(): boolean {
+    const timeStamp = Date.now();
+    let nextRows = [...worksheetRows];
+
+    if (konsinyeringTipe === "dalam_kota") {
+      // Konsinyering Dalam Kota -> Akun 524114
+      let akunIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
+      if (akunIdx === -1) {
+        let insertAkunIdx = nextRows.length;
+        const subkompIdx = nextRows.findIndex((r) => r.type === "subkomponen" || r.id === targetSubkompRowId);
+        if (subkompIdx >= 0) {
+          insertAkunIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        } else {
+          const kompIdx = nextRows.findIndex((r) => r.type === "komponen");
+          if (kompIdx >= 0) insertAkunIdx = findInsertionIndexForSubtree(kompIdx, "komponen");
+        }
+
+        const newAkun: WorksheetRow = {
+          id: `row-akun-524114-${timeStamp}`,
+          type: "akun",
+          kode: "524114",
+          uraian: "Belanja Perjalanan Dinas Paket Meeting Dalam Kota",
+          jumlah: 0,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        };
+        nextRows.splice(insertAkunIdx, 0, newAkun);
+        akunIdx = insertAkunIdx;
+      }
+
+      const tarif = getTarifKonsinyeringDalamKota();
+      const header1Id = `h1-kdk-${timeStamp}`;
+      const header1Uraian = konsinyeringNamaKegiatan.trim() || "Konsinyering Dalam Kota";
+      const header2Uraian = "JAKARTA";
+      const header2Id = `h2-kdk-${timeStamp}`;
+
+      const details: WorksheetRow[] = [];
+      let totalH2 = 0;
+
+      const addDetailDK = (
+        subLetter: string,
+        nama: string,
+        vOrg: number,
+        vSat1: string,
+        vHari: number,
+        vSat2: string,
+        vKeg: number,
+        vSat3: string,
+        satAkhir: string,
+        harga: number
+      ) => {
+        const totalVol = (vOrg || 0) * (vHari || 0) * (vKeg || 0);
+        const subTotal = totalVol * (harga || 0);
+        if (subTotal <= 0 && vOrg <= 0) return;
+
+        totalH2 += subTotal;
+        details.push({
+          id: `det-kdk-${subLetter}-${timeStamp}`,
+          type: "detail",
+          kode: "",
+          uraian: `1${subLetter}. ${nama}`,
+          parentAkunKode: "524114",
+          k1Nilai: vOrg > 0 ? vOrg : undefined,
+          k1Sat: vOrg > 0 ? vSat1 : undefined,
+          k2Nilai: vHari > 0 ? vHari : undefined,
+          k2Sat: vHari > 0 ? vSat2 : undefined,
+          k3Nilai: vKeg > 0 ? vKeg : undefined,
+          k3Sat: vKeg > 0 ? vSat3 : undefined,
+          vol: totalVol > 0 ? totalVol : undefined,
+          sat: satAkhir,
+          harga: harga,
+          jumlah: subTotal,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+      };
+
+      const items = konsinyeringDKItems;
+      addDetailDK("a", "Transport Lokal", items.trans1aOrg, "orang", 1, "kali", items.trans1aKeg, "Keg", "OK", tarif.transportLokal);
+      addDetailDK("b", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", items.fb1bOrg, "orang", items.fb1bHari, "hari", items.fb1bKeg, "Keg", "OP", tarif.fullboardMenteri);
+      addDetailDK("c", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", items.fb1cOrg, "orang", items.fb1cHari, "hari", items.fb1cKeg, "Keg", "OP", tarif.fullboardEselonI_II);
+      addDetailDK("d", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fb1dOrg, "orang", items.fb1dHari, "hari", items.fb1dKeg, "Keg", "OP", tarif.fullboardEselonIII);
+      addDetailDK("e", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", items.fd1eOrg, "orang", 1, "kali", items.fd1eKeg, "Keg", "OP", tarif.fulldayMenteri);
+      addDetailDK("f", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", items.fd1fOrg, "orang", 1, "kali", items.fd1fKeg, "Keg", "OP", tarif.fulldayEselonI_II);
+      addDetailDK("g", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fd1gOrg, "orang", 1, "kali", items.fd1gKeg, "Keg", "OP", tarif.fulldayEselonIII);
+      addDetailDK("h", "Uang Harian Fullboard Meeting", items.uh1hOrg, "orang", items.uh1hHari, "hari", items.uh1hKeg, "Keg", "OH", tarif.uangHarianFullboard);
+
+      const rowsToAdd: WorksheetRow[] = [
+        {
+          id: header1Id,
+          type: "header1",
+          kode: "",
+          uraian: header1Uraian,
+          parentAkunKode: "524114",
+          jumlah: totalH2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        },
+        {
+          id: header2Id,
+          type: "header2",
+          kode: "",
+          uraian: header2Uraian,
+          parentAkunKode: "524114",
+          jumlah: totalH2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        },
+        ...details,
+      ];
+
+      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
+      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+      nextRows.splice(insertPos, 0, ...rowsToAdd);
+      triggerAlert("Berhasil menyusun dan menyimpan Konsinyering Dalam Kota ke kertas kerja!");
+    } else {
+      // Konsinyering Luar Kota -> Akun 524119
+      let akunIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
+      if (akunIdx === -1) {
+        let insertAkunIdx = nextRows.length;
+        const subkompIdx = nextRows.findIndex((r) => r.type === "subkomponen" || r.id === targetSubkompRowId);
+        if (subkompIdx >= 0) {
+          insertAkunIdx = findInsertionIndexForSubtree(subkompIdx, "subkomponen");
+        } else {
+          const kompIdx = nextRows.findIndex((r) => r.type === "komponen");
+          if (kompIdx >= 0) insertAkunIdx = findInsertionIndexForSubtree(kompIdx, "komponen");
+        }
+
+        const newAkun: WorksheetRow = {
+          id: `row-akun-524119-${timeStamp}`,
+          type: "akun",
+          kode: "524119",
+          uraian: "Belanja Perjalanan Dinas Paket Meeting Luar Kota",
+          jumlah: 0,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        };
+        nextRows.splice(insertAkunIdx, 0, newAkun);
+        akunIdx = insertAkunIdx;
+      }
+
+      const header1Id = `h1-klk-${timeStamp}`;
+      const header1Uraian = konsinyeringNamaKegiatan.trim() || "Konsinyering Luar Kota";
+      const rowsToAdd: WorksheetRow[] = [];
+
+      rowsToAdd.push({
+        id: header1Id,
+        type: "header1",
+        kode: "",
+        uraian: header1Uraian,
+        parentAkunKode: "524119",
+        jumlah: 0,
+        cO: false, cS: false, cU: false, cK: false, cD: false,
+      });
+
+      konsinyeringLKProvinsiList.forEach((item, pIdx) => {
+        const numPrefix = `${pIdx + 1}`;
+        const cleanProv = formatDisplayProv(item.provinsi);
+        const header2Uraian = cleanProv;
+        const header2Id = `h2-klk-${pIdx}-${timeStamp}`;
+        const tarif = getTarifKonsinyeringLuarKota(item.provinsi);
+
+        const detailsForProv: WorksheetRow[] = [];
+        let totalH2 = 0;
+
+        const addDetailLK = (
+          subLetter: string,
+          nama: string,
+          vOrg: number,
+          vSat1: string,
+          vHariOrKali: number,
+          vSat2: string,
+          vKeg: number,
+          vSat3: string,
+          satAkhir: string,
+          harga: number
+        ) => {
+          const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
+          const subTotal = totalVol * (harga || 0);
+          if (subTotal <= 0 && vOrg <= 0) return;
+
+          totalH2 += subTotal;
+          detailsForProv.push({
+            id: `det-klk-${pIdx}-${subLetter}-${timeStamp}`,
+            type: "detail",
+            kode: "",
+            uraian: `${numPrefix}${subLetter}. ${nama}`,
+            parentAkunKode: "524119",
+            k1Nilai: vOrg > 0 ? vOrg : undefined,
+            k1Sat: vOrg > 0 ? vSat1 : undefined,
+            k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
+            k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
+            k3Nilai: vKeg > 0 ? vKeg : undefined,
+            k3Sat: vKeg > 0 ? vSat3 : undefined,
+            vol: totalVol > 0 ? totalVol : undefined,
+            sat: satAkhir,
+            harga: harga,
+            jumlah: subTotal,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+        };
+
+        addDetailLK("a", "Tiket Pesawat (PP) Eselon I", item.tiket1aOrg, "orang", 1, "kali", item.tiket1aKeg, "Keg", "OK", tarif.tiketBisnis);
+        addDetailLK("b", "Tiket Pesawat (PP) Eselon II ke Bawah", item.tiket1bOrg, "orang", 1, "kali", item.tiket1bKeg, "Keg", "OK", tarif.tiketEkonomi);
+        addDetailLK("c", "Taksi Jakarta", item.taksi1cOrg, "orang", item.taksi1cKali, "kali", item.taksi1cKeg, "Keg", "OK", tarif.taksiJakarta);
+        addDetailLK("d", `Taksi (${cleanProv})`, item.taksi1dOrg, "orang", item.taksi1dKali, "kali", item.taksi1dKeg, "Keg", "OK", tarif.taksiTujuan);
+        addDetailLK("e", "Penginapan Eselon I", item.inap1eOrg, "orang", item.inap1eHari, "hari", item.inap1eKeg, "Keg", "OH", tarif.penginapanEselonI);
+        addDetailLK("f", "Penginapan Eselon II", item.inap1fOrg, "orang", item.inap1fHari, "hari", item.inap1fKeg, "Keg", "OH", tarif.penginapanEselonII);
+        addDetailLK("g", "Penginapan Eselon III", item.inap1gOrg, "orang", item.inap1gHari, "hari", item.inap1gKeg, "Keg", "OH", tarif.penginapanEselonIII);
+        addDetailLK("h", "Penginapan Gol. III", item.inap1hOrg, "orang", item.inap1hHari, "hari", item.inap1hKeg, "Keg", "OH", tarif.penginapanGolIII);
+        addDetailLK("i", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fb1iOrg, "orang", item.fb1iHari, "hari", item.fb1iKeg, "Keg", "OP", tarif.fullboardMenteri);
+        addDetailLK("j", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fb1jOrg, "orang", item.fb1jHari, "hari", item.fb1jKeg, "Keg", "OP", tarif.fullboardEselonI_II);
+        addDetailLK("k", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fb1kOrg, "orang", item.fb1kHari, "hari", item.fb1kKeg, "Keg", "OP", tarif.fullboardEselonIII);
+        addDetailLK("l", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fd1lOrg, "orang", 1, "kali", item.fd1lKeg, "Keg", "OP", tarif.fulldayMenteri);
+        addDetailLK("m", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fd1mOrg, "orang", 1, "kali", item.fd1mKeg, "Keg", "OP", tarif.fulldayEselonI_II);
+        addDetailLK("n", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fd1nOrg, "orang", 1, "kali", item.fd1nKeg, "Keg", "OP", tarif.fulldayEselonIII);
+        addDetailLK("o", "Uang Harian Fullboard Meeting", item.uhfb1oOrg, "orang", item.uhfb1oHari, "hari", item.uhfb1oKeg, "Keg", "OH", tarif.uangHarianFullboard);
+        addDetailLK("p", "Uang Harian", item.uh1pOrg, "orang", item.uh1pHari, "hari", item.uh1pKeg, "Keg", "OH", tarif.uangHarianLuarKota);
+
+        rowsToAdd.push({
+          id: header2Id,
+          type: "header2",
+          kode: "",
+          uraian: header2Uraian,
+          parentAkunKode: "524119",
+          jumlah: totalH2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+        rowsToAdd.push(...detailsForProv);
+      });
+
+      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
+      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+      nextRows.splice(insertPos, 0, ...rowsToAdd);
+      triggerAlert("Berhasil menyusun dan menyimpan Konsinyering Luar Kota ke kertas kerja!");
+    }
+
+    setWorksheetRows(calculateHierarchyAmounts(nextRows));
     return true;
   }
 
@@ -8413,7 +8938,7 @@ function IsianRabPageContent() {
                     handleImportKomponen002();
                   }
 
-                  // Cek apakah ada langkah lanjutan interaktif (Jasa, Belanja Bahan, atau Perjadin DN)
+                  // Cek apakah ada langkah lanjutan interaktif (Jasa, Belanja Bahan, Perjadin DN, Perjadin LN, atau Konsinyering)
                   if (selectedJenisBelanjaList.includes("jasa")) {
                     setModalMode("panduan_jasa");
                   } else if (selectedJenisBelanjaList.includes("bahan")) {
@@ -8422,6 +8947,10 @@ function IsianRabPageContent() {
                     setModalMode("panduan_belanja_bahan");
                   } else if (selectedJenisBelanjaList.includes("spd_dn")) {
                     setModalMode("panduan_perjadin_dn");
+                  } else if (selectedJenisBelanjaList.includes("spd_ln")) {
+                    setModalMode("panduan_perjadin_ln");
+                  } else if (selectedJenisBelanjaList.includes("konsinyering")) {
+                    setModalMode("panduan_konsinyering");
                   } else {
                     setModalMode(null);
                   }
@@ -10543,6 +11072,2265 @@ function IsianRabPageContent() {
               >
                 <Save className="w-4 h-4" />
                 <span>Simpan Perjalanan Dinas ke Kertas Kerja</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN: PERJALANAN DINAS LUAR NEGERI (AKUN 524211)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_perjadin_ln" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-5xl w-full p-6 space-y-5 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+            {/* Header Dialog */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Panduan: Perjalanan Dinas Luar Negeri</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                      Akun 524211 • Kurs Rp {formatIndoNumber(KURS_USD_ASUMSI_MAKRO)}/USD
+                    </span>
+                  </h3>
+                  <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
+                    Otomatisasi Tiket Pesawat Luar Negeri, Taksi Jakarta, Uang Harian, dan Uang Harian Perjalanan (30%) mengacu pada Standar Biaya Masukan
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Parameter Global: Judul Kegiatan (Header 1) & Jumlah Negara Tujuan */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span>Judul Kegiatan (Menjadi Header 1):</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={perjadinLNJudulKegiatan}
+                  onChange={(e) => setPerjadinLNJudulKegiatan(e.target.value)}
+                  placeholder="Contoh: Sidang Tahunan FATF / Kerjasama Bilateral"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Jumlah Negara Tujuan:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={perjadinLNJumlahNegara}
+                    onChange={(e) => {
+                      const val = Math.max(1, Math.min(10, Number(e.target.value) || 1));
+                      setPerjadinLNJumlahNegara(val);
+                      // Sesuaikan jumlah list destinasi
+                      setPerjadinLNDestinasiList((prev) => {
+                        const allDests = getDaftarDestinasiLN();
+                        const next = [...prev];
+                        while (next.length < val) {
+                          const idx = next.length;
+                          const defaultDest = allDests[idx % allDests.length] || allDests[0];
+                          next.push({
+                            id: `ln-${Date.now()}-${idx}`,
+                            destinasiKey: defaultDest?.key || "JAKARTA - AMERIKA UTARA - Chicago",
+                            benua: defaultDest?.benua || "AMERIKA UTARA",
+                            negara: defaultDest?.negara || "Amerika Serikat",
+                            kota: defaultDest?.kota || "Chicago",
+                            labelHeader2: defaultDest?.label || "AMERIKA UTARA-Amerika Serikat - Chicago",
+                            tiket1aOrg: 1, tiket1aKeg: 1,
+                            tiket1bOrg: 1, tiket1bKeg: 1,
+                            tiket1cOrg: 1, tiket1cKeg: 1,
+                            tiket1dOrg: 0, tiket1dKeg: 1,
+                            taksi1eOrg: 3, taksi1eKali: 2, taksi1eKeg: 1,
+                            uang1fOrg: 1, uang1fHari: 5, uang1fKeg: 1,
+                            uang1gOrg: 1, uang1gHari: 5, uang1gKeg: 1,
+                            uang1hOrg: 1, uang1hHari: 5, uang1hKeg: 1,
+                            uang1iOrg: 0, uang1iHari: 5, uang1iKeg: 1,
+                            perj1jOrg: 1, perj1jHari: 2, perj1jKeg: 1,
+                            perj1kOrg: 1, perj1kHari: 2, perj1kKeg: 1,
+                            perj1lOrg: 1, perj1lHari: 2, perj1lKeg: 1,
+                            perj1mOrg: 0, perj1mHari: 2, perj1mKeg: 1,
+                          });
+                        }
+                        return next.slice(0, val);
+                      });
+                    }}
+                    className="w-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xs font-mono font-bold bg-white dark:bg-slate-900"
+                  />
+                  <span className="text-[11px] text-slate-500">negara / lokasi</span>
+                </div>
+              </div>
+            </div>
+
+            {/* List Formulir Input Setiap Destinasi Luar Negeri */}
+            <div className="space-y-6">
+              {perjadinLNDestinasiList.map((dest, idx) => {
+                const tarif = getTarifPerjadinLN(dest.destinasiKey, KURS_USD_ASUMSI_MAKRO);
+                const allDests = getDaftarDestinasiLN();
+                const totalItem =
+                  (dest.tiket1aOrg * dest.tiket1aKeg * tarif.tiketBisnisIDR) +
+                  (dest.tiket1bOrg * dest.tiket1bKeg * tarif.tiketBisnisIDR) +
+                  (dest.tiket1cOrg * dest.tiket1cKeg * tarif.tiketEkonomiIDR) +
+                  (dest.tiket1dOrg * dest.tiket1dKeg * tarif.tiketEkonomiIDR) +
+                  (dest.taksi1eOrg * dest.taksi1eKali * dest.taksi1eKeg * tarif.taksiJakarta) +
+                  (dest.uang1fOrg * dest.uang1fHari * dest.uang1fKeg * tarif.uangHarianGolA_IDR) +
+                  (dest.uang1gOrg * dest.uang1gHari * dest.uang1gKeg * tarif.uangHarianGolB_IDR) +
+                  (dest.uang1hOrg * dest.uang1hHari * dest.uang1hKeg * tarif.uangHarianGolC_IDR) +
+                  (dest.uang1iOrg * dest.uang1iHari * dest.uang1iKeg * tarif.uangHarianGolD_IDR) +
+                  (dest.perj1jOrg * dest.perj1jHari * dest.perj1jKeg * tarif.uangHarianPerjadinGolA_IDR) +
+                  (dest.perj1kOrg * dest.perj1kHari * dest.perj1kKeg * tarif.uangHarianPerjadinGolB_IDR) +
+                  (dest.perj1lOrg * dest.perj1lHari * dest.perj1lKeg * tarif.uangHarianPerjadinGolC_IDR) +
+                  (dest.perj1mOrg * dest.perj1mHari * dest.perj1mKeg * tarif.uangHarianPerjadinGolD_IDR);
+
+                return (
+                  <div
+                    key={dest.id}
+                    className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white dark:bg-slate-800/80 shadow-xs space-y-4"
+                  >
+                    {/* Header Destinasi & Pilihan SBM */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>Destinasi #{idx + 1} (Menjadi Header 2):</span>
+                            <span className="font-mono text-indigo-700 dark:text-indigo-300">
+                              {dest.labelHeader2}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500">
+                            Merujuk ke Tabel SBM Satuan Biaya Tiket Pesawat LN PP & Uang Harian LN
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                          Pilih Benua - Negara - Kota:
+                        </label>
+                        <select
+                          value={dest.destinasiKey}
+                          onChange={(e) => {
+                            const selectedKey = e.target.value;
+                            const found = allDests.find((d) => d.key === selectedKey);
+                            if (found) {
+                              setPerjadinLNDestinasiList((prev) =>
+                                prev.map((item, i) =>
+                                  i === idx
+                                    ? {
+                                        ...item,
+                                        destinasiKey: found.key,
+                                        benua: found.benua,
+                                        negara: found.negara,
+                                        kota: found.kota,
+                                        labelHeader2: found.label,
+                                      }
+                                    : item
+                                )
+                              );
+                            }
+                          }}
+                          className="px-2.5 py-1.5 border border-indigo-300 dark:border-indigo-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate"
+                        >
+                          {allDests.map((d) => (
+                            <option key={d.key} value={d.key}>
+                              {d.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Tabel Input Item 1a s.d 1m */}
+                    <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 text-[11px] font-bold border-b border-slate-200 dark:border-slate-700">
+                            <th className="p-2 w-12 text-center">Kode</th>
+                            <th className="p-2">Uraian Rincian Belanja</th>
+                            <th className="p-2 text-center">Volume / Rincian Perhitungan</th>
+                            <th className="p-2 text-center w-14">Satuan</th>
+                            <th className="p-2 text-right">Biaya Satuan (Rp)</th>
+                            <th className="p-2 text-right">Jumlah (Rp)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                          {/* 1a. Tiket Pesawat Eselon I */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}a</td>
+                            <td className="p-2 font-semibold">Tiket Pesawat (PP) Eselon I</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.tiket1aOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1aOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.tiket1aKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1aKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketBisnisIDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.tiket1aOrg * dest.tiket1aKeg * tarif.tiketBisnisIDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1b. Tiket Pesawat Eselon II */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}b</td>
+                            <td className="p-2 font-semibold">Tiket Pesawat (PP) Eselon II</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.tiket1bOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1bOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.tiket1bKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1bKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketBisnisIDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.tiket1bOrg * dest.tiket1bKeg * tarif.tiketBisnisIDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1c. Tiket Pesawat Eselon III ke bawah */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}c</td>
+                            <td className="p-2 font-semibold">Tiket Pesawat (PP) Eselon III ke bawah</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.tiket1cOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1cOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.tiket1cKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1cKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketEkonomiIDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.tiket1cOrg * dest.tiket1cKeg * tarif.tiketEkonomiIDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1d. Tiket Pesawat Golongan III ke bawah */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}d</td>
+                            <td className="p-2 font-semibold">Tiket Pesawat (PP) Golongan III ke bawah</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.tiket1dOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1dOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.tiket1dKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, tiket1dKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketEkonomiIDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.tiket1dOrg * dest.tiket1dKeg * tarif.tiketEkonomiIDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1e. Taksi Jakarta */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}e</td>
+                            <td className="p-2 font-semibold">Taksi Jakarta</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.taksi1eOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, taksi1eOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.taksi1eKali}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, taksi1eKali: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">kali ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.taksi1eKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, taksi1eKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.taksiJakarta)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.taksi1eOrg * dest.taksi1eKali * dest.taksi1eKeg * tarif.taksiJakarta)}
+                            </td>
+                          </tr>
+
+                          {/* 1f. Uang Harian Gol A */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}f</td>
+                            <td className="p-2 font-semibold">Uang Harian Gol A</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.uang1fOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1fOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1fHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1fHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1fKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1fKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianGolA_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.uang1fOrg * dest.uang1fHari * dest.uang1fKeg * tarif.uangHarianGolA_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1g. Uang Harian Gol B */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}g</td>
+                            <td className="p-2 font-semibold">Uang Harian Gol B</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.uang1gOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1gOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1gHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1gHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1gKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1gKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianGolB_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.uang1gOrg * dest.uang1gHari * dest.uang1gKeg * tarif.uangHarianGolB_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1h. Uang Harian Gol C */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}h</td>
+                            <td className="p-2 font-semibold">Uang Harian Gol C</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.uang1hOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1hOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1hHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1hHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1hKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1hKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianGolC_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.uang1hOrg * dest.uang1hHari * dest.uang1hKeg * tarif.uangHarianGolC_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1i. Uang Harian Gol D */}
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}i</td>
+                            <td className="p-2 font-semibold">Uang Harian Gol D</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.uang1iOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1iOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1iHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1iHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.uang1iKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, uang1iKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianGolD_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.uang1iOrg * dest.uang1iHari * dest.uang1iKeg * tarif.uangHarianGolD_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1j. Uang Harian Perjalanan Gol A (30%) */}
+                          <tr className="hover:bg-slate-50/50 bg-indigo-50/30 dark:bg-indigo-950/20">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}j</td>
+                            <td className="p-2 font-semibold">
+                              <span>Uang Harian Perjalanan Gol A</span>
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1.5 font-normal">(30% dari Gol A)</span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.perj1jOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1jOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1jHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1jHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1jKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1jKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianPerjadinGolA_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.perj1jOrg * dest.perj1jHari * dest.perj1jKeg * tarif.uangHarianPerjadinGolA_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1k. Uang Harian Perjalanan Gol B (30%) */}
+                          <tr className="hover:bg-slate-50/50 bg-indigo-50/30 dark:bg-indigo-950/20">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}k</td>
+                            <td className="p-2 font-semibold">
+                              <span>Uang Harian Perjalanan Gol B</span>
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1.5 font-normal">(30% dari Gol B)</span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.perj1kOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1kOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1kHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1kHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1kKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1kKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianPerjadinGolB_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.perj1kOrg * dest.perj1kHari * dest.perj1kKeg * tarif.uangHarianPerjadinGolB_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1l. Uang Harian Perjalanan Gol C (30%) */}
+                          <tr className="hover:bg-slate-50/50 bg-indigo-50/30 dark:bg-indigo-950/20">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}l</td>
+                            <td className="p-2 font-semibold">
+                              <span>Uang Harian Perjalanan Gol C</span>
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1.5 font-normal">(30% dari Gol C)</span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.perj1lOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1lOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1lHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1lHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1lKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1lKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianPerjadinGolC_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.perj1lOrg * dest.perj1lHari * dest.perj1lKeg * tarif.uangHarianPerjadinGolC_IDR)}
+                            </td>
+                          </tr>
+
+                          {/* 1m. Uang Harian Perjalanan Gol D (30%) */}
+                          <tr className="hover:bg-slate-50/50 bg-indigo-50/30 dark:bg-indigo-950/20">
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">{idx + 1}m</td>
+                            <td className="p-2 font-semibold">
+                              <span>Uang Harian Perjalanan Gol D</span>
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1.5 font-normal">(30% dari Gol D)</span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={dest.perj1mOrg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1mOrg: Number(e.target.value) || 0 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1mHari}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1mHari: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={dest.perj1mKeg}
+                                  onChange={(e) =>
+                                    setPerjadinLNDestinasiList((prev) =>
+                                      prev.map((it, i) => (i === idx ? { ...it, perj1mKeg: Number(e.target.value) || 1 } : it))
+                                    )
+                                  }
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianPerjadinGolD_IDR)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                              {formatIndoNumber(dest.perj1mOrg * dest.perj1mHari * dest.perj1mKeg * tarif.uangHarianPerjadinGolD_IDR)}
+                            </td>
+                          </tr>
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-indigo-50 dark:bg-indigo-950/40 font-bold border-t border-indigo-200 dark:border-indigo-800">
+                            <td colSpan={5} className="p-2.5 text-right text-slate-700 dark:text-slate-300">
+                              Total Kebutuhan Anggaran Destinasi #{idx + 1} ({dest.labelHeader2}):
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-indigo-700 dark:text-indigo-300 text-xs">
+                              Rp {formatIndoNumber(totalItem)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Aksi */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
+              <button
+                type="button"
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Kembali ke Jenis Belanja
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const success = handleSavePerjadinLN();
+                  if (success) {
+                    setModalMode(null);
+                  }
+                }}
+                disabled={perjadinLNDestinasiList.length === 0}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Perjalanan Dinas Luar Negeri ke Kertas Kerja</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MODAL PANDUAN: PENYELENGGARAAN KONSINYERING (DALAM / LUAR KOTA)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {modalMode === "panduan_konsinyering" && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl max-w-5xl w-full p-6 space-y-5 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+            {/* Header Dialog */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Panduan: Penyelenggaraan Konsinyering</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      {konsinyeringTipe === "dalam_kota" ? "Akun 524114 (Dalam Kota)" : "Akun 524119 (Luar Kota)"}
+                    </span>
+                  </h3>
+                  <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
+                    Paket Meeting Fullboard / Fullday di luar kantor sesuai Standar Biaya Masukan (SBM)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Pilihan Jenis Perjalanan Dinas: Konsinyering Dalam Kota vs Luar Kota */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Pilih Jenis Konsinyering yang Akan Diinput:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    konsinyeringTipe === "dalam_kota"
+                      ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-xs"
+                      : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="konsinyering_tipe"
+                    checked={konsinyeringTipe === "dalam_kota"}
+                    onChange={() => setKonsinyeringTipe("dalam_kota")}
+                    className="mt-0.5 w-4 h-4 accent-amber-600 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Konsinyering Dalam Kota
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">
+                      Header 2 terisi &apos;JAKARTA&apos; • Akun 524114 (Belanja Perjalanan Dinas Paket Meeting Dalam Kota).
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    konsinyeringTipe === "luar_kota"
+                      ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-xs"
+                      : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="konsinyering_tipe"
+                    checked={konsinyeringTipe === "luar_kota"}
+                    onChange={() => setKonsinyeringTipe("luar_kota")}
+                    className="mt-0.5 w-4 h-4 accent-amber-600 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Konsinyering Luar Kota
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">
+                      Header 2 merujuk pada Provinsi Tujuan • Akun 524119 (Belanja Perjalanan Dinas Paket Meeting Luar Kota).
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Nama Kegiatan (Menjadi Header 1) */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>Nama Kegiatan (Menjadi Header 1):</span>
+                <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={konsinyeringNamaKegiatan}
+                onChange={(e) => setKonsinyeringNamaKegiatan(e.target.value)}
+                placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            {/* FORM KONSINYERING DALAM KOTA */}
+            {konsinyeringTipe === "dalam_kota" && (
+              <div className="space-y-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <span>Header 2: </span>
+                    <span className="font-mono text-amber-700 dark:text-amber-400">JAKARTA</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      Jumlah Kegiatan:
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={konsinyeringDKJumlahKeg}
+                      onChange={(e) => setKonsinyeringDKJumlahKeg(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center text-xs font-mono font-bold"
+                    />
+                    <span className="text-[11px] text-slate-500">kegiatan</span>
+                  </div>
+                </div>
+
+                {/* Tabel 1a s.d 1h Konsinyering Dalam Kota */}
+                {(() => {
+                  const tarif = getTarifKonsinyeringDalamKota();
+                  const item = konsinyeringDKItems;
+                  const total =
+                    (item.trans1aOrg * item.trans1aKeg * tarif.transportLokal) +
+                    (item.fb1bOrg * item.fb1bHari * item.fb1bKeg * tarif.fullboardMenteri) +
+                    (item.fb1cOrg * item.fb1cHari * item.fb1cKeg * tarif.fullboardEselonI_II) +
+                    (item.fb1dOrg * item.fb1dHari * item.fb1dKeg * tarif.fullboardEselonIII) +
+                    (item.fd1eOrg * item.fd1eKeg * tarif.fulldayMenteri) +
+                    (item.fd1fOrg * item.fd1fKeg * tarif.fulldayEselonI_II) +
+                    (item.fd1gOrg * item.fd1gKeg * tarif.fulldayEselonIII) +
+                    (item.uh1hOrg * item.uh1hHari * item.uh1hKeg * tarif.uangHarianFullboard);
+
+                  return (
+                    <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 text-[11px] font-bold border-b border-slate-200 dark:border-slate-700">
+                            <th className="p-2 w-12 text-center">Kode</th>
+                            <th className="p-2">Uraian Rincian Belanja</th>
+                            <th className="p-2 text-center">Volume Perhitungan</th>
+                            <th className="p-2 text-center w-14">Satuan</th>
+                            <th className="p-2 text-right">Biaya Satuan SBM (Rp)</th>
+                            <th className="p-2 text-right">Jumlah (Rp)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                          {/* 1a. Transport Lokal */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1a</td>
+                            <td className="p-2 font-semibold">Transport Lokal</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.trans1aOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, trans1aOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.trans1aKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, trans1aKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.transportLokal)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.trans1aOrg * item.trans1aKeg * tarif.transportLokal)}
+                            </td>
+                          </tr>
+
+                          {/* 1b. Fullboard Meeting Menteri */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1b</td>
+                            <td className="p-2 font-semibold">Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fb1bOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1bHari}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bHari: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1bKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardMenteri)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fb1bOrg * item.fb1bHari * item.fb1bKeg * tarif.fullboardMenteri)}
+                            </td>
+                          </tr>
+
+                          {/* 1c. Fullboard Eselon I dan II */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1c</td>
+                            <td className="p-2 font-semibold">Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fb1cOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1cHari}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cHari: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1cKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonI_II)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fb1cOrg * item.fb1cHari * item.fb1cKeg * tarif.fullboardEselonI_II)}
+                            </td>
+                          </tr>
+
+                          {/* 1d. Fullboard Eselon III ke bawah */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1d</td>
+                            <td className="p-2 font-semibold">Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fb1dOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1dHari}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dHari: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fb1dKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonIII)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fb1dOrg * item.fb1dHari * item.fb1dKeg * tarif.fullboardEselonIII)}
+                            </td>
+                          </tr>
+
+                          {/* 1e. Fullday Menteri */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1e</td>
+                            <td className="p-2 font-semibold">Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fd1eOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1eOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fd1eKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1eKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayMenteri)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fd1eOrg * item.fd1eKeg * tarif.fulldayMenteri)}
+                            </td>
+                          </tr>
+
+                          {/* 1f. Fullday Eselon I dan II */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1f</td>
+                            <td className="p-2 font-semibold">Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fd1fOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1fOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fd1fKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1fKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonI_II)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fd1fOrg * item.fd1fKeg * tarif.fulldayEselonI_II)}
+                            </td>
+                          </tr>
+
+                          {/* 1g. Fullday Eselon III */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1g</td>
+                            <td className="p-2 font-semibold">Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.fd1gOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1gOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.fd1gKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1gKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonIII)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.fd1gOrg * item.fd1gKeg * tarif.fulldayEselonIII)}
+                            </td>
+                          </tr>
+
+                          {/* 1h. Uang Harian Fullboard Meeting */}
+                          <tr>
+                            <td className="p-2 text-center font-mono font-bold text-slate-500">1h</td>
+                            <td className="p-2 font-semibold">Uang Harian Fullboard Meeting</td>
+                            <td className="p-2 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.uh1hOrg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hOrg: Number(e.target.value) || 0 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">orang ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.uh1hHari}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hHari: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">hari ×</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={item.uh1hKeg}
+                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hKeg: Number(e.target.value) || 1 }))}
+                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                />
+                                <span className="text-[10px] text-slate-500">keg</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianFullboard)}</td>
+                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                              {formatIndoNumber(item.uh1hOrg * item.uh1hHari * item.uh1hKeg * tarif.uangHarianFullboard)}
+                            </td>
+                          </tr>
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-amber-50 dark:bg-amber-950/40 font-bold border-t border-amber-200 dark:border-amber-800">
+                            <td colSpan={5} className="p-2.5 text-right text-slate-700 dark:text-slate-300">
+                              Total Kebutuhan Anggaran Konsinyering Dalam Kota:
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-amber-700 dark:text-amber-300 text-xs">
+                              Rp {formatIndoNumber(total)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* FORM KONSINYERING LUAR KOTA */}
+            {konsinyeringTipe === "luar_kota" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs">
+                  <span className="font-semibold text-amber-900 dark:text-amber-200">
+                    Jumlah Lokasi Tujuan ({konsinyeringLKProvinsiList.length}):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const distinctProvs = [...new Set((lokasiData as any[]).map((l) => l.provinsi || l.namaProvinsi || ""))].filter(Boolean);
+                      const defProv = distinctProvs[konsinyeringLKProvinsiList.length % distinctProvs.length] || "06 ACEH";
+                      setKonsinyeringLKProvinsiList((prev) => [
+                        ...prev,
+                        {
+                          id: `klk-${Date.now()}-${prev.length}`,
+                          provinsi: defProv,
+                          tiket1aOrg: 1, tiket1aKeg: 1,
+                          tiket1bOrg: 5, tiket1bKeg: 1,
+                          taksi1cOrg: 6, taksi1cKali: 2, taksi1cKeg: 1,
+                          taksi1dOrg: 6, taksi1dKali: 2, taksi1dKeg: 1,
+                          inap1eOrg: 1, inap1eHari: 3, inap1eKeg: 1,
+                          inap1fOrg: 1, inap1fHari: 3, inap1fKeg: 1,
+                          inap1gOrg: 4, inap1gHari: 3, inap1gKeg: 1,
+                          inap1hOrg: 0, inap1hHari: 3, inap1hKeg: 1,
+                          fb1iOrg: 1, fb1iHari: 3, fb1iKeg: 1,
+                          fb1jOrg: 1, fb1jHari: 3, fb1jKeg: 1,
+                          fb1kOrg: 4, fb1kHari: 3, fb1kKeg: 1,
+                          fd1lOrg: 0, fd1lKeg: 1,
+                          fd1mOrg: 0, fd1mKeg: 1,
+                          fd1nOrg: 0, fd1nKeg: 1,
+                          uhfb1oOrg: 6, uhfb1oHari: 3, uhfb1oKeg: 1,
+                          uh1pOrg: 6, uh1pHari: 3, uh1pKeg: 1,
+                        },
+                      ]);
+                    }}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Lokasi Provinsi Tujuan</span>
+                  </button>
+                </div>
+
+                {konsinyeringLKProvinsiList.map((item, pIdx) => {
+                  const tarif = getTarifKonsinyeringLuarKota(item.provinsi);
+                  const cleanProv = formatDisplayProv(item.provinsi);
+                  const distinctProvs = [...new Set((lokasiData as any[]).map((l) => l.provinsi || l.namaProvinsi || ""))].filter(Boolean);
+
+                  const totalProv =
+                    (item.tiket1aOrg * item.tiket1aKeg * tarif.tiketBisnis) +
+                    (item.tiket1bOrg * item.tiket1bKeg * tarif.tiketEkonomi) +
+                    (item.taksi1cOrg * item.taksi1cKali * item.taksi1cKeg * tarif.taksiJakarta) +
+                    (item.taksi1dOrg * item.taksi1dKali * item.taksi1dKeg * tarif.taksiTujuan) +
+                    (item.inap1eOrg * item.inap1eHari * item.inap1eKeg * tarif.penginapanEselonI) +
+                    (item.inap1fOrg * item.inap1fHari * item.inap1fKeg * tarif.penginapanEselonII) +
+                    (item.inap1gOrg * item.inap1gHari * item.inap1gKeg * tarif.penginapanEselonIII) +
+                    (item.inap1hOrg * item.inap1hHari * item.inap1hKeg * tarif.penginapanGolIII) +
+                    (item.fb1iOrg * item.fb1iHari * item.fb1iKeg * tarif.fullboardMenteri) +
+                    (item.fb1jOrg * item.fb1jHari * item.fb1jKeg * tarif.fullboardEselonI_II) +
+                    (item.fb1kOrg * item.fb1kHari * item.fb1kKeg * tarif.fullboardEselonIII) +
+                    (item.fd1lOrg * item.fd1lKeg * tarif.fulldayMenteri) +
+                    (item.fd1mOrg * item.fd1mKeg * tarif.fulldayEselonI_II) +
+                    (item.fd1nOrg * item.fd1nKeg * tarif.fulldayEselonIII) +
+                    (item.uhfb1oOrg * item.uhfb1oHari * item.uhfb1oKeg * tarif.uangHarianFullboard) +
+                    (item.uh1pOrg * item.uh1pHari * item.uh1pKeg * tarif.uangHarianLuarKota);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-slate-800/80 shadow-xs space-y-4"
+                    >
+                      {/* Baris Provinsi Tujuan (Header 2) */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {pIdx + 1}
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              <span>Lokasi #{pIdx + 1} (Menjadi Header 2):</span>
+                              <span className="font-mono text-amber-700 dark:text-amber-300">
+                                {cleanProv}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              Pilihan merujuk pada data master submenu Lokasi
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                            Provinsi Tujuan:
+                          </label>
+                          <select
+                            value={item.provinsi}
+                            onChange={(e) => {
+                              const newProv = e.target.value;
+                              setKonsinyeringLKProvinsiList((prev) =>
+                                prev.map((it, i) => (i === pIdx ? { ...it, provinsi: newProv } : it))
+                              );
+                            }}
+                            className="px-2.5 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200"
+                          >
+                            {distinctProvs.map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                          </select>
+                          {konsinyeringLKProvinsiList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setKonsinyeringLKProvinsiList((prev) => prev.filter((_, i) => i !== pIdx))}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                              title="Hapus Lokasi"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tabel 1a s.d 1p Konsinyering Luar Kota */}
+                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 text-[11px] font-bold border-b border-slate-200 dark:border-slate-700">
+                              <th className="p-2 w-12 text-center">Kode</th>
+                              <th className="p-2">Uraian Rincian Belanja</th>
+                              <th className="p-2 text-center">Volume Perhitungan</th>
+                              <th className="p-2 text-center w-14">Satuan</th>
+                              <th className="p-2 text-right">Biaya Satuan SBM (Rp)</th>
+                              <th className="p-2 text-right">Jumlah (Rp)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                            {/* 1a. Tiket Pesawat Eselon I */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}a</td>
+                              <td className="p-2 font-semibold">Tiket Pesawat (PP) Eselon I</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.tiket1aOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, tiket1aOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.tiket1aKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, tiket1aKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketBisnis)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.tiket1aOrg * item.tiket1aKeg * tarif.tiketBisnis)}
+                              </td>
+                            </tr>
+
+                            {/* 1b. Tiket Pesawat Eselon II ke Bawah */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}b</td>
+                              <td className="p-2 font-semibold">Tiket Pesawat (PP) Eselon II ke Bawah</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.tiket1bOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, tiket1bOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.tiket1bKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, tiket1bKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.tiketEkonomi)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.tiket1bOrg * item.tiket1bKeg * tarif.tiketEkonomi)}
+                              </td>
+                            </tr>
+
+                            {/* 1c. Taksi Jakarta */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}c</td>
+                              <td className="p-2 font-semibold">Taksi Jakarta</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.taksi1cOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1cOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.taksi1cKali}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1cKali: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">kali ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.taksi1cKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1cKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.taksiJakarta)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.taksi1cOrg * item.taksi1cKali * item.taksi1cKeg * tarif.taksiJakarta)}
+                              </td>
+                            </tr>
+
+                            {/* 1d. Taksi Tujuan */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}d</td>
+                              <td className="p-2 font-semibold">Taksi ({cleanProv})</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.taksi1dOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1dOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.taksi1dKali}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1dKali: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">kali ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.taksi1dKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, taksi1dKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.taksiTujuan)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.taksi1dOrg * item.taksi1dKali * item.taksi1dKeg * tarif.taksiTujuan)}
+                              </td>
+                            </tr>
+
+                            {/* 1e. Penginapan Eselon I */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}e</td>
+                              <td className="p-2 font-semibold">Penginapan Eselon I</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.inap1eOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1eOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1eHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1eHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1eKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1eKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.penginapanEselonI)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.inap1eOrg * item.inap1eHari * item.inap1eKeg * tarif.penginapanEselonI)}
+                              </td>
+                            </tr>
+
+                            {/* 1f. Penginapan Eselon II */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}f</td>
+                              <td className="p-2 font-semibold">Penginapan Eselon II</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.inap1fOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1fOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1fHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1fHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1fKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1fKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.penginapanEselonII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.inap1fOrg * item.inap1fHari * item.inap1fKeg * tarif.penginapanEselonII)}
+                              </td>
+                            </tr>
+
+                            {/* 1g. Penginapan Eselon III */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}g</td>
+                              <td className="p-2 font-semibold">Penginapan Eselon III</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.inap1gOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1gOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1gHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1gHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1gKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1gKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.penginapanEselonIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.inap1gOrg * item.inap1gHari * item.inap1gKeg * tarif.penginapanEselonIII)}
+                              </td>
+                            </tr>
+
+                            {/* 1h. Penginapan Gol. III */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}h</td>
+                              <td className="p-2 font-semibold">Penginapan Gol. III</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.inap1hOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1hOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1hHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1hHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.inap1hKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, inap1hKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.penginapanGolIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.inap1hOrg * item.inap1hHari * item.inap1hKeg * tarif.penginapanGolIII)}
+                              </td>
+                            </tr>
+
+                            {/* 1i. Fullboard Meeting Menteri */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}i</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1iOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1iOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1iHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1iHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1iKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1iKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardMenteri)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1iOrg * item.fb1iHari * item.fb1iKeg * tarif.fullboardMenteri)}
+                              </td>
+                            </tr>
+
+                            {/* 1j. Fullboard Eselon I dan II */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}j</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1jOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1jOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1jHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1jHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1jKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1jKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonI_II)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1jOrg * item.fb1jHari * item.fb1jKeg * tarif.fullboardEselonI_II)}
+                              </td>
+                            </tr>
+
+                            {/* 1k. Fullboard Eselon III */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}k</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1kOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1kOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1kHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1kHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1kKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fb1kKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1kOrg * item.fb1kHari * item.fb1kKeg * tarif.fullboardEselonIII)}
+                              </td>
+                            </tr>
+
+                            {/* 1l. Fullday Menteri */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}l</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1lOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1lOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1lKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1lKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayMenteri)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1lOrg * item.fd1lKeg * tarif.fulldayMenteri)}
+                              </td>
+                            </tr>
+
+                            {/* 1m. Fullday Eselon I dan II */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}m</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1mOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1mOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1mKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1mKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonI_II)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1mOrg * item.fd1mKeg * tarif.fulldayEselonI_II)}
+                              </td>
+                            </tr>
+
+                            {/* 1n. Fullday Eselon III */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}n</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1nOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1nOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1nKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, fd1nKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1nOrg * item.fd1nKeg * tarif.fulldayEselonIII)}
+                              </td>
+                            </tr>
+
+                            {/* 1o. Uang Harian Fullboard Meeting */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}o</td>
+                              <td className="p-2 font-semibold">Uang Harian Fullboard Meeting</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.uhfb1oOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uhfb1oOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uhfb1oHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uhfb1oHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uhfb1oKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uhfb1oKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianFullboard)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.uhfb1oOrg * item.uhfb1oHari * item.uhfb1oKeg * tarif.uangHarianFullboard)}
+                              </td>
+                            </tr>
+
+                            {/* 1p. Uang Harian */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{pIdx + 1}p</td>
+                              <td className="p-2 font-semibold">Uang Harian</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.uh1pOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uh1pOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uh1pHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uh1pHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uh1pKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringLKProvinsiList((prev) =>
+                                        prev.map((it, i) => (i === pIdx ? { ...it, uh1pKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianLuarKota)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.uh1pOrg * item.uh1pHari * item.uh1pKeg * tarif.uangHarianLuarKota)}
+                              </td>
+                            </tr>
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-amber-50 dark:bg-amber-950/40 font-bold border-t border-amber-200 dark:border-amber-800">
+                              <td colSpan={5} className="p-2.5 text-right text-slate-700 dark:text-slate-300">
+                                Total Kebutuhan Anggaran Lokasi #{pIdx + 1} ({cleanProv}):
+                              </td>
+                              <td className="p-2.5 text-right font-mono text-amber-700 dark:text-amber-300 text-xs">
+                                Rp {formatIndoNumber(totalProv)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Footer Aksi */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
+              <button
+                type="button"
+                onClick={() => setModalMode("panduan_jenis_belanja")}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Kembali ke Jenis Belanja
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const success = handleSaveKonsinyering();
+                  if (success) {
+                    setModalMode(null);
+                  }
+                }}
+                className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-2 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Konsinyering ke Kertas Kerja</span>
               </button>
             </div>
           </div>
