@@ -1092,7 +1092,7 @@ function IsianRabPageContent() {
   // ─────────────────────────────────────────────────────────────────────────
   // STATE PANDUAN PENYELENGGARAAN KONSINYERING (AKUN 524114 & 524119)
   // ─────────────────────────────────────────────────────────────────────────
-  const [konsinyeringTipe, setKonsinyeringTipe] = useState<"dalam_kota" | "luar_kota">("dalam_kota");
+  const [konsinyeringJenisPilihan, setKonsinyeringJenisPilihan] = useState<Array<"dalam_kota" | "luar_kota">>(["dalam_kota"]);
   const [konsinyeringNamaKegiatan, setKonsinyeringNamaKegiatan] = useState<string>("Konsinyering Penyusunan Rencana Kerja dan Anggaran");
 
   // Konsinyering Dalam Kota (524114)
@@ -3935,11 +3935,16 @@ function IsianRabPageContent() {
   // EKSEKUSI SIMPAN PENYELENGGARAAN KONSINYERING (524114 & 524119)
   // ─────────────────────────────────────────────────────────────────────────
   function handleSaveKonsinyering(): boolean {
+    if (konsinyeringJenisPilihan.length === 0) {
+      triggerAlert("Silakan pilih minimal satu jenis konsinyering (Dalam Kota atau Luar Kota)!");
+      return false;
+    }
+
     const timeStamp = Date.now();
     let nextRows = [...worksheetRows];
 
-    if (konsinyeringTipe === "dalam_kota") {
-      // Konsinyering Dalam Kota -> Akun 524114
+    // 1. KONSINYERING DALAM KOTA (AKUN 524114) JIKA DIPILIH
+    if (konsinyeringJenisPilihan.includes("dalam_kota")) {
       let akunIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
       if (akunIdx === -1) {
         let insertAkunIdx = nextRows.length;
@@ -4019,7 +4024,7 @@ function IsianRabPageContent() {
       addDetailDK("g", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fd1gOrg, "orang", 1, "kali", items.fd1gKeg, "Keg", "OP", tarif.fulldayEselonIII);
       addDetailDK("h", "Uang Harian Fullboard Meeting", items.uh1hOrg, "orang", items.uh1hHari, "hari", items.uh1hKeg, "Keg", "OH", tarif.uangHarianFullboard);
 
-      const rowsToAdd: WorksheetRow[] = [
+      const rowsToAddDK: WorksheetRow[] = [
         {
           id: header1Id,
           type: "header1",
@@ -4043,10 +4048,11 @@ function IsianRabPageContent() {
 
       const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
       const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-      nextRows.splice(insertPos, 0, ...rowsToAdd);
-      triggerAlert("Berhasil menyusun dan menyimpan Konsinyering Dalam Kota ke kertas kerja!");
-    } else {
-      // Konsinyering Luar Kota -> Akun 524119
+      nextRows.splice(insertPos, 0, ...rowsToAddDK);
+    }
+
+    // 2. KONSINYERING LUAR KOTA (AKUN 524119) JIKA DIPILIH
+    if (konsinyeringJenisPilihan.includes("luar_kota")) {
       let akunIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
       if (akunIdx === -1) {
         let insertAkunIdx = nextRows.length;
@@ -4072,9 +4078,9 @@ function IsianRabPageContent() {
 
       const header1Id = `h1-klk-${timeStamp}`;
       const header1Uraian = konsinyeringNamaKegiatan.trim() || "Konsinyering Luar Kota";
-      const rowsToAdd: WorksheetRow[] = [];
+      const rowsToAddLK: WorksheetRow[] = [];
 
-      rowsToAdd.push({
+      rowsToAddLK.push({
         id: header1Id,
         type: "header1",
         kode: "",
@@ -4148,7 +4154,7 @@ function IsianRabPageContent() {
         addDetailLK("o", "Uang Harian Fullboard Meeting", item.uhfb1oOrg, "orang", item.uhfb1oHari, "hari", item.uhfb1oKeg, "Keg", "OH", tarif.uangHarianFullboard);
         addDetailLK("p", "Uang Harian", item.uh1pOrg, "orang", item.uh1pHari, "hari", item.uh1pKeg, "Keg", "OH", tarif.uangHarianLuarKota);
 
-        rowsToAdd.push({
+        rowsToAddLK.push({
           id: header2Id,
           type: "header2",
           kode: "",
@@ -4157,16 +4163,20 @@ function IsianRabPageContent() {
           jumlah: totalH2,
           cO: false, cS: false, cU: false, cK: false, cD: false,
         });
-        rowsToAdd.push(...detailsForProv);
+        rowsToAddLK.push(...detailsForProv);
       });
 
       const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
       const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-      nextRows.splice(insertPos, 0, ...rowsToAdd);
-      triggerAlert("Berhasil menyusun dan menyimpan Konsinyering Luar Kota ke kertas kerja!");
+      nextRows.splice(insertPos, 0, ...rowsToAddLK);
     }
 
+    const savedTypes: string[] = [];
+    if (konsinyeringJenisPilihan.includes("dalam_kota")) savedTypes.push("Dalam Kota (524114)");
+    if (konsinyeringJenisPilihan.includes("luar_kota")) savedTypes.push("Luar Kota (524119)");
+
     setWorksheetRows(calculateHierarchyAmounts(nextRows));
+    triggerAlert(`Berhasil menyusun dan menyimpan Konsinyering ${savedTypes.join(" dan ")} ke kertas kerja!`);
     return true;
   }
 
@@ -12051,7 +12061,11 @@ function IsianRabPageContent() {
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>Panduan: Penyelenggaraan Konsinyering</span>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                      {konsinyeringTipe === "dalam_kota" ? "Akun 524114 (Dalam Kota)" : "Akun 524119 (Luar Kota)"}
+                      {konsinyeringJenisPilihan.includes("dalam_kota") && konsinyeringJenisPilihan.includes("luar_kota")
+                        ? "Akun 524114 & 524119"
+                        : konsinyeringJenisPilihan.includes("dalam_kota")
+                        ? "Akun 524114 (Dalam Kota)"
+                        : "Akun 524119 (Luar Kota)"}
                     </span>
                   </h3>
                   <p className="text-[0.68rem] text-slate-500 dark:text-slate-400">
@@ -12067,25 +12081,30 @@ function IsianRabPageContent() {
               </button>
             </div>
 
-            {/* Pilihan Jenis Perjalanan Dinas: Konsinyering Dalam Kota vs Luar Kota */}
+            {/* Checklist Jenis Konsinyering: Dalam Kota dan/atau Luar Kota */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                Pilih Jenis Konsinyering yang Akan Diinput:
+                Pilih Jenis Konsinyering yang Akan Diinput (Dapat Dicentang Keduanya):
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label
                   className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
-                    konsinyeringTipe === "dalam_kota"
+                    konsinyeringJenisPilihan.includes("dalam_kota")
                       ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-xs"
                       : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
                   }`}
                 >
                   <input
-                    type="radio"
-                    name="konsinyering_tipe"
-                    checked={konsinyeringTipe === "dalam_kota"}
-                    onChange={() => setKonsinyeringTipe("dalam_kota")}
-                    className="mt-0.5 w-4 h-4 accent-amber-600 cursor-pointer"
+                    type="checkbox"
+                    checked={konsinyeringJenisPilihan.includes("dalam_kota")}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setKonsinyeringJenisPilihan((prev) => [...prev, "dalam_kota"]);
+                      } else {
+                        setKonsinyeringJenisPilihan((prev) => prev.filter((x) => x !== "dalam_kota"));
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 accent-amber-600 rounded cursor-pointer"
                   />
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block">
@@ -12099,17 +12118,22 @@ function IsianRabPageContent() {
 
                 <label
                   className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
-                    konsinyeringTipe === "luar_kota"
+                    konsinyeringJenisPilihan.includes("luar_kota")
                       ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-xs"
                       : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300"
                   }`}
                 >
                   <input
-                    type="radio"
-                    name="konsinyering_tipe"
-                    checked={konsinyeringTipe === "luar_kota"}
-                    onChange={() => setKonsinyeringTipe("luar_kota")}
-                    className="mt-0.5 w-4 h-4 accent-amber-600 cursor-pointer"
+                    type="checkbox"
+                    checked={konsinyeringJenisPilihan.includes("luar_kota")}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setKonsinyeringJenisPilihan((prev) => [...prev, "luar_kota"]);
+                      } else {
+                        setKonsinyeringJenisPilihan((prev) => prev.filter((x) => x !== "luar_kota"));
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 accent-amber-600 rounded cursor-pointer"
                   />
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block">
@@ -12139,7 +12163,7 @@ function IsianRabPageContent() {
             </div>
 
             {/* FORM KONSINYERING DALAM KOTA */}
-            {konsinyeringTipe === "dalam_kota" && (
+            {konsinyeringJenisPilihan.includes("dalam_kota") && (
               <div className="space-y-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
                   <div className="text-xs font-bold text-slate-900 dark:text-white">
@@ -12488,7 +12512,7 @@ function IsianRabPageContent() {
             )}
 
             {/* FORM KONSINYERING LUAR KOTA */}
-            {konsinyeringTipe === "luar_kota" && (
+            {konsinyeringJenisPilihan.includes("luar_kota") && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs">
                   <span className="font-semibold text-amber-900 dark:text-amber-200">
@@ -13419,6 +13443,10 @@ function IsianRabPageContent() {
 
               <button
                 type="button"
+                disabled={
+                  konsinyeringJenisPilihan.length === 0 ||
+                  (konsinyeringJenisPilihan.includes("luar_kota") && konsinyeringLKProvinsiList.length === 0)
+                }
                 onClick={() => {
                   const success = handleSaveKonsinyering();
                   if (success) {
@@ -13430,7 +13458,7 @@ function IsianRabPageContent() {
                     }
                   }
                 }}
-                className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer flex items-center gap-2 transition-colors"
+                className="px-6 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >
                 <Save className="w-4 h-4" />
                 <span>
