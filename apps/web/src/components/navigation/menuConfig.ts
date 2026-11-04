@@ -119,6 +119,7 @@ export const menuConfig: MenuGroup[] = [
         submenu: [
           { label: "Pilih Histori", href: "/rab/pilih-histori" },
           { label: "Isian RAB", href: "/rab/isian" },
+          { label: "Forum Penelaahan", href: "/rab/forum-penelaahan", badge: "Live", badgeVariant: "primary" },
           { label: "Revisi Anggaran", href: "/rab/revisi" },
           { label: "Automatic Adjustment", href: "/rab/automatic-adjustment" },
           {

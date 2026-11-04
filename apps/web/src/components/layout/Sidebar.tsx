@@ -66,13 +66,14 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
     // Modifikasi item menu sesuai hak akses role
     const roleAdjustedConfig = menuConfig.map((group) => {
       const items = group.items.map((item) => {
-        // Untuk menu RAB: jika Operator atau Approver, tampilkan Isian RAB, Revisi Anggaran, dan Laporan RAB
+        // Untuk menu RAB: jika Operator atau Approver, tampilkan Isian RAB, Forum Penelaahan, Revisi Anggaran, dan Laporan RAB
         if (item.label === "Rencana Anggaran Biaya (RAB)" && isOperatorOrApprover) {
           return {
             ...item,
             submenu: item.submenu?.filter(
               (sub) =>
                 sub.label === "Isian RAB" ||
+                sub.label === "Forum Penelaahan" ||
                 sub.label === "Revisi Anggaran" ||
                 sub.label === "Laporan RAB"
             ),
