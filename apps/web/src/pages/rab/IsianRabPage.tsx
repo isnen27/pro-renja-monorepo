@@ -1099,16 +1099,31 @@ function IsianRabPageContent() {
 
   // Konsinyering Dalam Kota (524114)
   const [konsinyeringDKJumlahKeg, setKonsinyeringDKJumlahKeg] = useState<number>(1);
-  const [konsinyeringDKItems, setKonsinyeringDKItems] = useState({
-    trans1aOrg: 20, trans1aKeg: 1,
-    fb1bOrg: 1, fb1bHari: 2, fb1bKeg: 1,
-    fb1cOrg: 3, fb1cHari: 2, fb1cKeg: 1,
-    fb1dOrg: 16, fb1dHari: 2, fb1dKeg: 1,
-    fd1eOrg: 0, fd1eKeg: 1,
-    fd1fOrg: 0, fd1fKeg: 1,
-    fd1gOrg: 0, fd1gKeg: 1,
-    uh1hOrg: 20, uh1hHari: 2, uh1hKeg: 1,
-  });
+  const [konsinyeringDKKegiatanList, setKonsinyeringDKKegiatanList] = useState<Array<{
+    id: string;
+    namaKegiatan: string;
+    trans1aOrg: number; trans1aKeg: number;
+    fb1bOrg: number; fb1bHari: number; fb1bKeg: number;
+    fb1cOrg: number; fb1cHari: number; fb1cKeg: number;
+    fb1dOrg: number; fb1dHari: number; fb1dKeg: number;
+    fd1eOrg: number; fd1eKeg: number;
+    fd1fOrg: number; fd1fKeg: number;
+    fd1gOrg: number; fd1gKeg: number;
+    uh1hOrg: number; uh1hHari: number; uh1hKeg: number;
+  }>>([
+    {
+      id: "kdk-1",
+      namaKegiatan: "Konsinyering Penyusunan Rencana Kerja dan Anggaran",
+      trans1aOrg: 20, trans1aKeg: 1,
+      fb1bOrg: 1, fb1bHari: 2, fb1bKeg: 1,
+      fb1cOrg: 3, fb1cHari: 2, fb1cKeg: 1,
+      fb1dOrg: 16, fb1dHari: 2, fb1dKeg: 1,
+      fd1eOrg: 0, fd1eKeg: 1,
+      fd1fOrg: 0, fd1fKeg: 1,
+      fd1gOrg: 0, fd1gKeg: 1,
+      uh1hOrg: 20, uh1hHari: 2, uh1hKeg: 1,
+    }
+  ]);
 
   // Konsinyering Luar Kota (524119)
   const [konsinyeringLKProvinsiList, setKonsinyeringLKProvinsiList] = useState<Array<{
@@ -3986,110 +4001,131 @@ function IsianRabPageContent() {
       }
 
       const tarif = getTarifKonsinyeringDalamKota();
-      const rawJudulDK = konsinyeringNamaKegiatan.trim() || "Konsinyering Penyusunan Rencana Kerja dan Anggaran";
-      const cleanJudulDK = cleanHeaderUraian(rawJudulDK);
 
-      // Cek apakah Header 1 sudah ada di bawah 524114
+      // Kelompokkan setiap kegiatan Dalam Kota berdasarkan namaKegiatan masing-masing
+      const groupsDK: Array<{ judul: string; items: typeof konsinyeringDKKegiatanList }> = [];
+      konsinyeringDKKegiatanList.forEach((item) => {
+        const judul = (item.namaKegiatan || "Konsinyering Penyusunan Rencana Kerja dan Anggaran").trim();
+        const existingGrp = groupsDK.find((g) => cleanHeaderUraian(g.judul) === cleanHeaderUraian(judul));
+        if (existingGrp) {
+          existingGrp.items.push(item);
+        } else {
+          groupsDK.push({ judul, items: [item] });
+        }
+      });
+
+      // Ambil existing Header 1 di bawah akun 524114 untuk penomoran berurutan
       const existingH1sDK = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524114");
-      const existingMatchDK = existingH1sDK.find((h) => cleanHeaderUraian(h.uraian) === cleanJudulDK);
+      let nextH1NumDK = existingH1sDK.length + 1;
 
-      let targetH1UraianDK = rawJudulDK;
-      if (existingMatchDK) {
-        targetH1UraianDK = existingMatchDK.uraian;
-      } else {
-        const nextH1NumDK = existingH1sDK.length + 1;
-        targetH1UraianDK = `${nextH1NumDK}. ${cleanJudulDK}`;
-      }
+      groupsDK.forEach((grp, grpIdx) => {
+        const cleanGrpJudul = cleanHeaderUraian(grp.judul);
+        const existingMatchDK = nextRows.find(
+          (r) => r.type === "header1" && r.parentAkunKode === "524114" && cleanHeaderUraian(r.uraian) === cleanGrpJudul
+        );
 
-      const header1Id = existingMatchDK ? existingMatchDK.id : `h1-kdk-${timeStamp}`;
-      const header2Uraian = "JAKARTA";
-      const header2Id = `h2-kdk-${timeStamp}`;
+        const isExistingH1 = !!existingMatchDK;
+        let targetH1UraianDK = grp.judul;
+        if (isExistingH1 && existingMatchDK) {
+          targetH1UraianDK = existingMatchDK.uraian;
+        } else {
+          targetH1UraianDK = `${nextH1NumDK}. ${cleanGrpJudul}`;
+          nextH1NumDK++;
+        }
 
-      const details: WorksheetRow[] = [];
-      let totalH2 = 0;
+        const header1Id = existingMatchDK ? existingMatchDK.id : `h1-kdk-${grpIdx}-${timeStamp}`;
+        const rowsToAddDK: WorksheetRow[] = [];
 
-      const addDetailDK = (
-        subLetter: string,
-        nama: string,
-        vOrg: number,
-        vSat1: string,
-        vHari: number,
-        vSat2: string,
-        vKeg: number,
-        vSat3: string,
-        satAkhir: string,
-        harga: number
-      ) => {
-        const totalVol = (vOrg || 0) * (vHari || 0) * (vKeg || 0);
-        const subTotal = totalVol * (harga || 0);
-        if (subTotal <= 0 && vOrg <= 0) return;
+        if (!isExistingH1) {
+          rowsToAddDK.push({
+            id: header1Id,
+            type: "header1",
+            kode: "",
+            uraian: targetH1UraianDK,
+            parentAkunKode: "524114",
+            jumlah: 0,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+        }
 
-        totalH2 += subTotal;
-        details.push({
-          id: `det-kdk-${subLetter}-${timeStamp}`,
-          type: "detail",
-          kode: "",
-          uraian: `1${subLetter}. ${nama}`,
-          parentAkunKode: "524114",
-          k1Nilai: vOrg > 0 ? vOrg : undefined,
-          k1Sat: vOrg > 0 ? vSat1 : undefined,
-          k2Nilai: vHari > 0 ? vHari : undefined,
-          k2Sat: vHari > 0 ? vSat2 : undefined,
-          k3Nilai: vKeg > 0 ? vKeg : undefined,
-          k3Sat: vKeg > 0 ? vSat3 : undefined,
-          vol: totalVol > 0 ? totalVol : undefined,
-          sat: satAkhir,
-          harga: harga,
-          jumlah: subTotal,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
+        grp.items.forEach((item, kIdx) => {
+          const numPrefix = `${kIdx + 1}`;
+          const header2Uraian = "JAKARTA";
+          const header2Id = `h2-kdk-${grpIdx}-${kIdx}-${timeStamp}`;
+
+          const details: WorksheetRow[] = [];
+          let totalH2 = 0;
+
+          const addDetailDK = (
+            subLetter: string,
+            nama: string,
+            vOrg: number,
+            vSat1: string,
+            vHari: number,
+            vSat2: string,
+            vKeg: number,
+            vSat3: string,
+            satAkhir: string,
+            harga: number
+          ) => {
+            const totalVol = (vOrg || 0) * (vHari || 0) * (vKeg || 0);
+            const subTotal = totalVol * (harga || 0);
+            if (subTotal <= 0 && vOrg <= 0) return;
+
+            totalH2 += subTotal;
+            details.push({
+              id: `det-kdk-${grpIdx}-${kIdx}-${subLetter}-${timeStamp}`,
+              type: "detail",
+              kode: "",
+              uraian: `${numPrefix}${subLetter}. ${nama}`,
+              parentAkunKode: "524114",
+              k1Nilai: vOrg > 0 ? vOrg : undefined,
+              k1Sat: vOrg > 0 ? vSat1 : undefined,
+              k2Nilai: vHari > 0 ? vHari : undefined,
+              k2Sat: vHari > 0 ? vSat2 : undefined,
+              k3Nilai: vKeg > 0 ? vKeg : undefined,
+              k3Sat: vKeg > 0 ? vSat3 : undefined,
+              vol: totalVol > 0 ? totalVol : undefined,
+              sat: satAkhir,
+              harga: harga,
+              jumlah: subTotal,
+              cO: false, cS: false, cU: false, cK: false, cD: false,
+            });
+          };
+
+          addDetailDK("a", "Transport Lokal", item.trans1aOrg, "orang", 1, "kali", item.trans1aKeg, "Keg", "OK", tarif.transportLokal);
+          addDetailDK("b", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fb1bOrg, "orang", item.fb1bHari, "hari", item.fb1bKeg, "Keg", "OP", tarif.fullboardMenteri);
+          addDetailDK("c", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fb1cOrg, "orang", item.fb1cHari, "hari", item.fb1cKeg, "Keg", "OP", tarif.fullboardEselonI_II);
+          addDetailDK("d", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fb1dOrg, "orang", item.fb1dHari, "hari", item.fb1dKeg, "Keg", "OP", tarif.fullboardEselonIII);
+          addDetailDK("e", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fd1eOrg, "orang", 1, "kali", item.fd1eKeg, "Keg", "OP", tarif.fulldayMenteri);
+          addDetailDK("f", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fd1fOrg, "orang", 1, "kali", item.fd1fKeg, "Keg", "OP", tarif.fulldayEselonI_II);
+          addDetailDK("g", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fd1gOrg, "orang", 1, "kali", item.fd1gKeg, "Keg", "OP", tarif.fulldayEselonIII);
+          addDetailDK("h", "Uang Harian Fullboard Meeting", item.uh1hOrg, "orang", item.uh1hHari, "hari", item.uh1hKeg, "Keg", "OH", tarif.uangHarianFullboard);
+
+          rowsToAddDK.push(
+            {
+              id: header2Id,
+              type: "header2",
+              kode: "",
+              uraian: header2Uraian,
+              parentAkunKode: "524114",
+              jumlah: totalH2,
+              cO: false, cS: false, cU: false, cK: false, cD: false,
+            },
+            ...details
+          );
         });
-      };
 
-      const items = konsinyeringDKItems;
-      addDetailDK("a", "Transport Lokal", items.trans1aOrg, "orang", 1, "kali", items.trans1aKeg, "Keg", "OK", tarif.transportLokal);
-      addDetailDK("b", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", items.fb1bOrg, "orang", items.fb1bHari, "hari", items.fb1bKeg, "Keg", "OP", tarif.fullboardMenteri);
-      addDetailDK("c", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", items.fb1cOrg, "orang", items.fb1cHari, "hari", items.fb1cKeg, "Keg", "OP", tarif.fullboardEselonI_II);
-      addDetailDK("d", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fb1dOrg, "orang", items.fb1dHari, "hari", items.fb1dKeg, "Keg", "OP", tarif.fullboardEselonIII);
-      addDetailDK("e", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", items.fd1eOrg, "orang", 1, "kali", items.fd1eKeg, "Keg", "OP", tarif.fulldayMenteri);
-      addDetailDK("f", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", items.fd1fOrg, "orang", 1, "kali", items.fd1fKeg, "Keg", "OP", tarif.fulldayEselonI_II);
-      addDetailDK("g", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fd1gOrg, "orang", 1, "kali", items.fd1gKeg, "Keg", "OP", tarif.fulldayEselonIII);
-      addDetailDK("h", "Uang Harian Fullboard Meeting", items.uh1hOrg, "orang", items.uh1hHari, "hari", items.uh1hKeg, "Keg", "OH", tarif.uangHarianFullboard);
-
-      const rowsToAddDK: WorksheetRow[] = [];
-      if (!existingMatchDK) {
-        rowsToAddDK.push({
-          id: header1Id,
-          type: "header1",
-          kode: "",
-          uraian: targetH1UraianDK,
-          parentAkunKode: "524114",
-          jumlah: totalH2,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
-        });
-      }
-
-      rowsToAddDK.push(
-        {
-          id: header2Id,
-          type: "header2",
-          kode: "",
-          uraian: header2Uraian,
-          parentAkunKode: "524114",
-          jumlah: totalH2,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
-        },
-        ...details
-      );
-
-      if (existingMatchDK) {
-        const h1Idx = nextRows.findIndex((r) => r.id === existingMatchDK.id);
-        const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
-        nextRows.splice(insertPos, 0, ...rowsToAddDK);
-      } else {
-        const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
-        const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-        nextRows.splice(insertPos, 0, ...rowsToAddDK);
-      }
+        if (isExistingH1 && existingMatchDK) {
+          const h1Idx = nextRows.findIndex((r) => r.id === existingMatchDK.id);
+          const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
+          nextRows.splice(insertPos, 0, ...rowsToAddDK);
+        } else {
+          const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
+          const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+          nextRows.splice(insertPos, 0, ...rowsToAddDK);
+        }
+      });
     }
 
     // 2. KONSINYERING LUAR KOTA (AKUN 524119) JIKA DIPILIH
@@ -12240,51 +12276,48 @@ function IsianRabPageContent() {
               </div>
             </div>
 
-            {/* Penjelasan atau Input Nama Kegiatan Default jika Konsinyering Dalam Kota */}
-            {konsinyeringJenisPilihan.includes("dalam_kota") && (
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <span>Nama Kegiatan Konsinyering Dalam Kota (Menjadi Header 1):</span>
-                  <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={konsinyeringNamaKegiatan}
-                  onChange={(e) => setKonsinyeringNamaKegiatan(e.target.value)}
-                  placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-            )}
+
 
             {/* FORM KONSINYERING DALAM KOTA */}
             {konsinyeringJenisPilihan.includes("dalam_kota") && (
-              <div className="space-y-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">
-                    <span>Header 2: </span>
-                    <span className="font-mono text-amber-700 dark:text-amber-400">JAKARTA</span>
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
+                  <div>
+                    <span className="font-bold text-amber-950 dark:text-amber-200 block">
+                      Tentukan Jumlah Kegiatan Konsinyering Dalam Kota Terlebih Dahulu ({konsinyeringDKKegiatanList.length}):
+                    </span>
+                    <span className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                      Tiap kegiatan konsinyering dalam kota memiliki nama kegiatan (Header 1) yang dapat disesuaikan tersendiri
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                      Jumlah Kegiatan:
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={konsinyeringDKJumlahKeg}
-                      onChange={(e) => setKonsinyeringDKJumlahKeg(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center text-xs font-mono font-bold"
-                    />
-                    <span className="text-[11px] text-slate-500">kegiatan</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKonsinyeringDKKegiatanList((prev) => [
+                        ...prev,
+                        {
+                          id: `kdk-${Date.now()}-${prev.length}`,
+                          namaKegiatan: "Konsinyering Penyusunan Rencana Kerja dan Anggaran",
+                          trans1aOrg: 20, trans1aKeg: 1,
+                          fb1bOrg: 1, fb1bHari: 2, fb1bKeg: 1,
+                          fb1cOrg: 3, fb1cHari: 2, fb1cKeg: 1,
+                          fb1dOrg: 16, fb1dHari: 2, fb1dKeg: 1,
+                          fd1eOrg: 0, fd1eKeg: 1,
+                          fd1fOrg: 0, fd1fKeg: 1,
+                          fd1gOrg: 0, fd1gKeg: 1,
+                          uh1hOrg: 20, uh1hHari: 2, uh1hKeg: 1,
+                        },
+                      ]);
+                    }}
+                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs self-start sm:self-auto shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Kegiatan Konsinyering</span>
+                  </button>
                 </div>
 
-                {/* Tabel 1a s.d 1h Konsinyering Dalam Kota */}
-                {(() => {
+                {konsinyeringDKKegiatanList.map((item, kIdx) => {
                   const tarif = getTarifKonsinyeringDalamKota();
-                  const item = konsinyeringDKItems;
                   const total =
                     (item.trans1aOrg * item.trans1aKeg * tarif.transportLokal) +
                     (item.fb1bOrg * item.fb1bHari * item.fb1bKeg * tarif.fullboardMenteri) +
@@ -12296,317 +12329,454 @@ function IsianRabPageContent() {
                     (item.uh1hOrg * item.uh1hHari * item.uh1hKeg * tarif.uangHarianFullboard);
 
                   return (
-                    <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 text-[11px] font-bold border-b border-slate-200 dark:border-slate-700">
-                            <th className="p-2 w-12 text-center">Kode</th>
-                            <th className="p-2">Uraian Rincian Belanja</th>
-                            <th className="p-2 text-center">Volume Perhitungan</th>
-                            <th className="p-2 text-center w-14">Satuan</th>
-                            <th className="p-2 text-right">Biaya Satuan SBM (Rp)</th>
-                            <th className="p-2 text-right">Jumlah (Rp)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
-                          {/* 1a. Transport Lokal */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1a</td>
-                            <td className="p-2 font-semibold">Transport Lokal</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.trans1aOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, trans1aOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.trans1aKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, trans1aKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-slate-800/80 shadow-xs space-y-4"
+                    >
+                      {/* Baris Header Kegiatan & Lokasi JAKARTA */}
+                      <div className="space-y-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {kIdx + 1}
+                            </span>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Kegiatan #{kIdx + 1} - Lokasi (Menjadi Header 2):</span>
+                                <span className="font-mono text-amber-700 dark:text-amber-400">JAKARTA</span>
                               </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OK</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.transportLokal)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.trans1aOrg * item.trans1aKeg * tarif.transportLokal)}
-                            </td>
-                          </tr>
+                              <span className="text-[10px] text-slate-500">
+                                Akun 524114 (Belanja Perjalanan Dinas Paket Meeting Dalam Kota)
+                              </span>
+                            </div>
+                          </div>
 
-                          {/* 1b. Fullboard Meeting Menteri */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1b</td>
-                            <td className="p-2 font-semibold">Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fb1bOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1bHari}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bHari: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">hari ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1bKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1bKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardMenteri)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fb1bOrg * item.fb1bHari * item.fb1bKeg * tarif.fullboardMenteri)}
-                            </td>
-                          </tr>
+                          {konsinyeringDKKegiatanList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setKonsinyeringDKKegiatanList((prev) => prev.filter((_, i) => i !== kIdx))}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer self-start sm:self-auto"
+                              title="Hapus Kegiatan"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
 
-                          {/* 1c. Fullboard Eselon I dan II */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1c</td>
-                            <td className="p-2 font-semibold">Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fb1cOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1cHari}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cHari: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">hari ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1cKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1cKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonI_II)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fb1cOrg * item.fb1cHari * item.fb1cKeg * tarif.fullboardEselonI_II)}
-                            </td>
-                          </tr>
+                        {/* Input Nama Kegiatan (Menjadi Header 1) */}
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-2">
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0 flex items-center gap-1">
+                            <span>Nama Kegiatan (Menjadi Header 1):</span>
+                            <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={item.namaKegiatan || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setKonsinyeringDKKegiatanList((prev) =>
+                                prev.map((it, i) => (i === kIdx ? { ...it, namaKegiatan: val } : it))
+                              );
+                            }}
+                            placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
+                            className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
 
-                          {/* 1d. Fullboard Eselon III ke bawah */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1d</td>
-                            <td className="p-2 font-semibold">Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fb1dOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1dHari}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dHari: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">hari ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fb1dKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fb1dKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonIII)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fb1dOrg * item.fb1dHari * item.fb1dKeg * tarif.fullboardEselonIII)}
-                            </td>
-                          </tr>
+                      {/* Tabel 1a s.d 1h Konsinyering Dalam Kota */}
+                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 text-[11px] font-bold border-b border-slate-200 dark:border-slate-700">
+                              <th className="p-2 w-12 text-center">Kode</th>
+                              <th className="p-2">Uraian Rincian Belanja</th>
+                              <th className="p-2 text-center">Volume Perhitungan</th>
+                              <th className="p-2 text-center w-14">Satuan</th>
+                              <th className="p-2 text-right">Biaya Satuan SBM (Rp)</th>
+                              <th className="p-2 text-right">Jumlah (Rp)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                            {/* 1a. Transport Lokal */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}a</td>
+                              <td className="p-2 font-semibold">Transport Lokal</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.trans1aOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, trans1aOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.trans1aKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, trans1aKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OK</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.transportLokal)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.trans1aOrg * item.trans1aKeg * tarif.transportLokal)}
+                              </td>
+                            </tr>
 
-                          {/* 1e. Fullday Menteri */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1e</td>
-                            <td className="p-2 font-semibold">Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fd1eOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1eOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fd1eKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1eKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayMenteri)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fd1eOrg * item.fd1eKeg * tarif.fulldayMenteri)}
-                            </td>
-                          </tr>
+                            {/* 1b. Fullboard Meeting Menteri */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}b</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1bOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1bOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1bHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1bHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1bKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1bKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardMenteri)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1bOrg * item.fb1bHari * item.fb1bKeg * tarif.fullboardMenteri)}
+                              </td>
+                            </tr>
 
-                          {/* 1f. Fullday Eselon I dan II */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1f</td>
-                            <td className="p-2 font-semibold">Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fd1fOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1fOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fd1fKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1fKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonI_II)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fd1fOrg * item.fd1fKeg * tarif.fulldayEselonI_II)}
-                            </td>
-                          </tr>
+                            {/* 1c. Fullboard Eselon I dan II */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}c</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1cOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1cOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1cHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1cHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1cKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1cKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonI_II)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1cOrg * item.fb1cHari * item.fb1cKeg * tarif.fullboardEselonI_II)}
+                              </td>
+                            </tr>
 
-                          {/* 1g. Fullday Eselon III */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1g</td>
-                            <td className="p-2 font-semibold">Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.fd1gOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1gOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.fd1gKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, fd1gKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OP</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonIII)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.fd1gOrg * item.fd1gKeg * tarif.fulldayEselonIII)}
-                            </td>
-                          </tr>
+                            {/* 1d. Fullboard Eselon III ke bawah */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}d</td>
+                              <td className="p-2 font-semibold">Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fb1dOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1dOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1dHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1dHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fb1dKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fb1dKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fullboardEselonIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fb1dOrg * item.fb1dHari * item.fb1dKeg * tarif.fullboardEselonIII)}
+                              </td>
+                            </tr>
 
-                          {/* 1h. Uang Harian Fullboard Meeting */}
-                          <tr>
-                            <td className="p-2 text-center font-mono font-bold text-slate-500">1h</td>
-                            <td className="p-2 font-semibold">Uang Harian Fullboard Meeting</td>
-                            <td className="p-2 text-center">
-                              <div className="inline-flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.uh1hOrg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hOrg: Number(e.target.value) || 0 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">orang ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.uh1hHari}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hHari: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">hari ×</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={item.uh1hKeg}
-                                  onChange={(e) => setKonsinyeringDKItems((p) => ({ ...p, uh1hKeg: Number(e.target.value) || 1 }))}
-                                  className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
-                                />
-                                <span className="text-[10px] text-slate-500">keg</span>
-                              </div>
-                            </td>
-                            <td className="p-2 text-center font-semibold text-slate-600">OH</td>
-                            <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianFullboard)}</td>
-                            <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
-                              {formatIndoNumber(item.uh1hOrg * item.uh1hHari * item.uh1hKeg * tarif.uangHarianFullboard)}
-                            </td>
-                          </tr>
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-amber-50 dark:bg-amber-950/40 font-bold border-t border-amber-200 dark:border-amber-800">
-                            <td colSpan={5} className="p-2.5 text-right text-slate-700 dark:text-slate-300">
-                              Total Kebutuhan Anggaran Konsinyering Dalam Kota:
-                            </td>
-                            <td className="p-2.5 text-right font-mono text-amber-700 dark:text-amber-300 text-xs">
-                              Rp {formatIndoNumber(total)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                            {/* 1e. Fullday Menteri */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}e</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1eOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1eOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1eKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1eKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayMenteri)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1eOrg * item.fd1eKeg * tarif.fulldayMenteri)}
+                              </td>
+                            </tr>
+
+                            {/* 1f. Fullday Eselon I dan II */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}f</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1fOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1fOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1fKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1fKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonI_II)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1fOrg * item.fd1fKeg * tarif.fulldayEselonI_II)}
+                              </td>
+                            </tr>
+
+                            {/* 1g. Fullday Eselon III */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}g</td>
+                              <td className="p-2 font-semibold">Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.fd1gOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1gOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.fd1gKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, fd1gKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OP</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.fulldayEselonIII)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.fd1gOrg * item.fd1gKeg * tarif.fulldayEselonIII)}
+                              </td>
+                            </tr>
+
+                            {/* 1h. Uang Harian Fullboard Meeting */}
+                            <tr>
+                              <td className="p-2 text-center font-mono font-bold text-slate-500">{kIdx + 1}h</td>
+                              <td className="p-2 font-semibold">Uang Harian Fullboard Meeting</td>
+                              <td className="p-2 text-center">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={item.uh1hOrg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, uh1hOrg: Number(e.target.value) || 0 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">orang ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uh1hHari}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, uh1hHari: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">hari ×</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={item.uh1hKeg}
+                                    onChange={(e) =>
+                                      setKonsinyeringDKKegiatanList((prev) =>
+                                        prev.map((it, i) => (i === kIdx ? { ...it, uh1hKeg: Number(e.target.value) || 1 } : it))
+                                      )
+                                    }
+                                    className="w-12 px-1 py-1 border border-slate-300 dark:border-slate-700 rounded text-center text-xs font-mono font-bold"
+                                  />
+                                  <span className="text-[10px] text-slate-500">keg</span>
+                                </div>
+                              </td>
+                              <td className="p-2 text-center font-semibold text-slate-600">OH</td>
+                              <td className="p-2 text-right font-mono">{formatIndoNumber(tarif.uangHarianFullboard)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-700 dark:text-amber-300">
+                                {formatIndoNumber(item.uh1hOrg * item.uh1hHari * item.uh1hKeg * tarif.uangHarianFullboard)}
+                              </td>
+                            </tr>
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-amber-50 dark:bg-amber-950/40 font-bold border-t border-amber-200 dark:border-amber-800">
+                              <td colSpan={5} className="p-2.5 text-right text-slate-700 dark:text-slate-300">
+                                Total Kebutuhan Anggaran Kegiatan #{kIdx + 1} (JAKARTA):
+                              </td>
+                              <td className="p-2.5 text-right font-mono text-amber-700 dark:text-amber-300 text-xs">
+                                Rp {formatIndoNumber(total)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
                     </div>
                   );
-                })()}
+                })}
               </div>
             )}
 
-            {/* FORM KONSINYERING LUAR KOTA */}
+{/* FORM KONSINYERING LUAR KOTA */}
             {konsinyeringJenisPilihan.includes("luar_kota") && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
@@ -13568,6 +13738,7 @@ function IsianRabPageContent() {
                 type="button"
                 disabled={
                   konsinyeringJenisPilihan.length === 0 ||
+                  (konsinyeringJenisPilihan.includes("dalam_kota") && konsinyeringDKKegiatanList.length === 0) ||
                   (konsinyeringJenisPilihan.includes("luar_kota") && konsinyeringLKProvinsiList.length === 0)
                 }
                 onClick={() => {
