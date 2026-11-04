@@ -42,6 +42,7 @@ const MonitoringBlokirPage = lazy(() => import("./pages/rab/MonitoringBlokirPage
 const MonitoringRpdPage = lazy(() => import("./pages/rab/MonitoringRpdPage"));
 const MonitoringSubmitApproveRabPage = lazy(() => import("./pages/rab/MonitoringSubmitApproveRabPage"));
 const ForumPenelaahanPage = lazy(() => import("./pages/rab/ForumPenelaahanPage"));
+const RpdPage = lazy(() => import("./pages/rab/RpdPage"));
 
 // Referensi
 const SeriesAnggaranPage = lazy(() => import("./pages/referensi/SeriesAnggaranPage"));
@@ -97,6 +98,7 @@ export default function App() {
             {/* Rencana Anggaran Biaya (RAB) - sub pages */}
             <Route path="/rab/pilih-histori" element={<PilihHistoriRabPage />} />
             <Route path="/rab/isian" element={<IsianRabPage />} />
+            <Route path="/rab/rpd" element={<RpdPage />} />
             <Route path="/rab/forum-penelaahan" element={<ForumPenelaahanPage />} />
             <Route path="/rab/input-rinci" element={<Navigate to="/rab/isian" replace />} />
             <Route path="/rab/revisi" element={<RevisiAnggaranPage />} />

@@ -1,16 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   MessageSquare,
   FileText,
-  History,
   GitCompare,
-  BarChart3,
   CheckCircle2,
   Printer,
   UserPlus,
   Send,
   CornerDownRight,
   ChevronDown,
+  ChevronRight,
   Building,
   Users,
   Search,
@@ -25,16 +24,35 @@ import {
   AlertTriangle,
   FolderKanban,
   Coins,
+  Paperclip,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  Layers,
 } from "lucide-react";
+import unitKerjaData from "../../data/unitKerjaData.json";
+import { WorksheetRow } from "./IsianRabPage";
+
+interface AttachedDocument {
+  id: string;
+  name: string;
+  size: string;
+  uploadedBy: string;
+  time: string;
+  url?: string;
+}
 
 interface CommentThread {
   id: number;
   author: string;
-  authorRole: "DJA" | "Bappenas" | "PPATK";
+  authorRole: "Tim Penganggaran" | "Tim Perencanaan" | "Inspektorat" | "Unit Kerja";
   authorId: string;
   roleBadge: string;
   time: string;
   content: string;
+  attachments?: AttachedDocument[];
   replyTo?: {
     id: number;
     author: string;
@@ -43,84 +61,275 @@ interface CommentThread {
 }
 
 export default function ForumPenelaahanPage() {
-  // State Filter & Status
-  const [tahunAnggaran] = useState<string>("2026");
-  const [tahap, setTahap] = useState<string>("Alokasi Anggaran");
-  const isClosed = true;
+  // Tahun anggaran disesuaikan dengan info tahun yang ada di Topbar (TA 2027) sesuai Panduan4
+  const tahunAnggaran = "TA 2027";
 
-  // Active shortcut tab/modal
-  const [activeTab, setActiveTab] = useState<
-    "forum" | "dokumen" | "history" | "sanding_data" | "sanding_tpnbp" | "ssb" | "catatan"
-  >("forum");
+  // Role aktif
+  const [currentUserRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch (e) {
+      return "Operator";
+    }
+  });
+
+  // Tahap sesuai Panduan4:
+  // Pagu Indikatif, Pagu Anggaran, Alokasi ANggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK
+  const [tahap, setTahap] = useState<string>("Alokasi Anggaran");
+
+  // Unit kerja user sesuai Panduan4:
+  // "sistem akan menunjukkan Unit Kerja user sesuai data pada submenu Unit Kerja PPATK tanpa nomor/kode unit kerja,
+  // untuk role Super Admin, unit kerjanya PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN"
+  const [userUnit, setUserUnit] = useState<string>(() => {
+    try {
+      const role = localStorage.getItem("renja_e2_user_role") || "Operator";
+      if (role === "Super Admin") {
+        return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
+      }
+      const rabSaved = localStorage.getItem("rab_active_histori");
+      if (rabSaved) {
+        const p = JSON.parse(rabSaved);
+        if (p.kdsatker) return p.kdsatker;
+      }
+      const kakSaved = localStorage.getItem("kak_active_histori");
+      if (kakSaved) {
+        const p = JSON.parse(kakSaved);
+        if (p.kdsatker) return p.kdsatker;
+      }
+      const renjaSaved = localStorage.getItem("renja_e2_active_histori");
+      if (renjaSaved) {
+        const p = JSON.parse(renjaSaved);
+        if (p.unit_kerja) return p.unit_kerja;
+      }
+    } catch (e) {}
+    return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
+  });
+
+  const ukSingkatan = useMemo(() => {
+    const found = unitKerjaData.find(
+      (u) =>
+        u.nama.toLowerCase() === userUnit.toLowerCase() ||
+        u.singkatan.toLowerCase() === userUnit.toLowerCase()
+    );
+    return found ? found.singkatan : "HUKER";
+  }, [userUnit]);
+
+  // Tombol yang tersedia di atas Diskusi: Dokumen, Sanding Data, Catatan Penelaahan (Panduan4)
+  const [activeTab, setActiveTab] = useState<"forum" | "dokumen" | "sanding_data" | "catatan">("forum");
 
   // Modal State
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
-  const [newUserRole, setNewUserRole] = useState<string>("Kementerian/Lembaga");
+  const [newUserRole, setNewUserRole] = useState<string>("Unit Kerja");
   const [newUserName, setNewUserName] = useState<string>("");
   const [newUserEmail, setNewUserEmail] = useState<string>("");
 
-  // Peserta list
+  // Peserta Penelaahan Sesuai Panduan4:
+  // - Tim Penganggaran (menggantikan DJA)
+  // - Tim Perencanaan (menggantikan Bappenas)
+  // - Inspektorat (menggantikan K/L)
+  // - Unit Kerja (menggantikan Satuan Kerja)
+  // Hanya role SuperAdmin dan BINCANG yang dapat menentukan / tambah user
+  const canManageParticipants = currentUserRole === "Super Admin" || currentUserRole === "BINCANG";
+
   const [pesertaList, setPesertaList] = useState({
-    dja: ["SUKRASNO", "FAUZI SYAMSURI"],
-    bappenas: ["NOOR ANDRINI WURYANDARI"],
-    kl: [
-      "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN (PPATK)",
-      "BIRO PERENCANAAN PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN (PPATK)",
-      "Pusat Pelaporan dan Analisis Transaksi Keuangan",
-    ],
-    satker: ["OPERATOR SATKER PUSAT (453374)", "PEJABAT PEMBUAT KOMITMEN (PPK)"],
+    penganggaran: ["SUKRASNO (Ketua Tim)", "FAUZI SYAMSURI"],
+    perencanaan: ["NOOR ANDRINI WURYANDARI", "TIM PERENCANAAN BIRO REN"],
+    inspektorat: ["INSPEKTUR PPATK", "AUDITOR MADYA PENELAAH"],
+    unitKerja: ["OPERATOR SATKER PUSAT (453374)", "PEJABAT PEMBUAT KOMITMEN (PPK)"],
   });
 
-  // Threads list (mirip data asli dari screenshot SAKTI penelaahan PPATK)
+  // Alokasi Program & Kinerja Belanja diambil dari hasil input data pada submenu Isian RAB (Panduan4)
+  const [worksheetRows, setWorksheetRows] = useState<WorksheetRow[]>([]);
+  const [expandedPrograms, setExpandedPrograms] = useState<Record<string, boolean>>({
+    "078.01.BE": true,
+    "078.01.WA": false,
+  });
+  const [expandedKro, setExpandedKro] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`rab_worksheet_${ukSingkatan}`);
+      if (saved) {
+        setWorksheetRows(JSON.parse(saved));
+      }
+    } catch (e) {}
+  }, [ukSingkatan]);
+
+  // Hitung total dari worksheet Isian RAB
+  const totalPaguDetail = useMemo(() => {
+    const details = worksheetRows.filter((r) => r.type === "detail");
+    if (details.length > 0) {
+      return details.reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+    }
+    const progs = worksheetRows.filter((r) => r.type === "program");
+    if (progs.length > 0) {
+      return progs.reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+    }
+    return 333577080000; // default nominal
+  }, [worksheetRows]);
+
+  // Breakdown program s.d RO
+  const programBreakdown = useMemo(() => {
+    const programs = worksheetRows.filter((r) => r.type === "program");
+    if (programs.length > 0) {
+      return programs.map((p) => {
+        const progKode = p.kode || "";
+        const kros = worksheetRows.filter((r) => r.type === "kro");
+        const ros = worksheetRows.filter((r) => r.type === "ro");
+        return {
+          kode: progKode,
+          uraian: p.uraian,
+          jumlah: Number(p.jumlah) || 0,
+          kroList: kros.map((k) => ({
+            kode: k.kode,
+            uraian: k.uraian,
+            jumlah: Number(k.jumlah) || 0,
+            roList: ros.filter((ro) => (ro.kode || "").startsWith(k.kode?.slice(0, 4) || "---")),
+          })),
+        };
+      });
+    }
+
+    // Default structure jika belum ada custom worksheet
+    return [
+      {
+        kode: "078.01.BE",
+        uraian: "Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+        jumlah: 82095202000,
+        kroCount: 16,
+        roCount: 33,
+        satkerCount: 2,
+        kegiatanCount: 7,
+      },
+      {
+        kode: "078.01.WA",
+        uraian: "Program Dukungan Manajemen",
+        jumlah: 251481878000,
+        kroCount: 9,
+        roCount: 17,
+        satkerCount: 2,
+        kegiatanCount: 5,
+      },
+    ];
+  }, [worksheetRows]);
+
+  // Dokumen yang pernah diupload ke forum (Panduan4: tombol Dokumen)
+  const [uploadedDocuments, setUploadedDocuments] = useState<AttachedDocument[]>([
+    {
+      id: "doc-1",
+      name: "SPT-PPATK-TA2027.pdf",
+      size: "1.2 MB",
+      uploadedBy: "ISNEN HADI",
+      time: "16 Okt 2026 09:10 WIB",
+    },
+    {
+      id: "doc-2",
+      name: "KAK_Konsinyering_Perjadin_2027.xlsx",
+      size: "3.8 MB",
+      uploadedBy: "KAMANTO PUJIONO",
+      time: "16 Okt 2026 11:40 WIB",
+    },
+    {
+      id: "doc-3",
+      name: "ADK_07801_Alokasi2027_Final.zip",
+      size: "5.4 MB",
+      uploadedBy: "SUKRASNO",
+      time: "16 Okt 2026 14:40 WIB",
+    },
+  ]);
+
+  // Threads list percakapan penelaahan
   const [threads, setThreads] = useState<CommentThread[]>([
     {
       id: 16,
       author: "SUKRASNO",
-      authorRole: "DJA",
+      authorRole: "Tim Penganggaran",
       authorId: "aprdja_630931_197701012000011001",
-      roleBadge: "DJA",
-      time: "Kamis, 16 Oktober 2025 09:15 WIB",
+      roleBadge: "Tim Penganggaran",
+      time: "Kamis, 16 Oktober 2026 09:15 WIB",
       content:
-        "Selamat pagi Bapak/Ibu Penelaah dari Bappenas dan PPATK.\n\nBerdasarkan data RKAKL PPATK 2026 yang diupload di forum ini, terpantau masih terdapat 3 KRO yang belum memenuhi kriteria SSB (Standar Struktur Biaya) dimana komponen pendukungnya melebihi % threshold batas kewajaran. Mohon tanggapan dan penyesuaian pada KRO terkait.",
+        "Selamat pagi Bapak/Ibu Penelaah dari Tim Perencanaan dan PPATK.\n\nBerdasarkan data RKAKL PPATK 2027 yang diupload di forum ini, terpantau masih terdapat 3 KRO yang belum memenuhi kriteria Standar Struktur Biaya (SSB) dimana komponen pendukungnya melebihi ambang batas kewajaran. Mohon tanggapan dan penyesuaian pada KRO terkait.",
+      attachments: [
+        {
+          id: "att-16",
+          name: "Catatan_Telaah_SSB_PPATK.pdf",
+          size: "450 KB",
+          uploadedBy: "SUKRASNO",
+          time: "16 Okt 2026 09:15 WIB",
+        },
+      ],
     },
     {
       id: 17,
       author: "KAMANTO PUJIONO",
-      authorRole: "PPATK",
+      authorRole: "Unit Kerja",
       authorId: "ppatk_198205142006041002",
-      roleBadge: "PPATK (Biro Perencanaan)",
-      time: "Kamis, 16 Oktober 2025 11:42 WIB",
+      roleBadge: "Unit Kerja (Biro Perencanaan)",
+      time: "Kamis, 16 Oktober 2026 11:42 WIB",
       replyTo: {
         id: 16,
         author: "SUKRASNO",
         contentSummary: "Selamat pagi Bapak/Ibu Penelaah...",
       },
       content:
-        "Yth. Tim Penelaah DJA & Bappenas,\n\nTerima kasih atas catatan telaahnya. Kami telah melakukan relokasi akun belanja pendukung ke komponen utama pada Program 078.01.BE (Pencegahan & Pemberantasan TPPU) serta memperbarui rincian kertas kerja konsinyering dan perjalanan dinas. Mohon berkenan diteliti kembali.",
+        "Yth. Tim Penganggaran & Tim Perencanaan,\n\nTerima kasih atas catatan telaahnya. Kami telah melakukan relokasi akun belanja pendukung ke komponen utama pada Program 078.01.BE (Pencegahan & Pemberantasan TPPU) serta memperbarui rincian kertas kerja konsinyering dan perjalanan dinas. Mohon berkenan diteliti kembali pada berkas terlampir.",
+      attachments: [
+        {
+          id: "att-17",
+          name: "Revisi_KertasKerja_Konsinyering_Perjadin.xlsx",
+          size: "2.1 MB",
+          uploadedBy: "KAMANTO PUJIONO",
+          time: "16 Okt 2026 11:42 WIB",
+        },
+      ],
     },
     {
       id: 18,
       author: "SUKRASNO",
-      authorRole: "DJA",
+      authorRole: "Tim Penganggaran",
       authorId: "aprdja_630931_197701012000011001",
-      roleBadge: "DJA",
-      time: "Kamis, 16 Oktober 2025 02:43 PM WIB",
+      roleBadge: "Tim Penganggaran",
+      time: "Kamis, 16 Oktober 2026 02:43 PM WIB",
       replyTo: {
         id: 17,
         author: "KAMANTO PUJIONO",
       },
       content:
-        "Terima kasih Pak. Alhamdulillah seluruh KRO PPATK pada data RKAKL 2026 telah memenuhi kriteria SSB (tidak ada yang merah).\n\nSekali lagi terima kasih atas kerjasamanya.",
+        "Terima kasih Pak. Alhamdulillah seluruh KRO PPATK pada data RKAKL 2027 telah memenuhi kriteria SSB (tidak ada yang merah).\n\nSekali lagi terima kasih atas kerjasamanya.",
     },
   ]);
 
-  // Reply / New Comment form state
+  // Reply state
   const [replyingTo, setReplyingTo] = useState<CommentThread | null>(null);
-  const [newCommentText, setNewCommentText] = useState("");
+
+  // Form Rich Text & Upload Dokumen bersamaan submit komentar (Panduan4)
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [editorContent, setEditorContent] = useState<string>("");
+  const [commentAttachments, setCommentAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const executeCommand = (cmd: string, val?: string) => {
+    document.execCommand(cmd, false, val);
+    if (editorRef.current) {
+      setEditorContent(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      setCommentAttachments((prev) => [...prev, ...filesArray]);
+    }
+  };
+
+  const removeAttachment = (idx: number) => {
+    setCommentAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSendComment = () => {
-    if (!newCommentText.trim()) return;
+    const rawText = editorRef.current ? editorRef.current.innerText.trim() : "";
+    if (!rawText && commentAttachments.length === 0) return;
 
     const nextId = threads.length > 0 ? Math.max(...threads.map((t) => t.id)) + 1 : 1;
     const now = new Date();
@@ -131,12 +340,25 @@ export default function ForumPenelaahanPage() {
       year: "numeric",
     })} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} WIB`;
 
+    const newDocs: AttachedDocument[] = commentAttachments.map((f, i) => ({
+      id: `att-${nextId}-${i}`,
+      name: f.name,
+      size: `${(f.size / (1024 * 1024)).toFixed(2)} MB`,
+      uploadedBy: "ISNEN HADI",
+      time: timeStr,
+    }));
+
+    // Update bank dokumen yang pernah diupload
+    if (newDocs.length > 0) {
+      setUploadedDocuments((prev) => [...newDocs, ...prev]);
+    }
+
     const newThread: CommentThread = {
       id: nextId,
       author: "ISNEN HADI",
-      authorRole: "PPATK",
+      authorRole: "Unit Kerja",
       authorId: "ppatk_317410_operator_453374",
-      roleBadge: "PPATK (Operator)",
+      roleBadge: "Unit Kerja (Operator)",
       time: timeStr,
       replyTo: replyingTo
         ? {
@@ -145,24 +367,29 @@ export default function ForumPenelaahanPage() {
             contentSummary: replyingTo.content.substring(0, 45) + "...",
           }
         : undefined,
-      content: newCommentText.trim(),
+      content: editorRef.current ? editorRef.current.innerHTML : rawText,
+      attachments: newDocs.length > 0 ? newDocs : undefined,
     };
 
     setThreads((prev) => [...prev, newThread]);
-    setNewCommentText("");
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
+    }
+    setEditorContent("");
+    setCommentAttachments([]);
     setReplyingTo(null);
   };
 
   const handleAddUser = () => {
     if (!newUserName.trim()) return;
-    if (newUserRole === "DJA") {
-      setPesertaList((prev) => ({ ...prev, dja: [...prev.dja, newUserName.toUpperCase()] }));
-    } else if (newUserRole === "Bappenas") {
-      setPesertaList((prev) => ({ ...prev, bappenas: [...prev.bappenas, newUserName.toUpperCase()] }));
-    } else if (newUserRole === "Satuan Kerja") {
-      setPesertaList((prev) => ({ ...prev, satker: [...prev.satker, newUserName.toUpperCase()] }));
+    if (newUserRole === "Tim Penganggaran") {
+      setPesertaList((prev) => ({ ...prev, penganggaran: [...prev.penganggaran, newUserName.toUpperCase()] }));
+    } else if (newUserRole === "Tim Perencanaan") {
+      setPesertaList((prev) => ({ ...prev, perencanaan: [...prev.perencanaan, newUserName.toUpperCase()] }));
+    } else if (newUserRole === "Inspektorat") {
+      setPesertaList((prev) => ({ ...prev, inspektorat: [...prev.inspektorat, newUserName.toUpperCase()] }));
     } else {
-      setPesertaList((prev) => ({ ...prev, kl: [...prev.kl, newUserName.toUpperCase()] }));
+      setPesertaList((prev) => ({ ...prev, unitKerja: [...prev.unitKerja, newUserName.toUpperCase()] }));
     }
     setNewUserName("");
     setNewUserEmail("");
@@ -170,9 +397,9 @@ export default function ForumPenelaahanPage() {
   };
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-20">
       {/* ── Top Alert Banner / Title ── */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 sm:p-6 transition-all">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 sm:p-6 transition-all">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
           <div className="flex items-start gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 mt-0.5">
@@ -180,27 +407,30 @@ export default function ForumPenelaahanPage() {
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Nama laman cukup Forum Penelaahan (Panduan4) */}
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  Forum Penelaahan 078.01
+                  Forum Penelaahan
                 </h1>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Tahap Alokasi Anggaran Sudah Di Close
+                  Tahap {tahap} Aktif
                 </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  Tahun Anggaran {tahunAnggaran}
+                {/* Tahun anggaran disesuaikan dengan info tahun yang ada di Topbar: TA 2027 (Panduan4) */}
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono">
+                  {tahunAnggaran}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Forum interaksi penelaahan rencana kerja anggaran bersama Tim Penelaah DJA, Bappenas, dan Biro Perencanaan PPATK
+                Forum interaksi penelaahan rencana kerja anggaran bersama Tim Penganggaran, Tim Perencanaan, Inspektorat, dan Unit Kerja.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Tombol Cetak Forum: Menampilkan draft cetak dari Diskusi & Catatan Penelaahan (Panduan4) */}
             <button
               onClick={() => setShowPrintModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
             >
               <Printer className="w-4 h-4 text-slate-500" />
               <span>Cetak Forum</span>
@@ -208,193 +438,222 @@ export default function ForumPenelaahanPage() {
           </div>
         </div>
 
-        {/* ── Filter Form Fields (Header SAKTI Style) ── */}
+        {/* ── Filter Form Fields ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
           {/* Tahun Anggaran */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               Tahun Anggaran
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                readOnly
-                value={tahunAnggaran}
-                className="w-full text-sm font-semibold px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-slate-800 dark:text-slate-200 cursor-not-allowed"
-              />
-            </div>
+            <input
+              type="text"
+              readOnly
+              value={tahunAnggaran}
+              className="w-full text-sm font-semibold px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-slate-800 dark:text-slate-200 cursor-not-allowed font-mono"
+            />
           </div>
 
-          {/* Tahap */}
+          {/* Tahap Sesuai Panduan4:
+              Pagu Indikatif, Pagu Anggaran, Alokasi ANggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               Tahap
             </label>
-            <div className="relative">
-              <select
-                value={tahap}
-                onChange={(e) => setTahap(e.target.value)}
-                className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-              >
-                <option value="Pagu Indikatif">Pagu Indikatif</option>
-                <option value="Pagu Anggaran">Pagu Anggaran</option>
-                <option value="Alokasi Anggaran">Alokasi Anggaran</option>
-                <option value="DIPA Petikan">DIPA Petikan / Revisi</option>
-              </select>
-            </div>
+            <select
+              value={tahap}
+              onChange={(e) => setTahap(e.target.value)}
+              className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            >
+              <option value="Pagu Indikatif">Pagu Indikatif</option>
+              <option value="Pagu Anggaran">Pagu Anggaran</option>
+              <option value="Alokasi Anggaran">Alokasi Anggaran</option>
+              <option value="DIPA Awal">DIPA Awal</option>
+              <option value="Usulan Revisi DIPA">Usulan Revisi DIPA</option>
+              <option value="Usulan Revisi POK">Usulan Revisi POK</option>
+            </select>
           </div>
 
-          {/* K/L */}
+          {/* Baris Kementerian / Lembaga (K/L) diganti dengan 'Unit Kerja' sesuai Panduan4 tanpa nomor/kode unit kerja */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-              Kementerian / Lembaga (K/L)
+              Unit Kerja
             </label>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-mono text-sm font-bold rounded-xl border border-indigo-200 dark:border-indigo-800">
-                078.01
-              </span>
-              <input
-                type="text"
-                readOnly
-                value="Pusat Pelaporan dan Analisis Transaksi Keuangan"
-                className="w-full text-sm font-medium px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 truncate cursor-not-allowed"
-              />
-            </div>
+            <input
+              type="text"
+              readOnly
+              value={userUnit}
+              className="w-full text-sm font-medium px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 truncate cursor-not-allowed uppercase"
+            />
           </div>
         </div>
       </div>
 
-      {/* ── Ringkasan Pagu & Program (Sesuai Data SAKTI PPATK 078.01) ── */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      {/* ── Alokasi Program & Kinerja Belanja (Data Dinamis Isian RAB s.d. Level RO) ── */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4 text-amber-500" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Alokasi Program & Kinerja Belanja
+              Alokasi Program & Kinerja Belanja (Hasil Isian RAB)
             </h2>
           </div>
           <div className="text-xs font-semibold text-slate-500">
-            Total Pagu Alokasi: <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">Rp 333.577.080.000</span>
+            Total Pagu Belanja:{" "}
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+              Rp {totalPaguDetail.toLocaleString("id-ID")}
+            </span>
           </div>
         </div>
 
+        {/* Tabel Hierarki: Program s.d RO (Panduan4) */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm border-collapse">
             <thead className="bg-slate-100/75 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-5 py-3">Kode & Uraian Program</th>
-                <th className="px-5 py-3 text-right">Rupiah</th>
+                <th className="px-5 py-3">Kode & Uraian Program / KRO / RO</th>
+                <th className="px-5 py-3 text-right">Pagu Rupiah</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                <td className="px-5 py-3.5">
-                  <div className="font-semibold text-slate-800 dark:text-slate-100">
-                    078.01.BE - Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="inline-flex items-center gap-1 font-mono">2 Satker</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">7 Kegiatan</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">16 KRO</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">33 RO</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
-                  82.095.202.000
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                <td className="px-5 py-3.5">
-                  <div className="font-semibold text-slate-800 dark:text-slate-100">
-                    078.01.WA - Program Dukungan Manajemen
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="inline-flex items-center gap-1 font-mono">2 Satker</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">5 Kegiatan</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">9 KRO</span>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-mono">17 RO</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
-                  251.481.878.000
-                </td>
-              </tr>
+              {programBreakdown.map((prog: any, pIdx: number) => {
+                const isProgExpanded = expandedPrograms[prog.kode] ?? true;
+                return (
+                  <React.Fragment key={pIdx}>
+                    {/* Level Program */}
+                    <tr
+                      onClick={() =>
+                        setExpandedPrograms((prev) => ({
+                          ...prev,
+                          [prog.kode]: !isProgExpanded,
+                        }))
+                      }
+                      className="bg-indigo-50/20 dark:bg-indigo-950/20 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40 cursor-pointer transition-colors"
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">
+                          {isProgExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                          )}
+                          <span>
+                            {prog.kode} - {prog.uraian}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 pl-6">
+                          <span>{prog.satkerCount || 2} Satker</span>
+                          <span>•</span>
+                          <span>{prog.kegiatanCount || 7} Kegiatan</span>
+                          <span>•</span>
+                          <span>{prog.kroCount || 16} KRO</span>
+                          <span>•</span>
+                          <span>{prog.roCount || 33} RO</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100 align-top">
+                        Rp {prog.jumlah.toLocaleString("id-ID")}
+                      </td>
+                    </tr>
+
+                    {/* Level KRO & RO Breakdown jika expanded */}
+                    {isProgExpanded && prog.kroList && (
+                      <>
+                        {prog.kroList.map((kro: any, kIdx: number) => {
+                          const isKroExpanded = expandedKro[kro.kode] ?? false;
+                          return (
+                            <React.Fragment key={kIdx}>
+                              <tr
+                                onClick={() =>
+                                  setExpandedKro((prev) => ({
+                                    ...prev,
+                                    [kro.kode]: !isKroExpanded,
+                                  }))
+                                }
+                                className="bg-slate-50/50 dark:bg-slate-850/50 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 cursor-pointer text-xs"
+                              >
+                                <td className="px-5 py-2 pl-10 font-semibold text-slate-800 dark:text-slate-200">
+                                  <div className="flex items-center gap-1.5">
+                                    {isKroExpanded ? (
+                                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                                    ) : (
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                                    )}
+                                    <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                                      {kro.kode}
+                                    </span>
+                                    <span>{kro.uraian}</span>
+                                  </div>
+                                </td>
+                                <td className="px-5 py-2 text-right font-mono text-slate-700 dark:text-slate-300">
+                                  Rp {kro.jumlah.toLocaleString("id-ID")}
+                                </td>
+                              </tr>
+
+                              {/* Level RO */}
+                              {isKroExpanded && kro.roList && (
+                                <>
+                                  {kro.roList.map((ro: any, rIdx: number) => (
+                                    <tr
+                                      key={rIdx}
+                                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-[11px]"
+                                    >
+                                      <td className="px-5 py-1.5 pl-16 text-slate-600 dark:text-slate-400">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                                            {ro.kode}
+                                          </span>
+                                          <span>{ro.uraian}</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                                        Rp {(Number(ro.jumlah) || 0).toLocaleString("id-ID")}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* ── Shortcut Toolbar / Tabs Action ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      {/* ── Shortcut Toolbar: Dokumen, Sanding Data, Catatan Penelaahan (Panduan4) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           onClick={() => setActiveTab(activeTab === "dokumen" ? "forum" : "dokumen")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+          className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
             activeTab === "dokumen"
               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
               : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
           }`}
         >
           <FileText className="w-4 h-4 text-blue-500" />
-          <span>Dokumen</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab(activeTab === "history" ? "forum" : "history")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
-            activeTab === "history"
-              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
-          }`}
-        >
-          <History className="w-4 h-4 text-cyan-500" />
-          <span>History</span>
+          <span>Dokumen ({uploadedDocuments.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab(activeTab === "sanding_data" ? "forum" : "sanding_data")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+          className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
             activeTab === "sanding_data"
               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
               : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
           }`}
         >
           <GitCompare className="w-4 h-4 text-emerald-500" />
-          <span>Sanding Data</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab(activeTab === "sanding_tpnbp" ? "forum" : "sanding_tpnbp")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
-            activeTab === "sanding_tpnbp"
-              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
-          }`}
-        >
-          <BarChart3 className="w-4 h-4 text-violet-500" />
-          <span>Sanding TPNBP</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab(activeTab === "ssb" ? "forum" : "ssb")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
-            activeTab === "ssb"
-              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>SSB (Standar Biaya)</span>
+          <span>Sanding Data (Histori Terakhir vs Sebelumnya)</span>
         </button>
 
         <button
           onClick={() => setActiveTab(activeTab === "catatan" ? "forum" : "catatan")}
-          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+          className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
             activeTab === "catatan"
               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
               : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
@@ -405,93 +664,92 @@ export default function ForumPenelaahanPage() {
         </button>
       </div>
 
-      {/* ── Tab Content Overlay / Panel jika salah satu tab aktif selain forum utama ── */}
+      {/* ── Panel Tombol Dokumen (Seluruh dokumen yang pernah diupload ke forum sesuai Panduan4) ── */}
       {activeTab === "dokumen" && (
-        <div className="rounded-2xl border border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20 p-5 space-y-3">
+        <div className="rounded-2xl border border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20 p-5 space-y-4 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-600" />
-              Dokumen Pendukung Penelaahan
+              <span>Seluruh Dokumen yang Pernah Di-upload ke Forum</span>
             </h3>
             <button
               onClick={() => setActiveTab("forum")}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               ✕ Tutup Panel
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <div className="font-semibold text-slate-800 dark:text-slate-200">Surat Pengantar Telaah</div>
-              <div className="text-slate-500 mt-1">SPT-PPATK-TA2026.pdf (1.2 MB)</div>
-              <span className="inline-block mt-2 text-[10px] text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">Terverifikasi</span>
-            </div>
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <div className="font-semibold text-slate-800 dark:text-slate-200">Kertas Kerja Rincian KAK/TOR</div>
-              <div className="text-slate-500 mt-1">KAK_Konsinyering_Perjadin_2026.xlsx (3.8 MB)</div>
-              <span className="inline-block mt-2 text-[10px] text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">Terverifikasi</span>
-            </div>
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <div className="font-semibold text-slate-800 dark:text-slate-200">ADK RKAKL 2026 Final</div>
-              <div className="text-slate-500 mt-1">ADK_07801_Alokasi2026.zip (5.4 MB)</div>
-              <span className="inline-block mt-2 text-[10px] text-indigo-600 font-semibold bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded">Sinkron SAKTI</span>
-            </div>
+            {uploadedDocuments.map((doc) => (
+              <div
+                key={doc.id}
+                className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1 shadow-2xs"
+              >
+                <div className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                  {doc.name}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {doc.size} • Diupload oleh: <strong className="text-slate-700 dark:text-slate-300">{doc.uploadedBy}</strong>
+                </div>
+                <div className="text-[10px] text-slate-400">{doc.time}</div>
+                <button
+                  onClick={() => alert(`Mengunduh berkas: ${doc.name}`)}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh Dokumen</span>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {activeTab === "ssb" && (
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/20 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              Monitoring Kriteria Standar Struktur Biaya (SSB)
-            </h3>
-            <button
-              onClick={() => setActiveTab("forum")}
-              className="text-xs text-slate-400 hover:text-slate-600"
-            >
-              ✕ Tutup Panel
-            </button>
-          </div>
-          <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-            <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Hasil Pengecekan Sistem Otomatis:</span>
-              <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 rounded-full font-bold">100% Memenuhi Kriteria (Hijau)</span>
-            </div>
-            <p className="text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
-              Seluruh 25 KRO pada Program BE dan WA telah dicek terhadap proporsi Belanja Komponen Utama vs Pendukung (Honor, Perjadin, Paket Meeting/Konsinyering). Tidak ada peringatan batas merah (melebihi standar SSB DJA).
-            </p>
-          </div>
-        </div>
-      )}
-
+      {/* ── Panel Sanding Data (Total Pagu Histori Terakhir vs Sebelumnya sesuai Panduan4) ── */}
       {activeTab === "sanding_data" && (
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/20 p-5 space-y-3">
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/20 p-5 space-y-4 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <GitCompare className="w-4 h-4 text-emerald-600" />
-              Sanding Data: Pagu Indikatif vs Pagu Anggaran vs Alokasi
+              <span>Sanding Data: Total Pagu Antara Histori Terakhir dengan Histori Sebelumnya</span>
             </h3>
             <button
               onClick={() => setActiveTab("forum")}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               ✕ Tutup Panel
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-              <div className="text-slate-400 uppercase text-[10px] font-bold">1. Pagu Indikatif</div>
-              <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">Rp 310.250.000.000</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+              <span className="text-[10px] uppercase font-bold text-slate-400">
+                1. Histori Sebelumnya (Rev-0 Pagu Anggaran)
+              </span>
+              <div className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
+                Rp 328.700.500.000
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">Status: Disahkan DJA</div>
             </div>
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-              <div className="text-slate-400 uppercase text-[10px] font-bold">2. Pagu Anggaran</div>
-              <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">Rp 328.700.500.000</div>
+
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/10 text-xs">
+              <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                2. Histori Terakhir ({tahap})
+              </span>
+              <div className="text-lg font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1">
+                Rp {totalPaguDetail.toLocaleString("id-ID")}
+              </div>
+              <div className="text-[11px] text-indigo-600/80 mt-1">Status: Data Final Isian RAB</div>
             </div>
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/20">
-              <div className="text-emerald-600 dark:text-emerald-400 uppercase text-[10px] font-bold">3. Alokasi Anggaran (Final)</div>
-              <div className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">Rp 333.577.080.000</div>
+
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/10 text-xs">
+              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                3. Selisih / Delta Perubahan
+              </span>
+              <div className="text-lg font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
+                + Rp {(totalPaguDetail - 328700500000).toLocaleString("id-ID")}
+              </div>
+              <div className="text-[11px] text-emerald-600/80 mt-1">Penyesuaian Alokasi Belanja Prioritas</div>
             </div>
           </div>
         </div>
@@ -501,7 +759,7 @@ export default function ForumPenelaahanPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Kolom Kiri: Forum Feed & Reply Area */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -517,17 +775,20 @@ export default function ForumPenelaahanPage() {
             {/* List Chat / Thread */}
             <div className="space-y-4 pt-4">
               {threads.map((thread) => {
-                const isDja = thread.authorRole === "DJA";
-                const isBappenas = thread.authorRole === "Bappenas";
+                const isPenganggaran = thread.authorRole === "Tim Penganggaran";
+                const isPerencanaan = thread.authorRole === "Tim Perencanaan";
+                const isInspektorat = thread.authorRole === "Inspektorat";
 
                 return (
                   <div
                     key={thread.id}
                     className={`rounded-2xl border p-4.5 sm:p-5 transition-all ${
-                      isDja
+                      isPenganggaran
                         ? "border-blue-100 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10"
-                        : isBappenas
+                        : isPerencanaan
                         ? "border-amber-100 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10"
+                        : isInspektorat
+                        ? "border-purple-100 dark:border-purple-900/40 bg-purple-50/20 dark:bg-purple-950/10"
                         : "border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850/30"
                     }`}
                   >
@@ -542,10 +803,12 @@ export default function ForumPenelaahanPage() {
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                            isDja
+                            isPenganggaran
                               ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                              : isBappenas
+                              : isPerencanaan
                               ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                              : isInspektorat
+                              ? "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
                               : "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
                           }`}
                         >
@@ -574,20 +837,42 @@ export default function ForumPenelaahanPage() {
                       </div>
                     )}
 
-                    {/* Isi Pesan */}
-                    <div className="mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line font-normal">
-                      {thread.content}
-                    </div>
+                    {/* Isi Pesan (Render HTML / Text) */}
+                    <div
+                      className="mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal whitespace-pre-line"
+                      dangerouslySetInnerHTML={{ __html: thread.content }}
+                    />
+
+                    {/* Lampiran Dokumen jika ada (Panduan4) */}
+                    {thread.attachments && thread.attachments.length > 0 && (
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> Lampiran Berkas ({thread.attachments.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {thread.attachments.map((att, i) => (
+                            <div
+                              key={i}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                              <span className="font-medium truncate max-w-[200px]">{att.name}</span>
+                              <span className="text-[10px] text-slate-400">({att.size})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Tombol Balas */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end">
+                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end">
                       <button
                         onClick={() => {
                           setReplyingTo(thread);
                           const el = document.getElementById("reply-editor");
                           if (el) el.scrollIntoView({ behavior: "smooth" });
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
                       >
                         <CornerDownRight className="w-3.5 h-3.5" />
                         <span>Reply</span>
@@ -598,7 +883,7 @@ export default function ForumPenelaahanPage() {
               })}
             </div>
 
-            {/* Input Form Balasan / Pesan Baru */}
+            {/* Input Form Balasan / Pesan Baru dengan Editing Toolbar & Upload Dokumen (Panduan4) */}
             <div id="reply-editor" className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
               {replyingTo && (
                 <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200">
@@ -610,60 +895,149 @@ export default function ForumPenelaahanPage() {
                   </div>
                   <button
                     onClick={() => setReplyingTo(null)}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
-              <div className="space-y-3">
-                <textarea
-                  rows={3}
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  placeholder="Tulis catatan penelaahan atau tanggapan..."
-                  className="w-full text-sm p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 resize-y"
+              {/* Form Editor Lengkap */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                {/* Toolbar Editing Sesuai Form Gambaran Umum Bab I (Panduan4) */}
+                <div className="flex items-center gap-1 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("bold")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    title="Bold"
+                  >
+                    <Bold className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("italic")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    title="Italic"
+                  >
+                    <Italic className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("underline")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    title="Underline"
+                  >
+                    <Underline className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("insertUnorderedList")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    title="Bullet List"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("insertOrderedList")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    title="Numbered List"
+                  >
+                    <ListOrdered className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Tombol Upload Dokumen Bersamaan (Panduan4) */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-medium cursor-pointer"
+                    title="Lampirkan Dokumen"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>Lampirkan Dokumen</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+
+                {/* Editable Area */}
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className="p-3.5 min-h-[90px] text-sm text-slate-800 dark:text-slate-200 outline-none focus:outline-none"
+                  onInput={(e) => setEditorContent(e.currentTarget.innerHTML)}
+                  placeholder="Ketik catatan penelaahan atau tanggapan..."
                 />
 
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-slate-400">
-                    Gunakan forum ini untuk koordinasi penelaahan dokumen anggaran PPATK bersama DJA & Bappenas.
-                  </p>
-                  <button
-                    onClick={handleSendComment}
-                    disabled={!newCommentText.trim()}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Kirim Pesan</span>
-                  </button>
-                </div>
+                {/* List Berkas Terlampir yang siap di-submit */}
+                {commentAttachments.length > 0 && (
+                  <div className="px-3.5 pb-2.5 pt-1 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
+                    {commentAttachments.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-xs text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/50"
+                      >
+                        <Paperclip className="w-3 h-3" />
+                        <span className="truncate max-w-[180px]">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(idx)}
+                          className="hover:text-red-500 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-[11px] text-slate-400">
+                  Koordinasi penelaahan dokumen anggaran PPATK bersama Tim Penganggaran, Perencanaan & Inspektorat.
+                </p>
+                <button
+                  onClick={handleSendComment}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Kirim Pesan</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Kolom Kanan: Peserta Penelaahan */}
+        {/* Kolom Kanan: Peserta Penelaahan Sesuai Panduan4 */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Users className="w-4 h-4 text-indigo-600" />
-                Peserta Penelaahan
+                <span>Peserta Penelaahan</span>
               </h3>
             </div>
 
-            {/* Direktorat Jenderal Anggaran (DJA) */}
+            {/* Tim Penganggaran (menggantikan DJA sesuai Panduan4) */}
             <div className="space-y-2">
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                <span>Direktorat Jendral Anggaran</span>
+                <span>Tim Penganggaran</span>
                 <span className="text-[10px] font-mono bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
-                  {pesertaList.dja.length} Orang
+                  {pesertaList.penganggaran.length} Orang
                 </span>
               </div>
               <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.dja.map((user, idx) => (
+                {pesertaList.penganggaran.map((user, idx) => (
                   <li key={idx} className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     <span>{user}</span>
@@ -672,16 +1046,16 @@ export default function ForumPenelaahanPage() {
               </ul>
             </div>
 
-            {/* Bappenas */}
+            {/* Tim Perencanaan (menggantikan Bappenas sesuai Panduan4) */}
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                <span>Bappenas</span>
+                <span>Tim Perencanaan</span>
                 <span className="text-[10px] font-mono bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
-                  {pesertaList.bappenas.length} Orang
+                  {pesertaList.perencanaan.length} Orang
                 </span>
               </div>
               <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.bappenas.map((user, idx) => (
+                {pesertaList.perencanaan.map((user, idx) => (
                   <li key={idx} className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                     <span>{user}</span>
@@ -690,68 +1064,70 @@ export default function ForumPenelaahanPage() {
               </ul>
             </div>
 
-            {/* Kementerian / Lembaga */}
+            {/* Inspektorat (menggantikan K/L sesuai Panduan4) */}
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                <span>Kementerian/Lembaga</span>
-                <span className="text-[10px] font-mono bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">
-                  PPATK
+                <span>Inspektorat</span>
+                <span className="text-[10px] font-mono bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded">
+                  {pesertaList.inspektorat.length} Orang
                 </span>
               </div>
-              <ul className="space-y-2 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.kl.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1 flex-shrink-0" />
+              <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
+                {pesertaList.inspektorat.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                     <span className="leading-tight">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Satuan Kerja */}
+            {/* Unit Kerja (menggantikan Satuan Kerja sesuai Panduan4) */}
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                <span>Satuan Kerja</span>
-                <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded">
-                  Satker
+                <span>Unit Kerja</span>
+                <span className="text-[10px] font-mono bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">
+                  {pesertaList.unitKerja.length} Orang
                 </span>
               </div>
               <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-                {pesertaList.satker.map((item, idx) => (
+                {pesertaList.unitKerja.map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Tombol Tambah User */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Tambah User</span>
-              </button>
-            </div>
+            {/* Tombol Tambah User (Ditentukan oleh SuperAdmin dan BINCANG sesuai Panduan4) */}
+            {canManageParticipants && (
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Tambah User</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Modal Tambah User ── */}
+      {/* ── Modal Tambah User (Super Admin & BINCANG) ── */}
       {showAddUserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-blue-600" />
-                Tambah Peserta Penelaahan
+                <span>Tambah Peserta Penelaahan</span>
               </h3>
               <button
                 onClick={() => setShowAddUserModal(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -760,17 +1136,17 @@ export default function ForumPenelaahanPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Kategori Instansi
+                  Kategori Instansi / Tim (Panduan4)
                 </label>
                 <select
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
                 >
-                  <option value="Direktorat Jendral Anggaran">Direktorat Jendral Anggaran (DJA)</option>
-                  <option value="Bappenas">Bappenas</option>
-                  <option value="Kementerian/Lembaga">Kementerian/Lembaga (PPATK)</option>
-                  <option value="Satuan Kerja">Satuan Kerja</option>
+                  <option value="Tim Penganggaran">Tim Penganggaran</option>
+                  <option value="Tim Perencanaan">Tim Perencanaan</option>
+                  <option value="Inspektorat">Inspektorat</option>
+                  <option value="Unit Kerja">Unit Kerja</option>
                 </select>
               </div>
 
@@ -793,7 +1169,7 @@ export default function ForumPenelaahanPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="budi@kemenkeu.go.id"
+                  placeholder="budi@ppatk.go.id"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
@@ -804,14 +1180,14 @@ export default function ForumPenelaahanPage() {
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setShowAddUserModal(false)}
-                className="px-3.5 py-2 text-xs font-medium rounded-xl text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="px-3.5 py-2 text-xs font-medium rounded-xl text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 onClick={handleAddUser}
                 disabled={!newUserName.trim()}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 Simpan Peserta
               </button>
@@ -820,38 +1196,63 @@ export default function ForumPenelaahanPage() {
         </div>
       )}
 
-      {/* ── Modal Cetak Forum ── */}
+      {/* ── Modal Cetak Forum: Menampilkan Draft Cetak Diskusi & Catatan Penelaahan (Panduan4) ── */}
       {showPrintModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Printer className="w-4 h-4 text-indigo-600" />
-                Cetak Transkrip Forum Penelaahan
+                <span>Draft Cetak: Diskusi & Catatan Penelaahan</span>
               </h3>
               <button
                 onClick={() => setShowPrintModal(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-2">
-              <p>
-                Transkrip akan mengekspor seluruh catatan dan risalah forum penelaahan tahap <strong>{tahap}</strong> TA {tahunAnggaran} K/L 078.01 (PPATK) dalam format Berita Acara Penelaahan (BAP) resmi.
-              </p>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl space-y-1 font-mono text-[11px]">
-                <div>• Format: Berita Acara Penelaahan (PDF)</div>
-                <div>• Total Thread: {threads.length} Catatan</div>
-                <div>• Status Kriteria SSB: Memenuhi</div>
+            {/* Konten Risalah Draft Cetak */}
+            <div className="space-y-4 p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-850/50 text-xs">
+              <div className="text-center border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-tight">
+                  BERITA ACARA & RISALAH FORUM PENELAAHAN ANGGARAN
+                </h4>
+                <p className="text-slate-500 font-mono text-[11px] mt-0.5">
+                  Unit Kerja: {userUnit} • {tahunAnggaran} • Tahap: {tahap}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="font-bold text-slate-800 dark:text-slate-200">
+                  Daftar Catatan & Rekomendasi ({threads.length} Catatan):
+                </div>
+
+                {threads.map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between font-bold text-[11px]">
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        #{t.id} {t.author} ({t.roleBadge})
+                      </span>
+                      <span className="text-slate-400 font-mono">{t.time}</span>
+                    </div>
+                    <div
+                      className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"
+                      dangerouslySetInnerHTML={{ __html: t.content }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setShowPrintModal(false)}
-                className="px-3.5 py-2 text-xs font-medium rounded-xl text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="px-3.5 py-2 text-xs font-medium rounded-xl text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -860,10 +1261,10 @@ export default function ForumPenelaahanPage() {
                   window.print();
                   setShowPrintModal(false);
                 }}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Cetak Sekarang</span>
+                <span>Cetak Draft</span>
               </button>
             </div>
           </div>

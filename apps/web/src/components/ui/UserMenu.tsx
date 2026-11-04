@@ -5,8 +5,6 @@ import {
   LogOut,
   ChevronDown,
   Shield,
-  Bell,
-  Grid,
 } from "lucide-react";
 
 // User data disesuaikan dengan konteks SAKTI / PPATK
@@ -15,7 +13,6 @@ const dummyUser = {
   nip: "317410******0001",
   role: "OPERATOR UNIT",
   unitCode: "453374",
-  ta: "2026",
   email: "isnen.hadi@ppatk.go.id",
   initials: "IH",
   isOnline: true,
@@ -45,7 +42,7 @@ export default function UserMenu() {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        {/* User Identity Info */}
+        {/* User Identity Info: tanpa info tahun sesuai Panduan4 */}
         <div className="flex flex-col text-right leading-tight min-w-0">
           <div className="flex items-center justify-end gap-1.5">
             <span className="text-xs font-bold text-[var(--text)] tracking-tight">
@@ -56,7 +53,7 @@ export default function UserMenu() {
             </span>
           </div>
           <span className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">
-            {dummyUser.role} {dummyUser.unitCode} {dummyUser.ta}
+            {dummyUser.role} {dummyUser.unitCode}
           </span>
         </div>
 
@@ -101,10 +98,9 @@ export default function UserMenu() {
             </div>
           </div>
 
-          {/* Menu items */}
+          {/* Menu items: Submenu Notifikasi dihilangkan sesuai Panduan4 */}
           <div className="py-1.5">
             <DropdownItem icon={User} label="Profil Operator" href="#profil" />
-            <DropdownItem icon={Bell} label="Notifikasi" href="#notifikasi" badge="6" />
             <DropdownItem icon={Settings} label="Pengaturan Akun" href="#pengaturan" />
           </div>
 
