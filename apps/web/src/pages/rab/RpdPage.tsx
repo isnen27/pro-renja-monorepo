@@ -17,6 +17,7 @@ import {
   Calculator,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
+import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import {
   WorksheetRow,
   calculateHierarchyAmounts,
@@ -40,6 +41,153 @@ const BULAN_NAMES = [
 interface MonthlyDistribution {
   checked: boolean[];
   values: number[];
+}
+
+// Helper ekstraksi Program, Kegiatan, KRO, RO, Komponen dari informasiKinerjaData untuk fallback
+function parseInformasiKinerjaRow(ikRow: any) {
+  if (!ikRow) {
+    return {
+      progKode: "078.01.BE",
+      progUraian: "Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
+      aktivitasKode: "3379",
+      aktivitasUraian: "Pengelolaan Bidang Hukum dan Regulasi PPATK",
+      kroKode: "3379.AAH",
+      kroNama: "Peraturan lainnya",
+      roKode: "BE.3379.AAH.001",
+      roNama: "Penyusunan Regulasi PPATK",
+      kompKode: "052",
+      kompNama: "Penyusunan Dokumen Legislasi",
+    };
+  }
+
+  const progMatch = (ikRow.program || "").match(/^(\d{3})[\.\s](\d{2})[\.\s]([A-Z0-9]+)\s*(.*)$/);
+  const progKode = progMatch ? `${progMatch[1]}.${progMatch[2]}.${progMatch[3]}` : "078.01.BE";
+  const progUraian = progMatch ? progMatch[4].trim() : (ikRow.program || "");
+
+  const kegMatch = (ikRow.kegiatan || "").match(/^(\d{4})\s*(.*)$/);
+  const aktivitasKode = kegMatch ? kegMatch[1] : "3379";
+  const aktivitasUraian = kegMatch ? kegMatch[2].trim() : (ikRow.kegiatan || "");
+
+  const kroMatch = (ikRow.kro || "").match(/^(\d{4})[\.\s]([A-Z0-9]{3})\s*(.*)$/);
+  const kroKode = kroMatch ? `${aktivitasKode}.${kroMatch[2]}` : "3379.AAH";
+  const kroNama = kroMatch ? kroMatch[3].trim() : (ikRow.kro || "");
+
+  const roMatch = (ikRow.ro || "").match(/^(\d{4})[\.\s]([A-Z0-9]{3})[\.\s]([A-Z0-9]{3})\s*(.*)$/);
+  const roKode = roMatch ? `BE.${aktivitasKode}.${roMatch[2]}.${roMatch[3]}` : "BE.3379.AAH.001";
+  const roNama = roMatch ? roMatch[4].trim() : (ikRow.ro || "");
+
+  const kompMatch = (ikRow.komponen || "").match(/^(\d{4})[\.\s]([A-Z0-9]{3})[\.\s]([A-Z0-9]{3})[\.\s]([A-Z0-9]{3})\s*(.*)$/) ||
+                    (ikRow.komponen || "").match(/^([A-Z0-9]{3})\s*(.*)$/);
+  const kompKode = kompMatch ? (kompMatch.length > 2 && kompMatch[4] ? kompMatch[4] : kompMatch[1]) : "052";
+  const kompNama = kompMatch ? (kompMatch.length > 2 && kompMatch[5] ? kompMatch[5].trim() : kompMatch[2].trim()) : (ikRow.komponen || "");
+
+  return {
+    progKode, progUraian,
+    aktivitasKode, aktivitasUraian,
+    kroKode, kroNama,
+    roKode, roNama,
+    kompKode, kompNama,
+  };
+}
+
+// Default initial worksheet jika user langsung mengakses RPD sebelum membuka Isian RAB
+function buildFallbackWorksheet(ukSingkatan: string): WorksheetRow[] {
+  const filtered = informasiKinerjaData.filter((r) => r.unitKerja === ukSingkatan);
+  const ikRow = filtered[0] || informasiKinerjaData[0];
+  const parsed = parseInformasiKinerjaRow(ikRow);
+
+  const rawRows: WorksheetRow[] = [
+    {
+      id: "row-prog",
+      type: "program",
+      kode: parsed.progKode,
+      uraian: parsed.progUraian,
+      jumlah: 743651000,
+    },
+    {
+      id: "row-keg",
+      type: "kegiatan",
+      kode: parsed.aktivitasKode,
+      uraian: parsed.aktivitasUraian,
+      jumlah: 743651000,
+    },
+    {
+      id: "row-kro",
+      type: "kro",
+      kode: parsed.kroKode,
+      uraian: parsed.kroNama,
+      vol: 19,
+      sat: "peraturan",
+      jumlah: 743651000,
+    },
+    {
+      id: "row-ro",
+      type: "ro",
+      kode: parsed.roKode,
+      uraian: parsed.roNama,
+      vol: 19,
+      sat: "peraturan",
+      jumlah: 743651000,
+    },
+    {
+      id: "row-komp",
+      type: "komponen",
+      kode: parsed.kompKode,
+      uraian: parsed.kompNama,
+      jumlah: 578910000,
+    },
+    {
+      id: "row-komp-054",
+      type: "komponen",
+      kode: "054",
+      uraian: "Pengelolaan JDIH",
+      jumlah: 164741000,
+    },
+    {
+      id: "row-subkomp-A",
+      type: "subkomponen",
+      kode: "A",
+      uraian: "Penyusunan dan Implementasi Regulasi Kerja Sama",
+      jumlah: 181573000,
+    },
+    {
+      id: "row-akun-521211",
+      type: "akun",
+      kode: "521211",
+      uraian: "Belanja Bahan",
+      jumlah: 64709000,
+    },
+    {
+      id: "row-det-1",
+      type: "detail",
+      kode: "",
+      uraian: "- Konsumsi Rapat Koordinasi",
+      jumlah: 64443000,
+    },
+    {
+      id: "row-det-2",
+      type: "detail",
+      kode: "",
+      uraian: "- Souvenir Kunjungan Tamu Internasional",
+      jumlah: 266000,
+    },
+    {
+      id: "row-akun-521219",
+      type: "akun",
+      kode: "521219",
+      uraian: "Belanja Barang Non Operasional Lainnya",
+      jumlah: 4491000,
+    },
+    {
+      id: "row-det-3",
+      type: "detail",
+      kode: "",
+      uraian: "- Jamuan Tamu Internasional",
+      jumlah: 4491000,
+    },
+  ];
+
+  return calculateHierarchyAmounts(rawRows);
 }
 
 export default function RpdPage() {
@@ -79,6 +227,9 @@ export default function RpdPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
+  // State notifikasi simpan
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   // State penyimpanan RPD per row id: { [rowId]: { checked: boolean[12], values: number[12] } }
   const [rpdMap, setRpdMap] = useState<Record<string, MonthlyDistribution>>(() => {
     try {
@@ -96,21 +247,24 @@ export default function RpdPage() {
         const parsed: WorksheetRow[] = JSON.parse(saved);
         setRawRows(parsed);
       } else {
-        // Fallback jika belum pernah buka Isian RAB untuk unit ini
-        setRawRows([]);
+        // Gunakan fallback data jika belum tersimpan di localStorage
+        const fallback = buildFallbackWorksheet(ukSingkatan);
+        setRawRows(fallback);
       }
     } catch (e) {
       console.error(e);
+      setRawRows(buildFallbackWorksheet(ukSingkatan));
     } finally {
       setLoading(false);
     }
   }, [ukSingkatan]);
 
-  // Simpan otomatis RPD ke localStorage
+  // Simpan RPD ke localStorage & beri feedback visual
   const handleSaveRpd = () => {
     try {
       localStorage.setItem(`rab_rpd_${ukSingkatan}`, JSON.stringify(rpdMap));
-      alert("Distribusi Rencana Penarikan Dana (RPD) berhasil disimpan!");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       alert("Gagal menyimpan data RPD.");
     }
@@ -118,9 +272,7 @@ export default function RpdPage() {
 
   // Filter baris kertas kerja: Fokus pada Output/Suboutput/Komponen/Subkomponen/Akun/Detail
   const displayRows = useMemo(() => {
-    // Saring hanya level yang relevan: output, suboutput, komponen, subkomponen, akun, atau detail
     return rawRows.filter((row) => {
-      // Exclude header murni jika ingin langsung fokus ke kode kegiatan/output/komponen
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
         const matchKode = (row.kode || "").toLowerCase().includes(q);
@@ -135,7 +287,7 @@ export default function RpdPage() {
   }, [rawRows, searchTerm, filterType]);
 
   // Helper mendapatkan distribusi baris
-  const getRowDistribution = (rowId: string, rowJumlah: number): MonthlyDistribution => {
+  const getRowDistribution = (rowId: string): MonthlyDistribution => {
     if (rpdMap[rowId]) {
       return rpdMap[rowId];
     }
@@ -146,13 +298,8 @@ export default function RpdPage() {
   };
 
   // Handler Checklist Bulan
-  // Sesuai Panduan4:
-  // "jika user klik checkbox, maka angka pada jumlah akan tercopy pada kolom isian angka"
-  // "jika user klik lebih dari 1 checkbox, maka angka pada jumlah akan dibagi sejumlah checkbox yang dipilih,
-  // lalu angka tersebut akan terisi pada kolom isian angka, misalnya jumlah 100.000, lalu user checklist 4 bulan
-  // (Maret, Juni, Agustus, November), tiap kolom bulan akan terisi angka 25.000"
   const handleToggleMonth = (rowId: string, monthIdx: number, rowJumlah: number) => {
-    const current = getRowDistribution(rowId, rowJumlah);
+    const current = getRowDistribution(rowId);
     const newChecked = [...current.checked];
     newChecked[monthIdx] = !newChecked[monthIdx];
 
@@ -167,7 +314,6 @@ export default function RpdPage() {
       let applied = 0;
       newChecked.forEach((isChecked, idx) => {
         if (isChecked) {
-          // Berikan sisa pecahan ke bulan tercentang pertama agar totalnya pas 100%
           const addRemainder = applied === 0 ? remainder : 0;
           newValues[idx] = splitAmount + addRemainder;
           applied++;
@@ -191,14 +337,12 @@ export default function RpdPage() {
 
   // Handler jika user mengetik manual angka bulan
   const handleValueChange = (rowId: string, monthIdx: number, val: number) => {
-    const current = getRowDistribution(rowId, 0);
+    const current = getRowDistribution(rowId);
     const newValues = [...current.values];
     newValues[monthIdx] = Math.max(0, val);
 
     const newChecked = [...current.checked];
-    if (val > 0) {
-      newChecked[monthIdx] = true;
-    }
+    newChecked[monthIdx] = val > 0;
 
     const updated = {
       ...rpdMap,
@@ -214,21 +358,50 @@ export default function RpdPage() {
     } catch (e) {}
   };
 
-  // Hitung Agregat RPD per Bulan
+  // ══════════════════════════════════════════════════════════════════════════
+  // PERHITUNGAN AGREGAT RPD PER BULAN (SEPERTI WIDGET REKAPITULASI PENARIKAN KAS)
+  // Menghitung seluruh baris yang diinput oleh user.
+  // Jika baris berelasi induk-anak (misal komponen vs detail), kita prioritaskan baris leaf (paling spesifik)
+  // agar tidak terhitung ganda. Namun jika user mencentang langsung di level komponen atau RO, tetap terhitung!
+  // ══════════════════════════════════════════════════════════════════════════
   const totalPerBulan = useMemo(() => {
     const sums = new Array(12).fill(0);
-    // Agregasi dari baris bertipe 'detail' atau jika tidak ada detail, dari baris paling spesifik
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    const targetRows = detailRows.length > 0 ? detailRows : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
 
-    targetRows.forEach((r) => {
-      const dist = rpdMap[r.id];
-      if (dist) {
+    // Kumpulkan seluruh rowId yang memiliki nilai terisi > 0 di rpdMap
+    const activeRowIdsWithValues = Object.keys(rpdMap).filter((id) => {
+      const dist = rpdMap[id];
+      return dist && dist.values && dist.values.some((v) => Number(v) > 0);
+    });
+
+    if (activeRowIdsWithValues.length === 0) {
+      return sums;
+    }
+
+    // Identifikasi apakah ada level anak yang terisi di bawah level induk
+    // Prioritas level spesifik: detail -> subkomponen_sub -> header2 -> header1 -> akun -> subkomponen -> komponen -> ro -> kro -> kegiatan -> program
+    const detailIds = new Set(rawRows.filter((r) => r.type === "detail").map((r) => r.id));
+    const hasDetailWithValues = activeRowIdsWithValues.some((id) => detailIds.has(id));
+
+    activeRowIdsWithValues.forEach((id) => {
+      const dist = rpdMap[id];
+      const row = rawRows.find((r) => r.id === id);
+
+      // Jika ada detail yang terisi, baris agregat di atas akun/detail (seperti program/kegiatan/kro/ro)
+      // tidak dijumlahkan dobel jika user menginput di keduanya.
+      // Jika user hanya menginput di level komponen atau ro, baris tersebut pasti ikut dijumlahkan!
+      if (hasDetailWithValues && row) {
+        if (["program", "kegiatan", "kro", "ro"].includes(row.type)) {
+          return;
+        }
+      }
+
+      if (dist && dist.values) {
         dist.values.forEach((v, idx) => {
-          sums[idx] += v || 0;
+          sums[idx] += Number(v) || 0;
         });
       }
     });
+
     return sums;
   }, [rawRows, rpdMap]);
 
@@ -242,8 +415,26 @@ export default function RpdPage() {
       return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
     }
     const progRows = rawRows.filter((r) => r.type === "program");
-    return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    if (progRows.length > 0) {
+      return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    }
+    return rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
   }, [rawRows]);
+
+  // Helper pemformat angka nominal
+  const formatCompactRupiah = (val: number): string => {
+    if (val === 0) return "Rp 0";
+    if (val >= 1000000000) {
+      return `Rp ${(val / 1000000000).toFixed(1)} M`;
+    }
+    if (val >= 1000000) {
+      return `Rp ${(val / 1000000).toFixed(1)} Jt`;
+    }
+    if (val >= 1000) {
+      return `Rp ${(val / 1000).toLocaleString("id-ID")}k`;
+    }
+    return `Rp ${val.toLocaleString("id-ID")}`;
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -276,10 +467,23 @@ export default function RpdPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleSaveRpd}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer shadow-sm ${
+                saveSuccess
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
             >
-              <Save className="w-4 h-4" />
-              <span>Simpan RPD</span>
+              {saveSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>RPD Tersimpan!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Simpan RPD</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -321,26 +525,56 @@ export default function RpdPage() {
         </div>
       </div>
 
-      {/* ── Mini Widget RPD Per Bulan (Agregat) ── */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 overflow-hidden">
-        <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <BarChart2 className="w-4 h-4 text-indigo-500" />
-          <span>Rekapitulasi Penarikan Kas Bulanan (Semua Output/Komponen)</span>
-        </h3>
+      {/* ── Mini Widget RPD Per Bulan (Agregat) - Update Real-Time saat user centang / ubah nilai / simpan ── */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 overflow-hidden transition-all">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <BarChart2 className="w-4 h-4 text-indigo-500" />
+            <span>REKAPITULASI PENARIKAN KAS BULANAN (SEMUA OUTPUT/KOMPONEN)</span>
+          </h3>
+          <span className="text-[11px] font-mono text-slate-500">
+            Total Terdistribusi: <strong className="text-indigo-600 dark:text-indigo-400">{formatCompactRupiah(grandTotalRpd)}</strong>
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2 text-center text-xs">
           {BULAN_NAMES.map((bln, idx) => {
             const val = totalPerBulan[idx] || 0;
-            const pct = grandTotalPagu > 0 ? ((val / grandTotalPagu) * 100).toFixed(1) : "0.0";
+            const pct =
+              grandTotalPagu > 0
+                ? ((val / grandTotalPagu) * 100).toFixed(1)
+                : "0.0";
+            const isHasValue = val > 0;
+
             return (
               <div
                 key={idx}
-                className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850"
+                className={`p-2.5 rounded-xl border transition-all ${
+                  isHasValue
+                    ? "border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/40 dark:bg-indigo-950/30 shadow-2xs"
+                    : "border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850"
+                }`}
               >
-                <div className="text-[10px] font-bold text-slate-500 uppercase">{bln.slice(0, 3)}</div>
-                <div className="font-bold font-mono text-slate-800 dark:text-slate-200 mt-1 text-[11px] truncate">
-                  Rp {(val / 1000).toLocaleString("id-ID")}k
+                <div className={`text-[10px] font-bold uppercase ${isHasValue ? "text-indigo-700 dark:text-indigo-300" : "text-slate-500"}`}>
+                  {bln.slice(0, 3)}
                 </div>
-                <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
+                <div
+                  className={`font-bold font-mono mt-1 text-[11px] truncate ${
+                    isHasValue
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-600 dark:text-slate-400"
+                  }`}
+                  title={`Rp ${val.toLocaleString("id-ID")}`}
+                >
+                  {formatCompactRupiah(val)}
+                </div>
+                <div
+                  className={`text-[10px] font-semibold mt-0.5 ${
+                    isHasValue
+                      ? "text-indigo-600 dark:text-indigo-400 font-bold"
+                      : "text-purple-600 dark:text-purple-400"
+                  }`}
+                >
                   {pct}%
                 </div>
               </div>
@@ -432,9 +666,8 @@ export default function RpdPage() {
               ) : (
                 displayRows.map((row) => {
                   const isDetailOrSub = row.type === "detail" || row.type === "subkomponen" || row.type === "akun";
-                  const isHeaderRow = !isDetailOrSub;
                   const rowJumlah = Number(row.jumlah) || 0;
-                  const distribution = getRowDistribution(row.id, rowJumlah);
+                  const distribution = getRowDistribution(row.id);
 
                   // Penanda warna baris hierarki
                   const rowBg =
