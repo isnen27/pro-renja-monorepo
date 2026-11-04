@@ -1046,6 +1046,7 @@ function IsianRabPageContent() {
   const [perjadinLNJudulKegiatan, setPerjadinLNJudulKegiatan] = useState<string>("Sidang / Pertemuan Tingkat Internasional");
   const [perjadinLNDestinasiList, setPerjadinLNDestinasiList] = useState<Array<{
     id: string;
+    judulKegiatan: string; // Nama Kegiatan (Header 1) untuk destinasi ini
     destinasiKey: string; // Misal: "JAKARTA - AMERIKA UTARA - Chicago"
     benua: string;        // "AMERIKA UTARA"
     negara: string;       // "Amerika Serikat"
@@ -1068,6 +1069,7 @@ function IsianRabPageContent() {
   }>>([
     {
       id: "ln-1",
+      judulKegiatan: "Sidang / Pertemuan Tingkat Internasional",
       destinasiKey: "JAKARTA - AMERIKA UTARA - Chicago",
       benua: "AMERIKA UTARA",
       negara: "Amerika Serikat",
@@ -1111,6 +1113,7 @@ function IsianRabPageContent() {
   // Konsinyering Luar Kota (524119)
   const [konsinyeringLKProvinsiList, setKonsinyeringLKProvinsiList] = useState<Array<{
     id: string;
+    namaKegiatan: string; // Nama Kegiatan (Header 1) untuk lokasi ini
     provinsi: string; // Misal: "06 ACEH"
     tiket1aOrg: number; tiket1aKeg: number;
     tiket1bOrg: number; tiket1bKeg: number;
@@ -1131,6 +1134,7 @@ function IsianRabPageContent() {
   }>>([
     {
       id: "klk-1",
+      namaKegiatan: "Konsinyering Penyusunan Rencana Kerja dan Anggaran",
       provinsi: "06 ACEH",
       tiket1aOrg: 1, tiket1aKeg: 1,
       tiket1bOrg: 5, tiket1bKeg: 1,
@@ -3804,127 +3808,140 @@ function IsianRabPageContent() {
       akunIdx = insertAkunIdx;
     }
 
-    // Header 1: Judul Kegiatan
-    const header1Id = `h1-ln-${timeStamp}`;
-    const header1Uraian = perjadinLNJudulKegiatan.trim() || "Sidang / Pertemuan Tingkat Internasional";
-
-    // Hitung prefix nomor Header 1 baru jika diperlukan
-    const existingH1s = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524211");
-    let targetH1Uraian = header1Uraian;
-    const existingH1Match = existingH1s.find(
-      (h) => cleanHeaderUraian(h.uraian) === cleanHeaderUraian(header1Uraian)
-    );
-    const isExistingH1 = !!existingH1Match;
-    if (isExistingH1) {
-      targetH1Uraian = existingH1Match.uraian;
-    } else {
-      const nextH1Num = existingH1s.length + 1;
-      targetH1Uraian = `${nextH1Num}. ${header1Uraian}`;
-    }
-
-    // Generate Header 2 & Detail untuk setiap destinasi
-    let totalAllH1 = 0;
-    const rowsToAdd: WorksheetRow[] = [];
-
-    if (!isExistingH1) {
-      rowsToAdd.push({
-        id: header1Id,
-        type: "header1",
-        kode: "",
-        uraian: targetH1Uraian,
-        parentAkunKode: "524211",
-        jumlah: 0,
-        cO: false, cS: false, cU: false, cK: false, cD: false,
-      });
-    }
-
-    perjadinLNDestinasiList.forEach((dest, destIdx) => {
-      const numPrefix = `${destIdx + 1}`;
-      const header2Uraian = dest.labelHeader2 || `${dest.benua}-${dest.negara} - ${dest.kota}`;
-      const header2Id = `h2-ln-${destIdx}-${timeStamp}`;
-      const tarif = getTarifPerjadinLN(dest.destinasiKey || dest.kota, KURS_USD_ASUMSI_MAKRO);
-
-      const detailsForDest: WorksheetRow[] = [];
-      let totalHeader2 = 0;
-
-      const addDetailLN = (
-        subLetter: string,
-        uraianNama: string,
-        vOrg: number,
-        vSat1: string,
-        vHariOrKali: number,
-        vSat2: string,
-        vKeg: number,
-        vSat3: string,
-        finalSat: string,
-        biayaSatuan: number
-      ) => {
-        const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
-        const subTotal = totalVol * (biayaSatuan || 0);
-        if (subTotal <= 0 && vOrg <= 0) return;
-
-        totalHeader2 += subTotal;
-        detailsForDest.push({
-          id: `det-ln-${destIdx}-${subLetter}-${timeStamp}`,
-          type: "detail",
-          kode: "",
-          uraian: `${numPrefix}${subLetter}. ${uraianNama}`,
-          parentAkunKode: "524211",
-          k1Nilai: vOrg > 0 ? vOrg : undefined,
-          k1Sat: vOrg > 0 ? vSat1 : undefined,
-          k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
-          k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
-          k3Nilai: vKeg > 0 ? vKeg : undefined,
-          k3Sat: vKeg > 0 ? vSat3 : undefined,
-          vol: totalVol > 0 ? totalVol : undefined,
-          sat: finalSat,
-          harga: biayaSatuan,
-          jumlah: subTotal,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
-        });
-      };
-
-      // 1a s.d 1d: Tiket Pesawat
-      addDetailLN("a", "Tiket Pesawat (PP) Eselon I", dest.tiket1aOrg, "orang", 1, "kali", dest.tiket1aKeg, "Keg", "OK", tarif.tiketBisnisIDR);
-      addDetailLN("b", "Tiket Pesawat (PP) Eselon II", dest.tiket1bOrg, "orang", 1, "kali", dest.tiket1bKeg, "Keg", "OK", tarif.tiketBisnisIDR);
-      addDetailLN("c", "Tiket Pesawat (PP) Eselon III ke bawah", dest.tiket1cOrg, "orang", 1, "kali", dest.tiket1cKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
-      addDetailLN("d", "Tiket Pesawat (PP) Golongan III ke bawah", dest.tiket1dOrg, "orang", 1, "kali", dest.tiket1dKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
-      // 1e: Taksi Jakarta
-      addDetailLN("e", "Taksi Jakarta", dest.taksi1eOrg, "orang", dest.taksi1eKali, "kali", dest.taksi1eKeg, "Keg", "OK", tarif.taksiJakarta);
-      // 1f s.d 1i: Uang Harian Gol A - D
-      addDetailLN("f", "Uang Harian Gol A", dest.uang1fOrg, "orang", dest.uang1fHari, "hari", dest.uang1fKeg, "Keg", "OH", tarif.uangHarianGolA_IDR);
-      addDetailLN("g", "Uang Harian Gol B", dest.uang1gOrg, "orang", dest.uang1gHari, "hari", dest.uang1gKeg, "Keg", "OH", tarif.uangHarianGolB_IDR);
-      addDetailLN("h", "Uang Harian Gol C", dest.uang1hOrg, "orang", dest.uang1hHari, "hari", dest.uang1hKeg, "Keg", "OH", tarif.uangHarianGolC_IDR);
-      addDetailLN("i", "Uang Harian Gol D", dest.uang1iOrg, "orang", dest.uang1iHari, "hari", dest.uang1iKeg, "Keg", "OH", tarif.uangHarianGolD_IDR);
-      // 1j s.d 1m: Uang Harian Perjalanan Gol A - D (30%)
-      addDetailLN("j", "Uang Harian Perjalanan Gol A", dest.perj1jOrg, "orang", dest.perj1jHari, "hari", dest.perj1jKeg, "Keg", "OH", tarif.uangHarianPerjadinGolA_IDR);
-      addDetailLN("k", "Uang Harian Perjalanan Gol B", dest.perj1kOrg, "orang", dest.perj1kHari, "hari", dest.perj1kKeg, "Keg", "OH", tarif.uangHarianPerjadinGolB_IDR);
-      addDetailLN("l", "Uang Harian Perjalanan Gol C", dest.perj1lOrg, "orang", dest.perj1lHari, "hari", dest.perj1lKeg, "Keg", "OH", tarif.uangHarianPerjadinGolC_IDR);
-      addDetailLN("m", "Uang Harian Perjalanan Gol D", dest.perj1mOrg, "orang", dest.perj1mHari, "hari", dest.perj1mKeg, "Keg", "OH", tarif.uangHarianPerjadinGolD_IDR);
-
-      totalAllH1 += totalHeader2;
-      rowsToAdd.push({
-        id: header2Id,
-        type: "header2",
-        kode: "",
-        uraian: header2Uraian,
-        parentAkunKode: "524211",
-        jumlah: totalHeader2,
-        cO: false, cS: false, cU: false, cK: false, cD: false,
-      });
-      rowsToAdd.push(...detailsForDest);
+    // Kelompokkan setiap destinasi berdasarkan judulKegiatan masing-masing
+    // Karena setiap negara/destinasi dapat memiliki nama kegiatan berbeda
+    const groups: Array<{ judul: string; dests: typeof perjadinLNDestinasiList }> = [];
+    perjadinLNDestinasiList.forEach((dest) => {
+      const judul = (dest.judulKegiatan || perjadinLNJudulKegiatan || "Sidang / Pertemuan Tingkat Internasional").trim();
+      const existingGrp = groups.find((g) => cleanHeaderUraian(g.judul) === cleanHeaderUraian(judul));
+      if (existingGrp) {
+        existingGrp.dests.push(dest);
+      } else {
+        groups.push({ judul, dests: [dest] });
+      }
     });
 
-    // Sisipkan ke worksheetRows
-    if (isExistingH1 && existingH1Match) {
-      const h1Idx = nextRows.findIndex((r) => r.id === existingH1Match.id);
-      const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
-      nextRows.splice(insertPos, 0, ...rowsToAdd);
-    } else {
-      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524211");
-      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-      nextRows.splice(insertPos, 0, ...rowsToAdd);
-    }
+    // Ambil daftar Header 1 yang sudah ada di bawah akun 524211
+    const existingH1s = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524211");
+    let nextH1Num = existingH1s.length + 1;
+
+    groups.forEach((grp, grpIdx) => {
+      const cleanGrpJudul = cleanHeaderUraian(grp.judul);
+      const existingMatch = nextRows.find(
+        (r) => r.type === "header1" && r.parentAkunKode === "524211" && cleanHeaderUraian(r.uraian) === cleanGrpJudul
+      );
+
+      const isExistingH1 = !!existingMatch;
+      let targetH1Uraian = grp.judul;
+      if (isExistingH1 && existingMatch) {
+        targetH1Uraian = existingMatch.uraian;
+      } else {
+        targetH1Uraian = `${nextH1Num}. ${cleanHeaderUraian(grp.judul)}`;
+        nextH1Num++;
+      }
+
+      const header1Id = existingMatch ? existingMatch.id : `h1-ln-${grpIdx}-${timeStamp}`;
+      const rowsToAddForGrp: WorksheetRow[] = [];
+
+      if (!isExistingH1) {
+        rowsToAddForGrp.push({
+          id: header1Id,
+          type: "header1",
+          kode: "",
+          uraian: targetH1Uraian,
+          parentAkunKode: "524211",
+          jumlah: 0,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+      }
+
+      grp.dests.forEach((dest, dIdx) => {
+        const numPrefix = `${dIdx + 1}`;
+        const header2Uraian = dest.labelHeader2 || `${dest.benua}-${dest.negara} - ${dest.kota}`;
+        const header2Id = `h2-ln-${grpIdx}-${dIdx}-${timeStamp}`;
+        const tarif = getTarifPerjadinLN(dest.destinasiKey || dest.kota, KURS_USD_ASUMSI_MAKRO);
+
+        const detailsForDest: WorksheetRow[] = [];
+        let totalHeader2 = 0;
+
+        const addDetailLN = (
+          subLetter: string,
+          uraianNama: string,
+          vOrg: number,
+          vSat1: string,
+          vHariOrKali: number,
+          vSat2: string,
+          vKeg: number,
+          vSat3: string,
+          finalSat: string,
+          biayaSatuan: number
+        ) => {
+          const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
+          const subTotal = totalVol * (biayaSatuan || 0);
+          if (subTotal <= 0 && vOrg <= 0) return;
+
+          totalHeader2 += subTotal;
+          detailsForDest.push({
+            id: `det-ln-${grpIdx}-${dIdx}-${subLetter}-${timeStamp}`,
+            type: "detail",
+            kode: "",
+            uraian: `${numPrefix}${subLetter}. ${uraianNama}`,
+            parentAkunKode: "524211",
+            k1Nilai: vOrg > 0 ? vOrg : undefined,
+            k1Sat: vOrg > 0 ? vSat1 : undefined,
+            k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
+            k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
+            k3Nilai: vKeg > 0 ? vKeg : undefined,
+            k3Sat: vKeg > 0 ? vSat3 : undefined,
+            vol: totalVol > 0 ? totalVol : undefined,
+            sat: finalSat,
+            harga: biayaSatuan,
+            jumlah: subTotal,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+        };
+
+        // 1a s.d 1d: Tiket Pesawat
+        addDetailLN("a", "Tiket Pesawat (PP) Eselon I", dest.tiket1aOrg, "orang", 1, "kali", dest.tiket1aKeg, "Keg", "OK", tarif.tiketBisnisIDR);
+        addDetailLN("b", "Tiket Pesawat (PP) Eselon II", dest.tiket1bOrg, "orang", 1, "kali", dest.tiket1bKeg, "Keg", "OK", tarif.tiketBisnisIDR);
+        addDetailLN("c", "Tiket Pesawat (PP) Eselon III ke bawah", dest.tiket1cOrg, "orang", 1, "kali", dest.tiket1cKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
+        addDetailLN("d", "Tiket Pesawat (PP) Golongan III ke bawah", dest.tiket1dOrg, "orang", 1, "kali", dest.tiket1dKeg, "Keg", "OK", tarif.tiketEkonomiIDR);
+        // 1e: Taksi Jakarta
+        addDetailLN("e", "Taksi Jakarta", dest.taksi1eOrg, "orang", dest.taksi1eKali, "kali", dest.taksi1eKeg, "Keg", "OK", tarif.taksiJakarta);
+        // 1f s.d 1i: Uang Harian Gol A - D
+        addDetailLN("f", "Uang Harian Gol A", dest.uang1fOrg, "orang", dest.uang1fHari, "hari", dest.uang1fKeg, "Keg", "OH", tarif.uangHarianGolA_IDR);
+        addDetailLN("g", "Uang Harian Gol B", dest.uang1gOrg, "orang", dest.uang1gHari, "hari", dest.uang1gKeg, "Keg", "OH", tarif.uangHarianGolB_IDR);
+        addDetailLN("h", "Uang Harian Gol C", dest.uang1hOrg, "orang", dest.uang1hHari, "hari", dest.uang1hKeg, "Keg", "OH", tarif.uangHarianGolC_IDR);
+        addDetailLN("i", "Uang Harian Gol D", dest.uang1iOrg, "orang", dest.uang1iHari, "hari", dest.uang1iKeg, "Keg", "OH", tarif.uangHarianGolD_IDR);
+        // 1j s.d 1m: Uang Harian Perjalanan Gol A - D (30%)
+        addDetailLN("j", "Uang Harian Perjalanan Gol A", dest.perj1jOrg, "orang", dest.perj1jHari, "hari", dest.perj1jKeg, "Keg", "OH", tarif.uangHarianPerjadinGolA_IDR);
+        addDetailLN("k", "Uang Harian Perjalanan Gol B", dest.perj1kOrg, "orang", dest.perj1kHari, "hari", dest.perj1kKeg, "Keg", "OH", tarif.uangHarianPerjadinGolB_IDR);
+        addDetailLN("l", "Uang Harian Perjalanan Gol C", dest.perj1lOrg, "orang", dest.perj1lHari, "hari", dest.perj1lKeg, "Keg", "OH", tarif.uangHarianPerjadinGolC_IDR);
+        addDetailLN("m", "Uang Harian Perjalanan Gol D", dest.perj1mOrg, "orang", dest.perj1mHari, "hari", dest.perj1mKeg, "Keg", "OH", tarif.uangHarianPerjadinGolD_IDR);
+
+        rowsToAddForGrp.push({
+          id: header2Id,
+          type: "header2",
+          kode: "",
+          uraian: header2Uraian,
+          parentAkunKode: "524211",
+          jumlah: totalHeader2,
+          cO: false, cS: false, cU: false, cK: false, cD: false,
+        });
+        rowsToAddForGrp.push(...detailsForDest);
+      });
+
+      // Sisipkan ke worksheetRows
+      if (isExistingH1 && existingMatch) {
+        const h1Idx = nextRows.findIndex((r) => r.id === existingMatch.id);
+        const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
+        nextRows.splice(insertPos, 0, ...rowsToAddForGrp);
+      } else {
+        const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524211");
+        const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+        nextRows.splice(insertPos, 0, ...rowsToAddForGrp);
+      }
+    });
 
     setWorksheetRows(calculateHierarchyAmounts(nextRows));
     triggerAlert("Berhasil menyusun dan menyimpan rincian Perjalanan Dinas Luar Negeri ke kertas kerja!");
@@ -3969,8 +3986,22 @@ function IsianRabPageContent() {
       }
 
       const tarif = getTarifKonsinyeringDalamKota();
-      const header1Id = `h1-kdk-${timeStamp}`;
-      const header1Uraian = konsinyeringNamaKegiatan.trim() || "Konsinyering Dalam Kota";
+      const rawJudulDK = konsinyeringNamaKegiatan.trim() || "Konsinyering Penyusunan Rencana Kerja dan Anggaran";
+      const cleanJudulDK = cleanHeaderUraian(rawJudulDK);
+
+      // Cek apakah Header 1 sudah ada di bawah 524114
+      const existingH1sDK = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524114");
+      const existingMatchDK = existingH1sDK.find((h) => cleanHeaderUraian(h.uraian) === cleanJudulDK);
+
+      let targetH1UraianDK = rawJudulDK;
+      if (existingMatchDK) {
+        targetH1UraianDK = existingMatchDK.uraian;
+      } else {
+        const nextH1NumDK = existingH1sDK.length + 1;
+        targetH1UraianDK = `${nextH1NumDK}. ${cleanJudulDK}`;
+      }
+
+      const header1Id = existingMatchDK ? existingMatchDK.id : `h1-kdk-${timeStamp}`;
       const header2Uraian = "JAKARTA";
       const header2Id = `h2-kdk-${timeStamp}`;
 
@@ -4024,16 +4055,20 @@ function IsianRabPageContent() {
       addDetailDK("g", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", items.fd1gOrg, "orang", 1, "kali", items.fd1gKeg, "Keg", "OP", tarif.fulldayEselonIII);
       addDetailDK("h", "Uang Harian Fullboard Meeting", items.uh1hOrg, "orang", items.uh1hHari, "hari", items.uh1hKeg, "Keg", "OH", tarif.uangHarianFullboard);
 
-      const rowsToAddDK: WorksheetRow[] = [
-        {
+      const rowsToAddDK: WorksheetRow[] = [];
+      if (!existingMatchDK) {
+        rowsToAddDK.push({
           id: header1Id,
           type: "header1",
           kode: "",
-          uraian: header1Uraian,
+          uraian: targetH1UraianDK,
           parentAkunKode: "524114",
           jumlah: totalH2,
           cO: false, cS: false, cU: false, cK: false, cD: false,
-        },
+        });
+      }
+
+      rowsToAddDK.push(
         {
           id: header2Id,
           type: "header2",
@@ -4043,12 +4078,18 @@ function IsianRabPageContent() {
           jumlah: totalH2,
           cO: false, cS: false, cU: false, cK: false, cD: false,
         },
-        ...details,
-      ];
+        ...details
+      );
 
-      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
-      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-      nextRows.splice(insertPos, 0, ...rowsToAddDK);
+      if (existingMatchDK) {
+        const h1Idx = nextRows.findIndex((r) => r.id === existingMatchDK.id);
+        const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
+        nextRows.splice(insertPos, 0, ...rowsToAddDK);
+      } else {
+        const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524114");
+        const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+        nextRows.splice(insertPos, 0, ...rowsToAddDK);
+      }
     }
 
     // 2. KONSINYERING LUAR KOTA (AKUN 524119) JIKA DIPILIH
@@ -4076,99 +4117,139 @@ function IsianRabPageContent() {
         akunIdx = insertAkunIdx;
       }
 
-      const header1Id = `h1-klk-${timeStamp}`;
-      const header1Uraian = konsinyeringNamaKegiatan.trim() || "Konsinyering Luar Kota";
-      const rowsToAddLK: WorksheetRow[] = [];
-
-      rowsToAddLK.push({
-        id: header1Id,
-        type: "header1",
-        kode: "",
-        uraian: header1Uraian,
-        parentAkunKode: "524119",
-        jumlah: 0,
-        cO: false, cS: false, cU: false, cK: false, cD: false,
+      // Kelompokkan setiap lokasi berdasarkan namaKegiatan masing-masing
+      // Karena tiap provinsi, nama kegiatannya dapat berbeda
+      const groupsLK: Array<{ judul: string; items: typeof konsinyeringLKProvinsiList }> = [];
+      konsinyeringLKProvinsiList.forEach((item) => {
+        const judul = (item.namaKegiatan || konsinyeringNamaKegiatan || "Konsinyering Penyusunan Rencana Kerja dan Anggaran").trim();
+        const existingGrp = groupsLK.find((g) => cleanHeaderUraian(g.judul) === cleanHeaderUraian(judul));
+        if (existingGrp) {
+          existingGrp.items.push(item);
+        } else {
+          groupsLK.push({ judul, items: [item] });
+        }
       });
 
-      konsinyeringLKProvinsiList.forEach((item, pIdx) => {
-        const numPrefix = `${pIdx + 1}`;
-        const cleanProv = formatDisplayProv(item.provinsi);
-        const header2Uraian = cleanProv;
-        const header2Id = `h2-klk-${pIdx}-${timeStamp}`;
-        const tarif = getTarifKonsinyeringLuarKota(item.provinsi);
+      // Ambil existing Header 1 di bawah akun 524119 untuk penomoran berurutan
+      const existingH1sLK = nextRows.filter((r) => r.type === "header1" && r.parentAkunKode === "524119");
+      let nextH1NumLK = existingH1sLK.length + 1;
 
-        const detailsForProv: WorksheetRow[] = [];
-        let totalH2 = 0;
+      groupsLK.forEach((grp, grpIdx) => {
+        const cleanGrpJudul = cleanHeaderUraian(grp.judul);
+        const existingMatchLK = nextRows.find(
+          (r) => r.type === "header1" && r.parentAkunKode === "524119" && cleanHeaderUraian(r.uraian) === cleanGrpJudul
+        );
 
-        const addDetailLK = (
-          subLetter: string,
-          nama: string,
-          vOrg: number,
-          vSat1: string,
-          vHariOrKali: number,
-          vSat2: string,
-          vKeg: number,
-          vSat3: string,
-          satAkhir: string,
-          harga: number
-        ) => {
-          const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
-          const subTotal = totalVol * (harga || 0);
-          if (subTotal <= 0 && vOrg <= 0) return;
+        const isExistingH1 = !!existingMatchLK;
+        let targetH1UraianLK = grp.judul;
+        if (isExistingH1 && existingMatchLK) {
+          targetH1UraianLK = existingMatchLK.uraian;
+        } else {
+          targetH1UraianLK = `${nextH1NumLK}. ${cleanGrpJudul}`;
+          nextH1NumLK++;
+        }
 
-          totalH2 += subTotal;
-          detailsForProv.push({
-            id: `det-klk-${pIdx}-${subLetter}-${timeStamp}`,
-            type: "detail",
+        const header1Id = existingMatchLK ? existingMatchLK.id : `h1-klk-${grpIdx}-${timeStamp}`;
+        const rowsToAddLK: WorksheetRow[] = [];
+
+        if (!isExistingH1) {
+          rowsToAddLK.push({
+            id: header1Id,
+            type: "header1",
             kode: "",
-            uraian: `${numPrefix}${subLetter}. ${nama}`,
+            uraian: targetH1UraianLK,
             parentAkunKode: "524119",
-            k1Nilai: vOrg > 0 ? vOrg : undefined,
-            k1Sat: vOrg > 0 ? vSat1 : undefined,
-            k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
-            k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
-            k3Nilai: vKeg > 0 ? vKeg : undefined,
-            k3Sat: vKeg > 0 ? vSat3 : undefined,
-            vol: totalVol > 0 ? totalVol : undefined,
-            sat: satAkhir,
-            harga: harga,
-            jumlah: subTotal,
+            jumlah: 0,
             cO: false, cS: false, cU: false, cK: false, cD: false,
           });
-        };
+        }
 
-        addDetailLK("a", "Tiket Pesawat (PP) Eselon I", item.tiket1aOrg, "orang", 1, "kali", item.tiket1aKeg, "Keg", "OK", tarif.tiketBisnis);
-        addDetailLK("b", "Tiket Pesawat (PP) Eselon II ke Bawah", item.tiket1bOrg, "orang", 1, "kali", item.tiket1bKeg, "Keg", "OK", tarif.tiketEkonomi);
-        addDetailLK("c", "Taksi Jakarta", item.taksi1cOrg, "orang", item.taksi1cKali, "kali", item.taksi1cKeg, "Keg", "OK", tarif.taksiJakarta);
-        addDetailLK("d", `Taksi (${cleanProv})`, item.taksi1dOrg, "orang", item.taksi1dKali, "kali", item.taksi1dKeg, "Keg", "OK", tarif.taksiTujuan);
-        addDetailLK("e", "Penginapan Eselon I", item.inap1eOrg, "orang", item.inap1eHari, "hari", item.inap1eKeg, "Keg", "OH", tarif.penginapanEselonI);
-        addDetailLK("f", "Penginapan Eselon II", item.inap1fOrg, "orang", item.inap1fHari, "hari", item.inap1fKeg, "Keg", "OH", tarif.penginapanEselonII);
-        addDetailLK("g", "Penginapan Eselon III", item.inap1gOrg, "orang", item.inap1gHari, "hari", item.inap1gKeg, "Keg", "OH", tarif.penginapanEselonIII);
-        addDetailLK("h", "Penginapan Gol. III", item.inap1hOrg, "orang", item.inap1hHari, "hari", item.inap1hKeg, "Keg", "OH", tarif.penginapanGolIII);
-        addDetailLK("i", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fb1iOrg, "orang", item.fb1iHari, "hari", item.fb1iKeg, "Keg", "OP", tarif.fullboardMenteri);
-        addDetailLK("j", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fb1jOrg, "orang", item.fb1jHari, "hari", item.fb1jKeg, "Keg", "OP", tarif.fullboardEselonI_II);
-        addDetailLK("k", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fb1kOrg, "orang", item.fb1kHari, "hari", item.fb1kKeg, "Keg", "OP", tarif.fullboardEselonIII);
-        addDetailLK("l", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fd1lOrg, "orang", 1, "kali", item.fd1lKeg, "Keg", "OP", tarif.fulldayMenteri);
-        addDetailLK("m", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fd1mOrg, "orang", 1, "kali", item.fd1mKeg, "Keg", "OP", tarif.fulldayEselonI_II);
-        addDetailLK("n", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fd1nOrg, "orang", 1, "kali", item.fd1nKeg, "Keg", "OP", tarif.fulldayEselonIII);
-        addDetailLK("o", "Uang Harian Fullboard Meeting", item.uhfb1oOrg, "orang", item.uhfb1oHari, "hari", item.uhfb1oKeg, "Keg", "OH", tarif.uangHarianFullboard);
-        addDetailLK("p", "Uang Harian", item.uh1pOrg, "orang", item.uh1pHari, "hari", item.uh1pKeg, "Keg", "OH", tarif.uangHarianLuarKota);
+        grp.items.forEach((item, pIdx) => {
+          const numPrefix = `${pIdx + 1}`;
+          const cleanProv = formatDisplayProv(item.provinsi);
+          const header2Uraian = cleanProv;
+          const header2Id = `h2-klk-${grpIdx}-${pIdx}-${timeStamp}`;
+          const tarif = getTarifKonsinyeringLuarKota(item.provinsi);
 
-        rowsToAddLK.push({
-          id: header2Id,
-          type: "header2",
-          kode: "",
-          uraian: header2Uraian,
-          parentAkunKode: "524119",
-          jumlah: totalH2,
-          cO: false, cS: false, cU: false, cK: false, cD: false,
+          const detailsForProv: WorksheetRow[] = [];
+          let totalH2 = 0;
+
+          const addDetailLK = (
+            subLetter: string,
+            nama: string,
+            vOrg: number,
+            vSat1: string,
+            vHariOrKali: number,
+            vSat2: string,
+            vKeg: number,
+            vSat3: string,
+            satAkhir: string,
+            harga: number
+          ) => {
+            const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
+            const subTotal = totalVol * (harga || 0);
+            if (subTotal <= 0 && vOrg <= 0) return;
+
+            totalH2 += subTotal;
+            detailsForProv.push({
+              id: `det-klk-${grpIdx}-${pIdx}-${subLetter}-${timeStamp}`,
+              type: "detail",
+              kode: "",
+              uraian: `${numPrefix}${subLetter}. ${nama}`,
+              parentAkunKode: "524119",
+              k1Nilai: vOrg > 0 ? vOrg : undefined,
+              k1Sat: vOrg > 0 ? vSat1 : undefined,
+              k2Nilai: vHariOrKali > 0 ? vHariOrKali : undefined,
+              k2Sat: vHariOrKali > 0 ? vSat2 : undefined,
+              k3Nilai: vKeg > 0 ? vKeg : undefined,
+              k3Sat: vKeg > 0 ? vSat3 : undefined,
+              vol: totalVol > 0 ? totalVol : undefined,
+              sat: satAkhir,
+              harga: harga,
+              jumlah: subTotal,
+              cO: false, cS: false, cU: false, cK: false, cD: false,
+            });
+          };
+
+          addDetailLK("a", "Tiket Pesawat (PP) Eselon I", item.tiket1aOrg, "orang", 1, "kali", item.tiket1aKeg, "Keg", "OK", tarif.tiketBisnis);
+          addDetailLK("b", "Tiket Pesawat (PP) Eselon II ke Bawah", item.tiket1bOrg, "orang", 1, "kali", item.tiket1bKeg, "Keg", "OK", tarif.tiketEkonomi);
+          addDetailLK("c", "Taksi Jakarta", item.taksi1cOrg, "orang", item.taksi1cKali, "kali", item.taksi1cKeg, "Keg", "OK", tarif.taksiJakarta);
+          addDetailLK("d", `Taksi (${cleanProv})`, item.taksi1dOrg, "orang", item.taksi1dKali, "kali", item.taksi1dKeg, "Keg", "OK", tarif.taksiTujuan);
+          addDetailLK("e", "Penginapan Eselon I", item.inap1eOrg, "orang", item.inap1eHari, "hari", item.inap1eKeg, "Keg", "OH", tarif.penginapanEselonI);
+          addDetailLK("f", "Penginapan Eselon II", item.inap1fOrg, "orang", item.inap1fHari, "hari", item.inap1fKeg, "Keg", "OH", tarif.penginapanEselonII);
+          addDetailLK("g", "Penginapan Eselon III", item.inap1gOrg, "orang", item.inap1gHari, "hari", item.inap1gKeg, "Keg", "OH", tarif.penginapanEselonIII);
+          addDetailLK("h", "Penginapan Gol. III", item.inap1hOrg, "orang", item.inap1hHari, "hari", item.inap1hKeg, "Keg", "OH", tarif.penginapanGolIII);
+          addDetailLK("i", "Fullboard Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fb1iOrg, "orang", item.fb1iHari, "hari", item.fb1iKeg, "Keg", "OP", tarif.fullboardMenteri);
+          addDetailLK("j", "Fullboard Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fb1jOrg, "orang", item.fb1jHari, "hari", item.fb1jKeg, "Keg", "OP", tarif.fullboardEselonI_II);
+          addDetailLK("k", "Fullboard Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fb1kOrg, "orang", item.fb1kHari, "hari", item.fb1kKeg, "Keg", "OP", tarif.fullboardEselonIII);
+          addDetailLK("l", "Fullday Meeting Menteri Setingkat Menteri dan Wakil Menteri", item.fd1lOrg, "orang", 1, "kali", item.fd1lKeg, "Keg", "OP", tarif.fulldayMenteri);
+          addDetailLK("m", "Fullday Meeting Eselon I dan II/Pejabat Fungsional Utama", item.fd1mOrg, "orang", 1, "kali", item.fd1mKeg, "Keg", "OP", tarif.fulldayEselonI_II);
+          addDetailLK("n", "Fullday Meeting Eselon III/Pejabat Fungsional Madya Ke Bawah", item.fd1nOrg, "orang", 1, "kali", item.fd1nKeg, "Keg", "OP", tarif.fulldayEselonIII);
+          addDetailLK("o", "Uang Harian Fullboard Meeting", item.uhfb1oOrg, "orang", item.uhfb1oHari, "hari", item.uhfb1oKeg, "Keg", "OH", tarif.uangHarianFullboard);
+          addDetailLK("p", "Uang Harian", item.uh1pOrg, "orang", item.uh1pHari, "hari", item.uh1pKeg, "Keg", "OH", tarif.uangHarianLuarKota);
+
+          rowsToAddLK.push({
+            id: header2Id,
+            type: "header2",
+            kode: "",
+            uraian: header2Uraian,
+            parentAkunKode: "524119",
+            jumlah: totalH2,
+            cO: false, cS: false, cU: false, cK: false, cD: false,
+          });
+          rowsToAddLK.push(...detailsForProv);
         });
-        rowsToAddLK.push(...detailsForProv);
-      });
 
-      const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
-      const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
-      nextRows.splice(insertPos, 0, ...rowsToAddLK);
+        if (isExistingH1 && existingMatchLK) {
+          const h1Idx = nextRows.findIndex((r) => r.id === existingMatchLK.id);
+          const insertPos = findInsertionIndexForSubtree(h1Idx, "header1");
+          nextRows.splice(insertPos, 0, ...rowsToAddLK);
+        } else {
+          const aIdx = nextRows.findIndex((r) => r.type === "akun" && r.kode === "524119");
+          const insertPos = aIdx >= 0 ? findInsertionIndexForSubtree(aIdx, "akun") : nextRows.length;
+          nextRows.splice(insertPos, 0, ...rowsToAddLK);
+        }
+      });
     }
 
     const savedTypes: string[] = [];
@@ -11190,71 +11271,61 @@ function IsianRabPageContent() {
               </button>
             </div>
 
-            {/* Input Parameter Global: Judul Kegiatan (Header 1) & Jumlah Negara Tujuan */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <span>Judul Kegiatan (Menjadi Header 1):</span>
-                  <span className="text-rose-500">*</span>
+            {/* Input Parameter: Tentukan Jumlah Negara Terlebih Dahulu */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
+              <div>
+                <label className="text-xs font-bold text-indigo-950 dark:text-indigo-200 block">
+                  Tentukan Jumlah Negara Tujuan Terlebih Dahulu:
                 </label>
-                <input
-                  type="text"
-                  value={perjadinLNJudulKegiatan}
-                  onChange={(e) => setPerjadinLNJudulKegiatan(e.target.value)}
-                  placeholder="Contoh: Sidang Tahunan FATF / Kerjasama Bilateral"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500"
-                />
+                <span className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80">
+                  Tiap negara memiliki nama kegiatan / agenda (Header 1) yang dapat disesuaikan tersendiri
+                </span>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  Jumlah Negara Tujuan:
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={perjadinLNJumlahNegara}
-                    onChange={(e) => {
-                      const val = Math.max(1, Math.min(10, Number(e.target.value) || 1));
-                      setPerjadinLNJumlahNegara(val);
-                      // Sesuaikan jumlah list destinasi
-                      setPerjadinLNDestinasiList((prev) => {
-                        const allDests = getDaftarDestinasiLN();
-                        const next = [...prev];
-                        while (next.length < val) {
-                          const idx = next.length;
-                          const defaultDest = allDests[idx % allDests.length] || allDests[0];
-                          next.push({
-                            id: `ln-${Date.now()}-${idx}`,
-                            destinasiKey: defaultDest?.key || "JAKARTA - AMERIKA UTARA - Chicago",
-                            benua: defaultDest?.benua || "AMERIKA UTARA",
-                            negara: defaultDest?.negara || "Amerika Serikat",
-                            kota: defaultDest?.kota || "Chicago",
-                            labelHeader2: defaultDest?.label || "AMERIKA UTARA-Amerika Serikat - Chicago",
-                            tiket1aOrg: 1, tiket1aKeg: 1,
-                            tiket1bOrg: 1, tiket1bKeg: 1,
-                            tiket1cOrg: 1, tiket1cKeg: 1,
-                            tiket1dOrg: 0, tiket1dKeg: 1,
-                            taksi1eOrg: 3, taksi1eKali: 2, taksi1eKeg: 1,
-                            uang1fOrg: 1, uang1fHari: 5, uang1fKeg: 1,
-                            uang1gOrg: 1, uang1gHari: 5, uang1gKeg: 1,
-                            uang1hOrg: 1, uang1hHari: 5, uang1hKeg: 1,
-                            uang1iOrg: 0, uang1iHari: 5, uang1iKeg: 1,
-                            perj1jOrg: 1, perj1jHari: 2, perj1jKeg: 1,
-                            perj1kOrg: 1, perj1kHari: 2, perj1kKeg: 1,
-                            perj1lOrg: 1, perj1lHari: 2, perj1lKeg: 1,
-                            perj1mOrg: 0, perj1mHari: 2, perj1mKeg: 1,
-                          });
-                        }
-                        return next.slice(0, val);
-                      });
-                    }}
-                    className="w-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xs font-mono font-bold bg-white dark:bg-slate-900"
-                  />
-                  <span className="text-[11px] text-slate-500">negara / lokasi</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={perjadinLNJumlahNegara}
+                  onChange={(e) => {
+                    const val = Math.max(1, Math.min(10, Number(e.target.value) || 1));
+                    setPerjadinLNJumlahNegara(val);
+                    // Sesuaikan jumlah list destinasi
+                    setPerjadinLNDestinasiList((prev) => {
+                      const allDests = getDaftarDestinasiLN();
+                      const next = [...prev];
+                      while (next.length < val) {
+                        const idx = next.length;
+                        const defaultDest = allDests[idx % allDests.length] || allDests[0];
+                        next.push({
+                          id: `ln-${Date.now()}-${idx}`,
+                          judulKegiatan: "Sidang / Pertemuan Tingkat Internasional",
+                          destinasiKey: defaultDest?.key || "JAKARTA - AMERIKA UTARA - Chicago",
+                          benua: defaultDest?.benua || "AMERIKA UTARA",
+                          negara: defaultDest?.negara || "Amerika Serikat",
+                          kota: defaultDest?.kota || "Chicago",
+                          labelHeader2: defaultDest?.label || "AMERIKA UTARA-Amerika Serikat - Chicago",
+                          tiket1aOrg: 1, tiket1aKeg: 1,
+                          tiket1bOrg: 1, tiket1bKeg: 1,
+                          tiket1cOrg: 1, tiket1cKeg: 1,
+                          tiket1dOrg: 0, tiket1dKeg: 1,
+                          taksi1eOrg: 3, taksi1eKali: 2, taksi1eKeg: 1,
+                          uang1fOrg: 1, uang1fHari: 5, uang1fKeg: 1,
+                          uang1gOrg: 1, uang1gHari: 5, uang1gKeg: 1,
+                          uang1hOrg: 1, uang1hHari: 5, uang1hKeg: 1,
+                          uang1iOrg: 0, uang1iHari: 5, uang1iKeg: 1,
+                          perj1jOrg: 1, perj1jHari: 2, perj1jKeg: 1,
+                          perj1kOrg: 1, perj1kHari: 2, perj1kKeg: 1,
+                          perj1lOrg: 1, perj1lHari: 2, perj1lKeg: 1,
+                          perj1mOrg: 0, perj1mHari: 2, perj1mKeg: 1,
+                        });
+                      }
+                      return next.slice(0, val);
+                    });
+                  }}
+                  className="w-20 px-3 py-2 border border-indigo-300 dark:border-indigo-700 rounded-lg text-center text-xs font-mono font-bold bg-white dark:bg-slate-900"
+                />
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">negara / lokasi</span>
               </div>
             </div>
 
@@ -11284,58 +11355,80 @@ function IsianRabPageContent() {
                     className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white dark:bg-slate-800/80 shadow-xs space-y-4"
                   >
                     {/* Header Destinasi & Pilihan SBM */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <span>Destinasi #{idx + 1} (Menjadi Header 2):</span>
-                            <span className="font-mono text-indigo-700 dark:text-indigo-300">
-                              {dest.labelHeader2}
+                    <div className="space-y-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              <span>Negara Tujuan #{idx + 1} (Menjadi Header 2):</span>
+                              <span className="font-mono text-indigo-700 dark:text-indigo-300">
+                                {dest.labelHeader2}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              Merujuk ke Tabel SBM Satuan Biaya Tiket Pesawat LN PP & Uang Harian LN
                             </span>
                           </div>
-                          <span className="text-[10px] text-slate-500">
-                            Merujuk ke Tabel SBM Satuan Biaya Tiket Pesawat LN PP & Uang Harian LN
-                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                            Pilih Benua - Negara - Kota:
+                          </label>
+                          <select
+                            value={dest.destinasiKey}
+                            onChange={(e) => {
+                              const selectedKey = e.target.value;
+                              const found = allDests.find((d) => d.key === selectedKey);
+                              if (found) {
+                                setPerjadinLNDestinasiList((prev) =>
+                                  prev.map((item, i) =>
+                                    i === idx
+                                      ? {
+                                          ...item,
+                                          destinasiKey: found.key,
+                                          benua: found.benua,
+                                          negara: found.negara,
+                                          kota: found.kota,
+                                          labelHeader2: found.label,
+                                        }
+                                      : item
+                                  )
+                                );
+                              }
+                            }}
+                            className="px-2.5 py-1.5 border border-indigo-300 dark:border-indigo-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate"
+                          >
+                            {allDests.map((d) => (
+                              <option key={d.key} value={d.key}>
+                                {d.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                          Pilih Benua - Negara - Kota:
+                      {/* Input Judul Kegiatan per Destinasi */}
+                      <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0 flex items-center gap-1">
+                          <span>Nama Kegiatan (Menjadi Header 1):</span>
+                          <span className="text-rose-500">*</span>
                         </label>
-                        <select
-                          value={dest.destinasiKey}
+                        <input
+                          type="text"
+                          value={dest.judulKegiatan || ""}
                           onChange={(e) => {
-                            const selectedKey = e.target.value;
-                            const found = allDests.find((d) => d.key === selectedKey);
-                            if (found) {
-                              setPerjadinLNDestinasiList((prev) =>
-                                prev.map((item, i) =>
-                                  i === idx
-                                    ? {
-                                        ...item,
-                                        destinasiKey: found.key,
-                                        benua: found.benua,
-                                        negara: found.negara,
-                                        kota: found.kota,
-                                        labelHeader2: found.label,
-                                      }
-                                    : item
-                                )
-                              );
-                            }
+                            const val = e.target.value;
+                            setPerjadinLNDestinasiList((prev) =>
+                              prev.map((it, i) => (i === idx ? { ...it, judulKegiatan: val } : it))
+                            );
                           }}
-                          className="px-2.5 py-1.5 border border-indigo-300 dark:border-indigo-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate"
-                        >
-                          {allDests.map((d) => (
-                            <option key={d.key} value={d.key}>
-                              {d.label}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Contoh: Sidang Tahunan FATF / Kerjasama Bilateral"
+                          className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500"
+                        />
                       </div>
                     </div>
 
@@ -12147,20 +12240,22 @@ function IsianRabPageContent() {
               </div>
             </div>
 
-            {/* Nama Kegiatan (Menjadi Header 1) */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>Nama Kegiatan (Menjadi Header 1):</span>
-                <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={konsinyeringNamaKegiatan}
-                onChange={(e) => setKonsinyeringNamaKegiatan(e.target.value)}
-                placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
+            {/* Penjelasan atau Input Nama Kegiatan Default jika Konsinyering Dalam Kota */}
+            {konsinyeringJenisPilihan.includes("dalam_kota") && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span>Nama Kegiatan Konsinyering Dalam Kota (Menjadi Header 1):</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={konsinyeringNamaKegiatan}
+                  onChange={(e) => setKonsinyeringNamaKegiatan(e.target.value)}
+                  placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+            )}
 
             {/* FORM KONSINYERING DALAM KOTA */}
             {konsinyeringJenisPilihan.includes("dalam_kota") && (
@@ -12514,10 +12609,15 @@ function IsianRabPageContent() {
             {/* FORM KONSINYERING LUAR KOTA */}
             {konsinyeringJenisPilihan.includes("luar_kota") && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs">
-                  <span className="font-semibold text-amber-900 dark:text-amber-200">
-                    Jumlah Lokasi Tujuan ({konsinyeringLKProvinsiList.length}):
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
+                  <div>
+                    <span className="font-bold text-amber-950 dark:text-amber-200 block">
+                      Tentukan Jumlah Kegiatan / Lokasi Terlebih Dahulu ({konsinyeringLKProvinsiList.length}):
+                    </span>
+                    <span className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                      Tiap provinsi / lokasi memiliki nama kegiatan (Header 1) yang dapat disesuaikan tersendiri
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -12527,6 +12627,7 @@ function IsianRabPageContent() {
                         ...prev,
                         {
                           id: `klk-${Date.now()}-${prev.length}`,
+                          namaKegiatan: "Konsinyering Penyusunan Rencana Kerja dan Anggaran",
                           provinsi: defProv,
                           tiket1aOrg: 1, tiket1aKeg: 1,
                           tiket1bOrg: 5, tiket1bKeg: 1,
@@ -12547,10 +12648,10 @@ function IsianRabPageContent() {
                         },
                       ]);
                     }}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-1.5 cursor-pointer shadow-xs self-start sm:self-auto shrink-0"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Lokasi Provinsi Tujuan</span>
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Kegiatan / Lokasi Provinsi</span>
                   </button>
                 </div>
 
@@ -12582,55 +12683,77 @@ function IsianRabPageContent() {
                       key={item.id}
                       className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-slate-800/80 shadow-xs space-y-4"
                     >
-                      {/* Baris Provinsi Tujuan (Header 2) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {pIdx + 1}
-                          </span>
-                          <div>
-                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                              <span>Lokasi #{pIdx + 1} (Menjadi Header 2):</span>
-                              <span className="font-mono text-amber-700 dark:text-amber-300">
-                                {cleanProv}
+                      {/* Baris Provinsi Tujuan (Header 2) & Nama Kegiatan (Header 1) */}
+                      <div className="space-y-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {pIdx + 1}
+                            </span>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Kegiatan #{pIdx + 1} - Lokasi (Menjadi Header 2):</span>
+                                <span className="font-mono text-amber-700 dark:text-amber-300">
+                                  {cleanProv}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-500">
+                                Pilihan merujuk pada data master submenu Lokasi
                               </span>
                             </div>
-                            <span className="text-[10px] text-slate-500">
-                              Pilihan merujuk pada data master submenu Lokasi
-                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                              Provinsi Tujuan:
+                            </label>
+                            <select
+                              value={item.provinsi}
+                              onChange={(e) => {
+                                const newProv = e.target.value;
+                                setKonsinyeringLKProvinsiList((prev) =>
+                                  prev.map((it, i) => (i === pIdx ? { ...it, provinsi: newProv } : it))
+                                );
+                              }}
+                              className="px-2.5 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200"
+                            >
+                              {distinctProvs.map((p) => (
+                                <option key={p} value={p}>
+                                  {p}
+                                </option>
+                              ))}
+                            </select>
+                            {konsinyeringLKProvinsiList.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setKonsinyeringLKProvinsiList((prev) => prev.filter((_, i) => i !== pIdx))}
+                                className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                                title="Hapus Lokasi"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                            Provinsi Tujuan:
+                        {/* Input Nama Kegiatan (Menjadi Header 1) untuk lokasi ini */}
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-2">
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0 flex items-center gap-1">
+                            <span>Nama Kegiatan (Menjadi Header 1):</span>
+                            <span className="text-rose-500">*</span>
                           </label>
-                          <select
-                            value={item.provinsi}
+                          <input
+                            type="text"
+                            value={item.namaKegiatan || ""}
                             onChange={(e) => {
-                              const newProv = e.target.value;
+                              const val = e.target.value;
                               setKonsinyeringLKProvinsiList((prev) =>
-                                prev.map((it, i) => (i === pIdx ? { ...it, provinsi: newProv } : it))
+                                prev.map((it, i) => (i === pIdx ? { ...it, namaKegiatan: val } : it))
                               );
                             }}
-                            className="px-2.5 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200"
-                          >
-                            {distinctProvs.map((p) => (
-                              <option key={p} value={p}>
-                                {p}
-                              </option>
-                            ))}
-                          </select>
-                          {konsinyeringLKProvinsiList.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setKonsinyeringLKProvinsiList((prev) => prev.filter((_, i) => i !== pIdx))}
-                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
-                              title="Hapus Lokasi"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                            placeholder="Contoh: Konsinyering Penyusunan Renja dan RKA-K/L"
+                            className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500"
+                          />
                         </div>
                       </div>
 
