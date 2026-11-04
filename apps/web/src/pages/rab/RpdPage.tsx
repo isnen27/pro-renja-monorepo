@@ -43,6 +43,33 @@ interface MonthlyDistribution {
   values: number[];
 }
 
+// Hierarki order untuk relasi parent-child
+const HIERARCHY_LEVEL_ORDER = [
+  "program",
+  "kegiatan",
+  "kro",
+  "ro",
+  "komponen",
+  "subkomponen",
+  "akun",
+  "header1",
+  "header2",
+  "subkomponen_sub",
+  "detail",
+];
+
+function getRowHierarchyLevel(row: WorksheetRow): number {
+  if (row.type === "header1") return 7;
+  if (row.type === "header2") return 8;
+  if (row.type === "subkomponen_sub") {
+    if (row.headerLevel === 1) return 7;
+    if (row.headerLevel === 2) return 8;
+    return 7;
+  }
+  const idx = HIERARCHY_LEVEL_ORDER.indexOf(row.type);
+  return idx >= 0 ? idx : 99;
+}
+
 // Helper ekstraksi Program, Kegiatan, KRO, RO, Komponen dari informasiKinerjaData untuk fallback
 function parseInformasiKinerjaRow(ikRow: any) {
   if (!ikRow) {
@@ -90,7 +117,6 @@ function parseInformasiKinerjaRow(ikRow: any) {
   };
 }
 
-// Default initial worksheet jika user langsung mengakses RPD sebelum membuka Isian RAB
 function buildFallbackWorksheet(ukSingkatan: string): WorksheetRow[] {
   const filtered = informasiKinerjaData.filter((r) => r.unitKerja === ukSingkatan);
   const ikRow = filtered[0] || informasiKinerjaData[0];
@@ -247,7 +273,6 @@ export default function RpdPage() {
         const parsed: WorksheetRow[] = JSON.parse(saved);
         setRawRows(parsed);
       } else {
-        // Gunakan fallback data jika belum tersimpan di localStorage
         const fallback = buildFallbackWorksheet(ukSingkatan);
         setRawRows(fallback);
       }
@@ -259,18 +284,40 @@ export default function RpdPage() {
     }
   }, [ukSingkatan]);
 
-  // Simpan RPD ke localStorage & beri feedback visual
-  const handleSaveRpd = () => {
-    try {
-      localStorage.setItem(`rab_rpd_${ukSingkatan}`, JSON.stringify(rpdMap));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (e) {
-      alert("Gagal menyimpan data RPD.");
+  // Helper index dan daftar anak-anak per baris untuk cascading checklist
+  const descendantMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (let i = 0; i < rawRows.length; i++) {
+      const parentRow = rawRows[i];
+      const parentLvl = getRowHierarchyLevel(parentRow);
+      const descendants: string[] = [];
+      for (let j = i + 1; j < rawRows.length; j++) {
+        const childRow = rawRows[j];
+        const childLvl = getRowHierarchyLevel(childRow);
+        if (childLvl <= parentLvl) {
+          break; // selesai hierarki anak
+        }
+        descendants.push(childRow.id);
+      }
+      map.set(parentRow.id, descendants);
     }
-  };
+    return map;
+  }, [rawRows]);
 
-  // Filter baris kertas kerja: Fokus pada Output/Suboutput/Komponen/Subkomponen/Akun/Detail
+  // Total pagu belanja riil
+  const grandTotalPagu = useMemo(() => {
+    const detailRows = rawRows.filter((r) => r.type === "detail");
+    if (detailRows.length > 0) {
+      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    }
+    const progRows = rawRows.filter((r) => r.type === "program");
+    if (progRows.length > 0) {
+      return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    }
+    return rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+  }, [rawRows]);
+
+  // Filter baris kertas kerja
   const displayRows = useMemo(() => {
     return rawRows.filter((row) => {
       if (searchTerm) {
@@ -297,37 +344,55 @@ export default function RpdPage() {
     };
   };
 
-  // Handler Checklist Bulan
-  const handleToggleMonth = (rowId: string, monthIdx: number, rowJumlah: number) => {
-    const current = getRowDistribution(rowId);
-    const newChecked = [...current.checked];
-    newChecked[monthIdx] = !newChecked[monthIdx];
+  // ══════════════════════════════════════════════════════════════════════════
+  // CHECKLIST BULAN DENGAN CASCADING KE LEVEL BAWAH
+  // "apabila user checklist level yg lebih tinggi, maka level di bawahnya otomatis terchecklist,
+  // misalnya user checklist level Komponen di bulan Januari, maka level sub Komponen, Akun,
+  // Header 1, Header 2, detail belanja yang berada di bawah level komponen ini akan ikut ter-checklist"
+  // ══════════════════════════════════════════════════════════════════════════
+  const handleToggleMonth = (targetRowId: string, monthIdx: number, rowJumlah: number) => {
+    const current = getRowDistribution(targetRowId);
+    const targetNewState = !current.checked[monthIdx];
 
-    const activeCount = newChecked.filter(Boolean).length;
-    const newValues = new Array(12).fill(0);
+    // Baris target dan seluruh baris anak di bawahnya
+    const descendants = descendantMap.get(targetRowId) || [];
+    const allAffectedIds = [targetRowId, ...descendants];
 
-    if (activeCount > 0 && rowJumlah > 0) {
-      // Pembagian rata ke bulan yang dicentang
-      const splitAmount = Math.floor(rowJumlah / activeCount);
-      const remainder = rowJumlah - splitAmount * activeCount;
+    const updated = { ...rpdMap };
 
-      let applied = 0;
-      newChecked.forEach((isChecked, idx) => {
-        if (isChecked) {
-          const addRemainder = applied === 0 ? remainder : 0;
-          newValues[idx] = splitAmount + addRemainder;
-          applied++;
-        }
-      });
-    }
+    allAffectedIds.forEach((id) => {
+      const row = rawRows.find((r) => r.id === id);
+      const rJumlah = Number(row?.jumlah) || 0;
+      const curDist = updated[id] || {
+        checked: new Array(12).fill(false),
+        values: new Array(12).fill(0),
+      };
 
-    const updated = {
-      ...rpdMap,
-      [rowId]: {
+      const newChecked = [...curDist.checked];
+      newChecked[monthIdx] = targetNewState;
+
+      const activeCount = newChecked.filter(Boolean).length;
+      const newValues = new Array(12).fill(0);
+
+      if (activeCount > 0 && rJumlah > 0) {
+        const splitAmount = Math.floor(rJumlah / activeCount);
+        const remainder = rJumlah - splitAmount * activeCount;
+
+        let applied = 0;
+        newChecked.forEach((isChecked, idx) => {
+          if (isChecked) {
+            const addRemainder = applied === 0 ? remainder : 0;
+            newValues[idx] = splitAmount + addRemainder;
+            applied++;
+          }
+        });
+      }
+
+      updated[id] = {
         checked: newChecked,
         values: newValues,
-      },
-    };
+      };
+    });
 
     setRpdMap(updated);
     try {
@@ -359,42 +424,114 @@ export default function RpdPage() {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PERHITUNGAN AGREGAT RPD PER BULAN (SEPERTI WIDGET REKAPITULASI PENARIKAN KAS)
-  // Menghitung seluruh baris yang diinput oleh user.
-  // Jika baris berelasi induk-anak (misal komponen vs detail), kita prioritaskan baris leaf (paling spesifik)
-  // agar tidak terhitung ganda. Namun jika user mencentang langsung di level komponen atau RO, tetap terhitung!
+  // SIMPAN RPD & NORMALISASI OTOMATIS AGAR JUMLAH KUMULATIF 12 BULAN = TOTAL PAGU
+  // "saat user klik simpan RPD, sistem akan menyesuaikan distribusi RPD agar
+  // jumlah kumulatif untuk 12 bulan sebesar total pagu belanja"
+  // ══════════════════════════════════════════════════════════════════════════
+  const handleSaveRpd = () => {
+    try {
+      const updatedMap = { ...rpdMap };
+
+      // Identifikasi baris paling spesifik (leaf nodes) yang memiliki alokasi
+      const leafTypes = ["detail", "header2", "header1", "subkomponen_sub", "akun", "subkomponen", "komponen"];
+      
+      // Hitung distribusi leaf yang aktif saat ini
+      const detailRows = rawRows.filter((r) => r.type === "detail");
+      const activeBaseRows = detailRows.length > 0
+        ? detailRows
+        : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
+
+      // Periksa tiap baris agar total 12 bulannya sama dengan jumlah pagu baris tersebut
+      activeBaseRows.forEach((row) => {
+        const rowPagu = Number(row.jumlah) || 0;
+        if (rowPagu <= 0) return;
+
+        const curDist = updatedMap[row.id] || {
+          checked: new Array(12).fill(false),
+          values: new Array(12).fill(0),
+        };
+
+        const activeMonthIndices = curDist.checked
+          .map((c, i) => (c ? i : -1))
+          .filter((i) => i >= 0);
+
+        if (activeMonthIndices.length > 0) {
+          // Bagi rata pagu ke bulan-bulan tercentang
+          const splitAmount = Math.floor(rowPagu / activeMonthIndices.length);
+          const remainder = rowPagu - splitAmount * activeMonthIndices.length;
+
+          const adjustedValues = new Array(12).fill(0);
+          activeMonthIndices.forEach((mIdx, pos) => {
+            adjustedValues[mIdx] = splitAmount + (pos === 0 ? remainder : 0);
+          });
+
+          updatedMap[row.id] = {
+            checked: curDist.checked,
+            values: adjustedValues,
+          };
+        }
+      });
+
+      // Update juga baris parent (subkomponen, komponen, ro, kro, kegiatan, program)
+      // agar sinkron ke atas dengan penjumlahan dari baris anak
+      for (let i = rawRows.length - 1; i >= 0; i--) {
+        const row = rawRows[i];
+        const descendants = descendantMap.get(row.id) || [];
+        if (descendants.length > 0) {
+          // Cek anak langsung
+          const directChildren = rawRows.filter((r) => {
+            return descendants.includes(r.id) && getRowHierarchyLevel(r) === getRowHierarchyLevel(row) + 1;
+          });
+
+          if (directChildren.length > 0) {
+            const parentValues = new Array(12).fill(0);
+            const parentChecked = new Array(12).fill(false);
+
+            directChildren.forEach((child) => {
+              const cDist = updatedMap[child.id];
+              if (cDist) {
+                cDist.values.forEach((v, m) => {
+                  parentValues[m] += v || 0;
+                  if (cDist.checked[m]) parentChecked[m] = true;
+                });
+              }
+            });
+
+            // Hanya set jika anak memiliki nilai
+            if (parentValues.some((v) => v > 0)) {
+              updatedMap[row.id] = {
+                checked: parentChecked,
+                values: parentValues,
+              };
+            }
+          }
+        }
+      }
+
+      setRpdMap(updatedMap);
+      localStorage.setItem(`rab_rpd_${ukSingkatan}`, JSON.stringify(updatedMap));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e) {
+      alert("Gagal menyimpan dan menyesuaikan distribusi RPD.");
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HITUNG TOTAL PER BULAN (SEPERTI WIDGET REKAPITULASI PENARIKAN KAS)
+  // Menghitung baris paling spesifik (leaf) agar kumulatif = 100% total pagu belanja
   // ══════════════════════════════════════════════════════════════════════════
   const totalPerBulan = useMemo(() => {
     const sums = new Array(12).fill(0);
 
-    // Kumpulkan seluruh rowId yang memiliki nilai terisi > 0 di rpdMap
-    const activeRowIdsWithValues = Object.keys(rpdMap).filter((id) => {
-      const dist = rpdMap[id];
-      return dist && dist.values && dist.values.some((v) => Number(v) > 0);
-    });
+    const detailRows = rawRows.filter((r) => r.type === "detail");
+    const activeBaseRows =
+      detailRows.length > 0
+        ? detailRows
+        : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
 
-    if (activeRowIdsWithValues.length === 0) {
-      return sums;
-    }
-
-    // Identifikasi apakah ada level anak yang terisi di bawah level induk
-    // Prioritas level spesifik: detail -> subkomponen_sub -> header2 -> header1 -> akun -> subkomponen -> komponen -> ro -> kro -> kegiatan -> program
-    const detailIds = new Set(rawRows.filter((r) => r.type === "detail").map((r) => r.id));
-    const hasDetailWithValues = activeRowIdsWithValues.some((id) => detailIds.has(id));
-
-    activeRowIdsWithValues.forEach((id) => {
-      const dist = rpdMap[id];
-      const row = rawRows.find((r) => r.id === id);
-
-      // Jika ada detail yang terisi, baris agregat di atas akun/detail (seperti program/kegiatan/kro/ro)
-      // tidak dijumlahkan dobel jika user menginput di keduanya.
-      // Jika user hanya menginput di level komponen atau ro, baris tersebut pasti ikut dijumlahkan!
-      if (hasDetailWithValues && row) {
-        if (["program", "kegiatan", "kro", "ro"].includes(row.type)) {
-          return;
-        }
-      }
-
+    activeBaseRows.forEach((row) => {
+      const dist = rpdMap[row.id];
       if (dist && dist.values) {
         dist.values.forEach((v, idx) => {
           sums[idx] += Number(v) || 0;
@@ -408,33 +545,6 @@ export default function RpdPage() {
   const grandTotalRpd = useMemo(() => {
     return totalPerBulan.reduce((a, b) => a + b, 0);
   }, [totalPerBulan]);
-
-  const grandTotalPagu = useMemo(() => {
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    if (detailRows.length > 0) {
-      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-    }
-    const progRows = rawRows.filter((r) => r.type === "program");
-    if (progRows.length > 0) {
-      return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-    }
-    return rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-  }, [rawRows]);
-
-  // Helper pemformat angka nominal
-  const formatCompactRupiah = (val: number): string => {
-    if (val === 0) return "Rp 0";
-    if (val >= 1000000000) {
-      return `Rp ${(val / 1000000000).toFixed(1)} M`;
-    }
-    if (val >= 1000000) {
-      return `Rp ${(val / 1000000).toFixed(1)} Jt`;
-    }
-    if (val >= 1000) {
-      return `Rp ${(val / 1000).toLocaleString("id-ID")}k`;
-    }
-    return `Rp ${val.toLocaleString("id-ID")}`;
-  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -476,7 +586,7 @@ export default function RpdPage() {
               {saveSuccess ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>RPD Tersimpan!</span>
+                  <span>RPD Disesuaikan & Tersimpan!</span>
                 </>
               ) : (
                 <>
@@ -525,7 +635,7 @@ export default function RpdPage() {
         </div>
       </div>
 
-      {/* ── Mini Widget RPD Per Bulan (Agregat) - Update Real-Time saat user centang / ubah nilai / simpan ── */}
+      {/* ── Mini Widget RPD Per Bulan (Agregat Eksak) ── */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5 overflow-hidden transition-all">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
@@ -533,7 +643,7 @@ export default function RpdPage() {
             <span>REKAPITULASI PENARIKAN KAS BULANAN (SEMUA OUTPUT/KOMPONEN)</span>
           </h3>
           <span className="text-[11px] font-mono text-slate-500">
-            Total Terdistribusi: <strong className="text-indigo-600 dark:text-indigo-400">{formatCompactRupiah(grandTotalRpd)}</strong>
+            Total Terdistribusi: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">Rp {grandTotalRpd.toLocaleString("id-ID")}</strong>
           </span>
         </div>
 
@@ -566,13 +676,13 @@ export default function RpdPage() {
                   }`}
                   title={`Rp ${val.toLocaleString("id-ID")}`}
                 >
-                  {formatCompactRupiah(val)}
+                  {val > 0 ? `Rp ${(val / 1000).toLocaleString("id-ID")}k` : "Rp 0"}
                 </div>
                 <div
                   className={`text-[10px] font-semibold mt-0.5 ${
                     isHasValue
                       ? "text-indigo-600 dark:text-indigo-400 font-bold"
-                      : "text-purple-600 dark:text-purple-400"
+                      : "text-slate-400"
                   }`}
                 >
                   {pct}%
@@ -583,7 +693,7 @@ export default function RpdPage() {
         </div>
       </div>
 
-      {/* ── Filter Bar ── */}
+      {/* ── Filter Bar (Ditambah Level Header 1) ── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-72">
@@ -597,10 +707,11 @@ export default function RpdPage() {
             />
           </div>
 
+          {/* Pilihan hierarki ditambah level Header 1 */}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="text-xs py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+            className="text-xs py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium"
           >
             <option value="all">Semua Hierarki</option>
             <option value="kegiatan">Kegiatan</option>
@@ -609,6 +720,7 @@ export default function RpdPage() {
             <option value="komponen">Komponen</option>
             <option value="subkomponen">Subkomponen</option>
             <option value="akun">Akun</option>
+            <option value="header1">Header 1</option>
             <option value="detail">Detail Belanja</option>
           </select>
         </div>
@@ -618,11 +730,10 @@ export default function RpdPage() {
         </div>
       </div>
 
-      {/* ── Tabel Kertas Kerja RPD Sesuai Panduan4 ── */}
+      {/* ── Tabel Kertas Kerja RPD ── */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
-            {/* Header 2 Baris: Baris 1 Kode, Uraian, Jumlah, RPD (Colspan 12); Baris 2: Jan s.d. Des */}
             <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[120px] text-center">
@@ -660,16 +771,14 @@ export default function RpdPage() {
               ) : displayRows.length === 0 ? (
                 <tr>
                   <td colSpan={15} className="py-8 text-center text-slate-400 text-xs">
-                    Tidak ada baris kertas kerja ditemukan. Pastikan data Isian RAB untuk unit {activeUnit} telah diisi dan disimpan.
+                    Tidak ada baris kertas kerja ditemukan.
                   </td>
                 </tr>
               ) : (
                 displayRows.map((row) => {
-                  const isDetailOrSub = row.type === "detail" || row.type === "subkomponen" || row.type === "akun";
                   const rowJumlah = Number(row.jumlah) || 0;
                   const distribution = getRowDistribution(row.id);
 
-                  // Penanda warna baris hierarki
                   const rowBg =
                     row.type === "program"
                       ? "bg-indigo-50/40 dark:bg-indigo-950/20 font-bold"
@@ -681,6 +790,8 @@ export default function RpdPage() {
                       ? "bg-amber-50/20 dark:bg-amber-950/10 font-medium"
                       : row.type === "komponen"
                       ? "bg-blue-50/20 dark:bg-blue-950/10 font-medium"
+                      : row.type === "header1"
+                      ? "bg-emerald-50/20 dark:bg-emerald-950/10 font-medium"
                       : "hover:bg-slate-50 dark:hover:bg-slate-800/40";
 
                   return (
@@ -710,7 +821,9 @@ export default function RpdPage() {
                                 ? 40
                                 : row.type === "akun"
                                 ? 48
-                                : 56
+                                : row.type === "header1"
+                                ? 56
+                                : 64
                             }px`,
                           }}
                         >
@@ -736,7 +849,7 @@ export default function RpdPage() {
                             }`}
                           >
                             <div className="flex flex-col items-center gap-1">
-                              {/* Checkbox Bulan */}
+                              {/* Checkbox Bulan dengan Cascading */}
                               <input
                                 type="checkbox"
                                 checked={isChecked}
