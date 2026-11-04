@@ -6,15 +6,18 @@ import {
   ChevronDown,
   Shield,
   Bell,
+  Grid,
 } from "lucide-react";
 
-// Dummy user data
+// User data disesuaikan dengan konteks SAKTI / PPATK
 const dummyUser = {
-  name: "Budi Santoso, S.Sos",
-  role: "Admin Perencanaan",
-  opd: "Bappeda",
-  initials: "BS",
-  email: "budi.santoso@bappeda.go.id",
+  name: "ISNEN HADI",
+  nip: "317410******0001",
+  role: "OPERATOR UNIT",
+  unitCode: "453374",
+  ta: "2026",
+  email: "isnen.hadi@ppatk.go.id",
+  initials: "IH",
   isOnline: true,
 };
 
@@ -38,35 +41,28 @@ export default function UserMenu() {
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[var(--accent)] border border-transparent hover:border-[var(--border)] transition-all duration-200 focus:outline-none cursor-pointer"
+        className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-xl hover:bg-[var(--accent)] border border-transparent hover:border-[var(--border)] transition-all duration-200 focus:outline-none cursor-pointer"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
-          <div className="w-8 h-8 rounded-full bg-[var(--primary-bg)] flex items-center justify-center">
-            <span className="text-[var(--primary)] text-xs font-bold">
-              {dummyUser.initials}
+        {/* User Identity Info */}
+        <div className="flex flex-col text-right leading-tight min-w-0">
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="text-xs font-bold text-[var(--text)] tracking-tight">
+              {dummyUser.name}
+            </span>
+            <span className="text-[10px] text-[var(--text-muted)] font-mono hidden md:inline">
+              | {dummyUser.nip}
             </span>
           </div>
-          {/* Online dot */}
-          {dummyUser.isOnline && (
-            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border-2 border-[var(--card)]" />
-          )}
-        </div>
-
-        {/* Name (hide on small screens) */}
-        <div className="hidden md:flex flex-col text-left leading-tight">
-          <span className="text-xs font-semibold text-[var(--text)] truncate max-w-[140px]">
-            {dummyUser.name}
-          </span>
-          <span className="text-[0.65rem] text-[var(--text-muted)]">
-            {dummyUser.role} · {dummyUser.opd}
+          <span className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">
+            {dummyUser.role} {dummyUser.unitCode} {dummyUser.ta}
           </span>
         </div>
 
+        {/* Small chevron */}
         <ChevronDown
-          className={`h-3.5 w-3.5 text-[var(--text-muted)] transition-transform duration-200 ${
+          className={`h-3 w-3 text-[var(--text-muted)] transition-transform duration-200 flex-shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -93,12 +89,12 @@ export default function UserMenu() {
                   {dummyUser.name}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] truncate">
-                  {dummyUser.email}
+                  NIP: {dummyUser.nip}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Shield className="h-3 w-3 text-[var(--primary)]" />
                   <span className="text-[0.65rem] text-[var(--primary)] font-medium">
-                    {dummyUser.role}
+                    {dummyUser.role} · Satker {dummyUser.unitCode}
                   </span>
                 </div>
               </div>
@@ -107,8 +103,8 @@ export default function UserMenu() {
 
           {/* Menu items */}
           <div className="py-1.5">
-            <DropdownItem icon={User} label="Profil Saya" href="#profil" />
-            <DropdownItem icon={Bell} label="Notifikasi" href="#notifikasi" badge="3" />
+            <DropdownItem icon={User} label="Profil Operator" href="#profil" />
+            <DropdownItem icon={Bell} label="Notifikasi" href="#notifikasi" badge="6" />
             <DropdownItem icon={Settings} label="Pengaturan Akun" href="#pengaturan" />
           </div>
 
