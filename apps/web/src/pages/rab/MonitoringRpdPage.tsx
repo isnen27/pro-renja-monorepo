@@ -680,11 +680,11 @@ export default function MonitoringRpdPage() {
         </div>
       </div>
 
-      {/* ── Rencana Penarikan Kumulatif per Triwulan (Angka Eksak) ── */}
+      {/* ── Rencana Penarikan Kumulatif per Triwulan ── */}
       <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-emerald-500" />
-          <span>Rencana Penarikan Kumulatif per Triwulan (Angka Eksak)</span>
+          <span>Rencana Penarikan Kumulatif per Triwulan</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
