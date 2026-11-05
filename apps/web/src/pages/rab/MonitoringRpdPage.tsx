@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import {
   CalendarRange,
   Search,
   Download,
-  Printer,
   TrendingUp,
   BarChart2,
   Building2,
@@ -34,6 +34,33 @@ const BULAN_NAMES = [
 interface MonthlyDistribution {
   checked: boolean[];
   values: number[];
+}
+
+// Hierarki order untuk relasi parent-child
+const HIERARCHY_LEVEL_ORDER = [
+  "program",
+  "kegiatan",
+  "kro",
+  "ro",
+  "komponen",
+  "subkomponen",
+  "akun",
+  "header1",
+  "header2",
+  "subkomponen_sub",
+  "detail",
+];
+
+function getRowHierarchyLevel(row: WorksheetRow): number {
+  if (row.type === "header1") return 7;
+  if (row.type === "header2") return 8;
+  if (row.type === "subkomponen_sub") {
+    if (row.headerLevel === 1) return 7;
+    if (row.headerLevel === 2) return 8;
+    return 7;
+  }
+  const idx = HIERARCHY_LEVEL_ORDER.indexOf(row.type);
+  return idx >= 0 ? idx : 99;
 }
 
 export default function MonitoringRpdPage() {
@@ -100,96 +127,158 @@ export default function MonitoringRpdPage() {
     };
   }, [ukSingkatan]);
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // EKSTRAKSI BARIS LEVEL SUBKOMPONEN (SESUAI PERMINTAAN USER)
-  // "data yang ditampilkan untuk level SubKomponen, baik data per bulan maupun per triwulan"
-  // ══════════════════════════════════════════════════════════════════════════
-  const subkomponenList = useMemo(() => {
-    const subkompRows = rawRows.filter((r) => r.type === "subkomponen");
-    if (subkompRows.length > 0) {
-      return subkompRows.map((sk) => {
-        const dist = rpdMap[sk.id] || {
-          checked: new Array(12).fill(false),
-          values: new Array(12).fill(0),
-        };
-        const monthlyValues = dist.values || new Array(12).fill(0);
-        const total = monthlyValues.reduce((a, b) => a + (Number(b) || 0), 0);
+  // Helper index dan daftar anak-anak per baris untuk cascading/rollup
+  const descendantMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (let i = 0; i < rawRows.length; i++) {
+      const parentRow = rawRows[i];
+      const parentLvl = getRowHierarchyLevel(parentRow);
+      const descendants: string[] = [];
+      for (let j = i + 1; j < rawRows.length; j++) {
+        const childRow = rawRows[j];
+        const childLvl = getRowHierarchyLevel(childRow);
+        if (childLvl <= parentLvl) {
+          break; // selesai hierarki anak
+        }
+        descendants.push(childRow.id);
+      }
+      map.set(parentRow.id, descendants);
+    }
+    return map;
+  }, [rawRows]);
 
-        // Triwulan Subkomponen
-        const tw1 = (monthlyValues[0] || 0) + (monthlyValues[1] || 0) + (monthlyValues[2] || 0);
-        const tw2 = (monthlyValues[3] || 0) + (monthlyValues[4] || 0) + (monthlyValues[5] || 0);
-        const tw3 = (monthlyValues[6] || 0) + (monthlyValues[7] || 0) + (monthlyValues[8] || 0);
-        const tw4 = (monthlyValues[9] || 0) + (monthlyValues[10] || 0) + (monthlyValues[11] || 0);
+  // Leaf rows: baris tanpa anak
+  const leafRowIds = useMemo(() => {
+    const ids = new Set<string>();
+    rawRows.forEach((r) => {
+      const des = descendantMap.get(r.id) || [];
+      if (des.length === 0) {
+        ids.add(r.id);
+      }
+    });
+    return ids;
+  }, [rawRows, descendantMap]);
 
-        return {
-          id: sk.id,
-          kode: sk.kode,
-          uraian: sk.uraian,
-          pagu: Number(sk.jumlah) || 0,
-          totalRpd: total,
-          monthlyValues,
-          tw1,
-          tw2,
-          tw3,
-          tw4,
+  // ══════════════════════════════════════════════════════════════════════════
+  // CALCULATED RPD MAP (BOTTOM-UP AGGREGATION PERSIS DENGAN RPD PAGE)
+  // ══════════════════════════════════════════════════════════════════════════
+  const calculatedRpdMap = useMemo(() => {
+    const res: Record<string, MonthlyDistribution> = {};
+
+    // 1. Inisialisasi baris leaf terlebih dahulu
+    rawRows.forEach((row) => {
+      const isLeaf = leafRowIds.has(row.id);
+      const stored = rpdMap[row.id];
+      if (isLeaf) {
+        if (stored) {
+          res[row.id] = {
+            checked: [...stored.checked],
+            values: [...stored.values],
+          };
+        } else {
+          res[row.id] = {
+            checked: new Array(12).fill(false),
+            values: new Array(12).fill(0),
+          };
+        }
+      }
+    });
+
+    // 2. Rollup bottom-up dari indeks terbawah ke teratas
+    for (let i = rawRows.length - 1; i >= 0; i--) {
+      const row = rawRows[i];
+      if (!leafRowIds.has(row.id)) {
+        const descendants = descendantMap.get(row.id) || [];
+        const leafDescendants = descendants.filter((id) => leafRowIds.has(id));
+
+        const rolledValues = new Array(12).fill(0);
+        const rolledChecked = new Array(12).fill(false);
+
+        leafDescendants.forEach((leafId) => {
+          const lDist = res[leafId];
+          if (lDist) {
+            lDist.values.forEach((v, m) => {
+              rolledValues[m] += Number(v) || 0;
+              if (lDist.checked[m] || v > 0) {
+                rolledChecked[m] = true;
+              }
+            });
+          }
+        });
+
+        res[row.id] = {
+          checked: rolledChecked,
+          values: rolledValues,
         };
-      });
+      }
     }
 
-    // Default 1 subkomponen jika belum ada worksheet custom
-    return [
-      {
-        id: "default-sk-A",
-        kode: "A",
-        uraian: "Penyusunan dan Implementasi Regulasi Kerja Sama",
-        pagu: 181573000,
-        totalRpd: 181573000,
-        monthlyValues: new Array(12).fill(0),
-        tw1: 0,
-        tw2: 0,
-        tw3: 0,
-        tw4: 0,
-      },
-    ];
-  }, [rawRows, rpdMap]);
+    return res;
+  }, [rawRows, rpdMap, leafRowIds, descendantMap]);
+
+  // Baris hierarki yang ditampilkan: Program, Kegiatan, KRO, RO, Komponen, SubKomponen
+  const hierarchyRows = useMemo(() => {
+    const targetTypes = ["program", "kegiatan", "kro", "ro", "komponen", "subkomponen"];
+    const filtered = rawRows.filter((r) => targetTypes.includes(r.type));
+
+    return filtered.map((row) => {
+      const dist = calculatedRpdMap[row.id] || {
+        checked: new Array(12).fill(false),
+        values: new Array(12).fill(0),
+      };
+      const monthlyValues = dist.values || new Array(12).fill(0);
+      const totalRpd = monthlyValues.reduce((a, b) => a + (Number(b) || 0), 0);
+
+      return {
+        id: row.id,
+        type: row.type,
+        kode: row.kode,
+        uraian: row.uraian,
+        pagu: Number(row.jumlah) || 0,
+        totalRpd,
+        monthlyValues,
+      };
+    });
+  }, [rawRows, calculatedRpdMap]);
 
   // Kalkulasi agregat total RPD per bulan (sinkron 1:1 dengan kalkulasi di RpdPage)
   const totalPerBulan = useMemo(() => {
+    const progRow = rawRows.find((r) => r.type === "program");
+    if (progRow && calculatedRpdMap[progRow.id]) {
+      return calculatedRpdMap[progRow.id].values;
+    }
+
     const sums = new Array(12).fill(0);
-
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    const activeBaseRows =
-      detailRows.length > 0
-        ? detailRows
-        : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
-
-    activeBaseRows.forEach((row) => {
-      const dist = rpdMap[row.id];
-      if (dist && dist.values) {
-        dist.values.forEach((v, idx) => {
-          sums[idx] += Number(v) || 0;
-        });
+    rawRows.forEach((row) => {
+      if (leafRowIds.has(row.id)) {
+        const dist = calculatedRpdMap[row.id];
+        if (dist && dist.values) {
+          dist.values.forEach((v, idx) => {
+            sums[idx] += Number(v) || 0;
+          });
+        }
       }
     });
 
     return sums;
-  }, [rawRows, rpdMap]);
+  }, [rawRows, leafRowIds, calculatedRpdMap]);
 
   // Total pagu belanja dari Isian RAB
   const grandTotalPagu = useMemo(() => {
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    if (detailRows.length > 0) {
-      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-    }
     const progRows = rawRows.filter((r) => r.type === "program");
     if (progRows.length > 0) {
       return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
     }
-    if (rawRows.length > 0) {
-      return rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    const detailRows = rawRows.filter((r) => r.type === "detail");
+    if (detailRows.length > 0) {
+      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
     }
-    return 743651000;
-  }, [rawRows]);
+    let leafSum = 0;
+    rawRows.forEach((r) => {
+      if (leafRowIds.has(r.id)) leafSum += Number(r.jumlah) || 0;
+    });
+    return leafSum > 0 ? leafSum : 743651000;
+  }, [rawRows, leafRowIds]);
 
   const grandTotalRpd = useMemo(() => {
     return totalPerBulan.reduce((a, b) => a + b, 0);
@@ -209,6 +298,55 @@ export default function MonitoringRpdPage() {
     ];
   }, [totalPerBulan]);
 
+  // Fungsi Ekspor RPD ke Excel
+  const handleExportExcel = () => {
+    if (rawRows.length === 0) {
+      alert("Tidak ada data RPD untuk diekspor.");
+      return;
+    }
+
+    const exportData = rawRows.map((row) => {
+      const dist = calculatedRpdMap[row.id] || {
+        checked: new Array(12).fill(false),
+        values: new Array(12).fill(0),
+      };
+      const vals = dist.values || new Array(12).fill(0);
+      const totalRpdRow = vals.reduce((a, b) => a + (Number(b) || 0), 0);
+
+      const obj: Record<string, any> = {
+        Tipe: row.type.toUpperCase(),
+        Kode: row.kode || "-",
+        Uraian: row.uraian,
+        "Pagu (Rp)": Number(row.jumlah) || 0,
+        "Total RPD (Rp)": totalRpdRow,
+      };
+
+      BULAN_NAMES.forEach((bln, idx) => {
+        obj[bln] = vals[idx] || 0;
+      });
+
+      return obj;
+    });
+
+    // Sheet 2: Ringkasan Rekapitulasi RPD Bulanan
+    const summaryData = BULAN_NAMES.map((bln, idx) => ({
+      Bulan: bln,
+      "Alokasi Penarikan Kas (Rp)": totalPerBulan[idx] || 0,
+      "Persentase Pagu (%)": grandTotalPagu > 0 ? ((totalPerBulan[idx] / grandTotalPagu) * 100).toFixed(2) : "0.00",
+    }));
+
+    const wb = XLSX.utils.book_new();
+
+    const wsDetailed = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, wsDetailed, "Rincian RPD");
+
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Jadwal RPD Bulanan");
+
+    const fileName = `RPD_Halaman_III_DIPA_${ukSingkatan}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-20">
       {/* ── Top Header ── */}
@@ -226,22 +364,15 @@ export default function MonitoringRpdPage() {
             <span>Monitoring Rencana Penarikan Dana (RPD) Bulanan</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            Tampilan data penarikan kas dalam <strong>angka eksak (Rp)</strong> untuk level <strong>SubKomponen</strong>, tersinkronisasi otomatis dari submenu{" "}
+            Tampilan data penarikan kas dalam <strong>angka eksak (Rp)</strong> terintegrasi otomatis dari submenu{" "}
             <strong>Rencana Penarikan Dana (RPD)</strong> untuk Satker/Unit: <strong>{activeUnit}</strong>.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => window.print()}
-            className="px-3.5 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--accent)] text-xs font-semibold text-[var(--text)] flex items-center gap-1.5 cursor-pointer shadow-2xs"
-          >
-            <Printer className="w-4 h-4 text-slate-500" />
-            <span>Cetak RPD</span>
-          </button>
-          <button
-            onClick={() => alert("Mengunduh laporan komparasi RPD Halaman III DIPA format Excel...")}
-            className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-90 flex items-center gap-1.5 cursor-pointer"
+            onClick={handleExportExcel}
+            className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-90 flex items-center gap-1.5 cursor-pointer transition-all"
           >
             <Download className="w-4 h-4" />
             <span>Ekspor RPD Excel</span>
@@ -292,12 +423,79 @@ export default function MonitoringRpdPage() {
         </div>
       </div>
 
-      {/* ── Rekapitulasi RPD Bulanan (Angka Eksak) ── */}
+      {/* ── GRAFIK PERKEMBANGAN RPD PER BULAN (Tepat di Atas Baris Jadwal RPD Bulanan TA 2027) ── */}
+      <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            <span>Grafik Perkembangan RPD Per Bulan TA 2027</span>
+          </h3>
+          <span className="text-xs text-[var(--text-muted)] font-mono">
+            Rerata Bulanan: <strong className="text-slate-800 dark:text-slate-200">Rp {Math.round(grandTotalRpd / 12).toLocaleString("id-ID")}</strong>
+          </span>
+        </div>
+
+        {/* Visual Bar Chart */}
+        <div className="pt-4 pb-2">
+          {(() => {
+            const maxVal = Math.max(...totalPerBulan, 1);
+            return (
+              <div className="grid grid-cols-12 gap-2 sm:gap-3 items-end h-44 border-b border-slate-200 dark:border-slate-700 px-1 pb-1">
+                {BULAN_NAMES.map((bln, idx) => {
+                  const val = totalPerBulan[idx] || 0;
+                  const heightPct = Math.max(6, Math.round((val / maxVal) * 100));
+                  const isHasVal = val > 0;
+
+                  return (
+                    <div key={idx} className="flex flex-col items-center h-full justify-end group relative">
+                      {/* Tooltip Hover */}
+                      <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 bg-slate-900 text-white text-[10px] py-1 px-2 rounded shadow-lg whitespace-nowrap font-mono">
+                        {bln}: Rp {val.toLocaleString("id-ID")}
+                      </div>
+
+                      {/* Bar Value Indicator */}
+                      {isHasVal && (
+                        <span className="text-[9px] font-mono text-indigo-600 dark:text-indigo-400 font-bold mb-1 hidden sm:block truncate max-w-full">
+                          {val >= 1_000_000 ? `${(val / 1_000_000).toFixed(1)}Jt` : `${Math.round(val / 1_000)}k`}
+                        </span>
+                      )}
+
+                      {/* Bar Fill */}
+                      <div
+                        style={{ height: `${heightPct}%` }}
+                        className={`w-full rounded-t-md transition-all duration-300 ${
+                          isHasVal
+                            ? "bg-gradient-to-t from-indigo-600 to-indigo-400 dark:from-indigo-700 dark:to-indigo-500 shadow-xs group-hover:from-indigo-500 group-hover:to-indigo-300"
+                            : "bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700"
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Sumbu X (Label Bulan) */}
+          <div className="grid grid-cols-12 gap-2 sm:gap-3 text-center mt-2">
+            {BULAN_NAMES.map((bln, idx) => (
+              <span
+                key={idx}
+                className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400"
+              >
+                {bln.slice(0, 3)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Rekapitulasi RPD Bulanan: Jadwal RPD Bulanan TA 2027 ── */}
       <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-indigo-500" />
-            <span>Jadwal RPD Bulanan TA 2027 (Angka Eksak)</span>
+            <span>Jadwal RPD Bulanan TA 2027</span>
           </h3>
           <span className="text-xs text-[var(--text-muted)] font-mono">
             Total Kas: <strong className="text-[var(--primary)] font-mono">Rp {grandTotalRpd.toLocaleString("id-ID")}</strong>
@@ -351,61 +549,132 @@ export default function MonitoringRpdPage() {
         </div>
       </div>
 
-      {/* ── TABEL RINCIAN PER SUBKOMPONEN (BULANAN & TRIWULAN DALAM ANGKA EKSAK) ── */}
+      {/* ── TABEL RINCIAN PER LEVEL: PROGRAM, KEGIATAN, KRO, RO, KOMPONEN, SUBKOMPONEN (12 BULAN) ── */}
       <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-500" />
-            <span>Rincian RPD Level SubKomponen (Angka Eksak Bulanan & Triwulanan)</span>
+            <span>Rincian RPD Level SubKomponen</span>
           </h3>
           <span className="text-xs text-[var(--text-muted)]">
-            Menampilkan <strong className="text-slate-800 dark:text-slate-200">{subkomponenList.length}</strong> SubKomponen
+            Menampilkan <strong className="text-slate-800 dark:text-slate-200">{hierarchyRows.length}</strong> baris hierarki anggaran
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Panel scroll vertikal dan horizontal dengan sticky header */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[560px] relative border border-slate-200 dark:border-slate-800 rounded-xl scrollbar-thin">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+            <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 shadow-xs">
               <tr>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[50px] text-center">Kode</th>
-                <th className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[220px]">Uraian SubKomponen</th>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[120px]">Pagu (Rp)</th>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[120px] bg-indigo-50/50 dark:bg-indigo-950/30">Total RPD</th>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[100px]">Triwulan I</th>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[100px]">Triwulan II</th>
-                <th className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[100px]">Triwulan III</th>
-                <th className="px-3 py-3 text-right min-w-[100px]">Triwulan IV</th>
+                <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[120px] text-center bg-slate-100 dark:bg-slate-800">
+                  Kode
+                </th>
+                <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[280px] bg-slate-100 dark:bg-slate-800">
+                  Uraian Hierarki
+                </th>
+                <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[130px] bg-slate-100 dark:bg-slate-800">
+                  Pagu (Rp)
+                </th>
+                <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 text-right min-w-[130px] bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                  Total RPD
+                </th>
+                <th colSpan={12} className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 text-center bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                  Alokasi RPD 12 Bulan (Rp)
+                </th>
+              </tr>
+              <tr className="bg-slate-50 dark:bg-slate-850 text-[10px]">
+                {BULAN_NAMES.map((bln, idx) => (
+                  <th
+                    key={idx}
+                    className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-700 min-w-[95px] font-bold bg-slate-50 dark:bg-slate-850"
+                  >
+                    {bln.slice(0, 3)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {subkomponenList.map((sk) => (
-                <tr key={sk.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                  <td className="px-3 py-3 font-mono font-bold text-indigo-600 dark:text-indigo-400 border-r border-slate-100 dark:border-slate-800 text-center">
-                    {sk.kode}
-                  </td>
-                  <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100">
-                    <span className="font-semibold uppercase">{sk.uraian}</span>
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
-                    Rp {sk.pagu.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300 border-r border-slate-100 dark:border-slate-800 bg-indigo-50/20 dark:bg-indigo-950/10">
-                    Rp {sk.totalRpd.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">
-                    Rp {sk.tw1.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">
-                    Rp {sk.tw2.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">
-                    Rp {sk.tw3.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-700 dark:text-slate-300">
-                    Rp {sk.tw4.toLocaleString("id-ID")}
+              {hierarchyRows.length === 0 ? (
+                <tr>
+                  <td colSpan={16} className="py-8 text-center text-slate-400 text-xs">
+                    Belum ada data hierarki anggaran.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                hierarchyRows.map((row) => {
+                  const rowBg =
+                    row.type === "program"
+                      ? "bg-indigo-50/40 dark:bg-indigo-950/20 font-bold"
+                      : row.type === "kegiatan"
+                      ? "bg-slate-100/60 dark:bg-slate-800/40 font-semibold"
+                      : row.type === "kro"
+                      ? "bg-slate-50/80 dark:bg-slate-850/60 font-medium"
+                      : row.type === "ro"
+                      ? "bg-amber-50/20 dark:bg-amber-950/10 font-medium"
+                      : row.type === "komponen"
+                      ? "bg-blue-50/20 dark:bg-blue-950/10 font-medium"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/40";
+
+                  const paddingLeft =
+                    row.type === "program"
+                      ? 0
+                      : row.type === "kegiatan"
+                      ? 8
+                      : row.type === "kro"
+                      ? 16
+                      : row.type === "ro"
+                      ? 24
+                      : row.type === "komponen"
+                      ? 32
+                      : 40;
+
+                  return (
+                    <tr key={row.id} className={`${rowBg} transition-colors`}>
+                      {/* Kode */}
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800 align-top">
+                        <span className="font-semibold">{row.kode || "-"}</span>
+                      </td>
+
+                      {/* Uraian */}
+                      <td className="px-4 py-2.5 border-r border-slate-100 dark:border-slate-800 align-top">
+                        <div
+                          className="text-slate-900 dark:text-slate-100 line-clamp-2"
+                          style={{ paddingLeft: `${paddingLeft}px` }}
+                        >
+                          <span className="uppercase tracking-tight text-[11px]">{row.uraian}</span>
+                        </div>
+                      </td>
+
+                      {/* Pagu */}
+                      <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800 align-top whitespace-nowrap">
+                        {row.pagu > 0 ? `Rp ${row.pagu.toLocaleString("id-ID")}` : "-"}
+                      </td>
+
+                      {/* Total RPD */}
+                      <td className="px-3 py-2.5 text-right font-mono font-bold text-indigo-700 dark:text-indigo-300 border-r border-slate-100 dark:border-slate-800 align-top whitespace-nowrap bg-indigo-50/20 dark:bg-indigo-950/10">
+                        {row.totalRpd > 0 ? `Rp ${row.totalRpd.toLocaleString("id-ID")}` : "Rp 0"}
+                      </td>
+
+                      {/* 12 Bulan RPD */}
+                      {BULAN_NAMES.map((_, mIdx) => {
+                        const mVal = row.monthlyValues[mIdx] || 0;
+                        return (
+                          <td
+                            key={mIdx}
+                            className={`px-2 py-2 text-right font-mono text-[11px] border-r border-slate-100 dark:border-slate-800 align-top tabular-nums whitespace-nowrap ${
+                              mVal > 0
+                                ? "text-slate-900 dark:text-white font-semibold bg-indigo-50/30 dark:bg-indigo-950/20"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {mVal > 0 ? mVal.toLocaleString("id-ID") : "0"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
