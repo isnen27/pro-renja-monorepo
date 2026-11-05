@@ -354,20 +354,25 @@ export function calculateHierarchyAmounts(rows: WorksheetRow[]): WorksheetRow[] 
   function getSum(idx: number): number {
     const row = rows[idx];
     if (row.type === "detail") {
-      computedAmounts[idx] = Number(row.jumlah) || 0;
+      // Pastikan baris detail belanja menerapkan formula ROUNDDOWN ke ribuan (-3)
+      const rawJumlah = Number(row.jumlah) || 0;
+      computedAmounts[idx] = Math.floor(rawJumlah / 1000) * 1000;
       return computedAmounts[idx];
     }
     const children = childrenMap.get(idx) || [];
     if (children.length === 0) {
-      computedAmounts[idx] = Number(row.jumlah) || 0;
+      const rawJumlah = Number(row.jumlah) || 0;
+      computedAmounts[idx] = Math.floor(rawJumlah / 1000) * 1000;
       return computedAmounts[idx];
     }
     let total = 0;
     for (const childIdx of children) {
       total += getSum(childIdx);
     }
-    computedAmounts[idx] = total;
-    return total;
+    // Hasil penjumlahan bertingkat juga dipastikan bulat ke ribuan
+    const roundedTotal = Math.floor(total / 1000) * 1000;
+    computedAmounts[idx] = roundedTotal;
+    return roundedTotal;
   }
 
   const allChildren = new Set<number>();
@@ -388,10 +393,12 @@ export function calculateHierarchyAmounts(rows: WorksheetRow[]): WorksheetRow[] 
 }
 
 function formatRupiah(num: number): string {
+  // Formula ROUNDDOWN ke ribuan: tidak boleh ada angka ratusan di kolom JUMLAH
+  const roundedDown = Math.floor((Number(num) || 0) / 1000) * 1000;
   return new Intl.NumberFormat("id-ID", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(num);
+  }).format(roundedDown);
 }
 
 // Helper untuk menemukan parent RO dari suatu baris (index) dalam tabel hierarki
@@ -3078,7 +3085,8 @@ function IsianRabPageContent() {
     const k2 = Number(formDetail.k2Nilai) || 1;
     const k3 = Number(formDetail.k3Nilai) || 1;
     const volTotal = k1 * k2 * k3;
-    const subtotal = volTotal * formDetail.satuanBiaya;
+    const rawSubtotal = volTotal * formDetail.satuanBiaya;
+    const subtotal = Math.floor(rawSubtotal / 1000) * 1000;
 
     // Validasi pagu maksimal RO jika RO menggunakan batasan SBK
     const selIdx = worksheetRows.findIndex((r) => r.id === selectedRowId);
@@ -3149,7 +3157,8 @@ function IsianRabPageContent() {
     }
 
     const volTotal = (wizardVol1 || 1) * (wizardVol2 || 1);
-    const subtotal = volTotal * (wizardHargaSatuan || 0);
+    const rawSubtotal = volTotal * (wizardHargaSatuan || 0);
+    const subtotal = Math.floor(rawSubtotal / 1000) * 1000;
 
     // Validasi pagu maksimal RO jika RO menggunakan batasan SBK
     const targetId = targetSubkompRowId || selectedRowId;
@@ -3892,7 +3901,8 @@ function IsianRabPageContent() {
           biayaSatuan: number
         ) => {
           const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
-          const subTotal = totalVol * (biayaSatuan || 0);
+          const rawSubTotal = totalVol * (biayaSatuan || 0);
+          const subTotal = Math.floor(rawSubTotal / 1000) * 1000;
           if (subTotal <= 0 && vOrg <= 0) return;
 
           totalHeader2 += subTotal;
@@ -4069,7 +4079,8 @@ function IsianRabPageContent() {
             harga: number
           ) => {
             const totalVol = (vOrg || 0) * (vHari || 0) * (vKeg || 0);
-            const subTotal = totalVol * (harga || 0);
+            const rawSubTotal = totalVol * (harga || 0);
+            const subTotal = Math.floor(rawSubTotal / 1000) * 1000;
             if (subTotal <= 0 && vOrg <= 0) return;
 
             totalH2 += subTotal;
@@ -4223,7 +4234,8 @@ function IsianRabPageContent() {
             harga: number
           ) => {
             const totalVol = (vOrg || 0) * (vHariOrKali || 0) * (vKeg || 0);
-            const subTotal = totalVol * (harga || 0);
+            const rawSubTotal = totalVol * (harga || 0);
+            const subTotal = Math.floor(rawSubTotal / 1000) * 1000;
             if (subTotal <= 0 && vOrg <= 0) return;
 
             totalH2 += subTotal;
@@ -5112,12 +5124,17 @@ function IsianRabPageContent() {
             const k3 = Number(updated.k3Nilai) || 1;
             const vol = k1 * k2 * k3;
             const hrg = Number(updated.harga) || 0;
+            const rawJumlah = vol * hrg;
             updated.vol = vol;
-            updated.jumlah = vol * hrg;
+            updated.jumlah = Math.floor(rawJumlah / 1000) * 1000;
           } else if (field === "vol") {
             const vol = Number(updated.vol) || 0;
             const hrg = Number(updated.harga) || 0;
-            updated.jumlah = vol * hrg;
+            const rawJumlah = vol * hrg;
+            updated.jumlah = Math.floor(rawJumlah / 1000) * 1000;
+          } else if (field === "jumlah") {
+            const rawJumlah = Number(value) || 0;
+            updated.jumlah = Math.floor(rawJumlah / 1000) * 1000;
           }
         }
         return updated;
