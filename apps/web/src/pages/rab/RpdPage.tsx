@@ -304,18 +304,34 @@ export default function RpdPage() {
     return map;
   }, [rawRows]);
 
-  // Total pagu belanja riil
+  // Leaf rows: baris yang tidak memiliki anak di bawahnya dalam hierarki
+  const leafRowIds = useMemo(() => {
+    const ids = new Set<string>();
+    rawRows.forEach((r) => {
+      const des = descendantMap.get(r.id) || [];
+      if (des.length === 0) {
+        ids.add(r.id);
+      }
+    });
+    return ids;
+  }, [rawRows, descendantMap]);
+
+  // Total pagu belanja riil (dari leaf rows atau detail/program)
   const grandTotalPagu = useMemo(() => {
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    if (detailRows.length > 0) {
-      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-    }
     const progRows = rawRows.filter((r) => r.type === "program");
     if (progRows.length > 0) {
       return progRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
     }
-    return rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
-  }, [rawRows]);
+    const detailRows = rawRows.filter((r) => r.type === "detail");
+    if (detailRows.length > 0) {
+      return detailRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+    }
+    let leafSum = 0;
+    rawRows.forEach((r) => {
+      if (leafRowIds.has(r.id)) leafSum += Number(r.jumlah) || 0;
+    });
+    return leafSum > 0 ? leafSum : rawRows.reduce((a, b) => a + (Number(b.jumlah) || 0), 0);
+  }, [rawRows, leafRowIds]);
 
   // Filter baris kertas kerja
   const displayRows = useMemo(() => {
@@ -333,10 +349,72 @@ export default function RpdPage() {
     });
   }, [rawRows, searchTerm, filterType]);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // CALCULATED RPD MAP (BOTTOM-UP AGGREGATION & SINKRONISASI TOTAL 100%)
+  // Baris leaf mengambil nilai langsung dari rpdMap (input/checklist user).
+  // Baris parent (Subkomponen, Komponen, RO, KRO, Kegiatan, Program)
+  // nilainya merupakan akumulasi SUM dari seluruh leaf/anak di bawahnya!
+  // Dengan demikian: nilai baris Program di Jan == total widget Rekapitulasi di Jan!
+  // ══════════════════════════════════════════════════════════════════════════
+  const calculatedRpdMap = useMemo(() => {
+    const res: Record<string, MonthlyDistribution> = {};
+
+    // 1. Inisialisasi baris leaf terlebih dahulu
+    rawRows.forEach((row) => {
+      const isLeaf = leafRowIds.has(row.id);
+      const stored = rpdMap[row.id];
+      if (isLeaf) {
+        if (stored) {
+          res[row.id] = {
+            checked: [...stored.checked],
+            values: [...stored.values],
+          };
+        } else {
+          res[row.id] = {
+            checked: new Array(12).fill(false),
+            values: new Array(12).fill(0),
+          };
+        }
+      }
+    });
+
+    // 2. Rollup bottom-up dari indeks terbawah ke teratas
+    for (let i = rawRows.length - 1; i >= 0; i--) {
+      const row = rawRows[i];
+      if (!leafRowIds.has(row.id)) {
+        const descendants = descendantMap.get(row.id) || [];
+        const leafDescendants = descendants.filter((id) => leafRowIds.has(id));
+
+        const rolledValues = new Array(12).fill(0);
+        const rolledChecked = new Array(12).fill(false);
+
+        leafDescendants.forEach((leafId) => {
+          const lDist = res[leafId];
+          if (lDist) {
+            lDist.values.forEach((v, m) => {
+              rolledValues[m] += Number(v) || 0;
+              if (lDist.checked[m] || v > 0) {
+                rolledChecked[m] = true;
+              }
+            });
+          }
+        });
+
+        // Simpan ke calculated result
+        res[row.id] = {
+          checked: rolledChecked,
+          values: rolledValues,
+        };
+      }
+    }
+
+    return res;
+  }, [rawRows, rpdMap, leafRowIds, descendantMap]);
+
   // Helper mendapatkan distribusi baris
   const getRowDistribution = (rowId: string): MonthlyDistribution => {
-    if (rpdMap[rowId]) {
-      return rpdMap[rowId];
+    if (calculatedRpdMap[rowId]) {
+      return calculatedRpdMap[rowId];
     }
     return {
       checked: new Array(12).fill(false),
@@ -350,7 +428,7 @@ export default function RpdPage() {
   // misalnya user checklist level Komponen di bulan Januari, maka level sub Komponen, Akun,
   // Header 1, Header 2, detail belanja yang berada di bawah level komponen ini akan ikut ter-checklist"
   // ══════════════════════════════════════════════════════════════════════════
-  const handleToggleMonth = (targetRowId: string, monthIdx: number, rowJumlah: number) => {
+  const handleToggleMonth = (targetRowId: string, monthIdx: number, _rowJumlah: number) => {
     const current = getRowDistribution(targetRowId);
     const targetNewState = !current.checked[monthIdx];
 
@@ -360,6 +438,7 @@ export default function RpdPage() {
 
     const updated = { ...rpdMap };
 
+    // Update state pada semua affected rows (khususnya leaf rows yang menjadi basis nilai)
     allAffectedIds.forEach((id) => {
       const row = rawRows.find((r) => r.id === id);
       const rJumlah = Number(row?.jumlah) || 0;
@@ -400,22 +479,74 @@ export default function RpdPage() {
     } catch (e) {}
   };
 
-  // Handler jika user mengetik manual angka bulan
+  // Handler jika user mengetik manual angka bulan pada suatu baris
   const handleValueChange = (rowId: string, monthIdx: number, val: number) => {
-    const current = getRowDistribution(rowId);
-    const newValues = [...current.values];
-    newValues[monthIdx] = Math.max(0, val);
+    const isLeaf = leafRowIds.has(rowId);
+    const updated = { ...rpdMap };
 
-    const newChecked = [...current.checked];
-    newChecked[monthIdx] = val > 0;
+    if (isLeaf) {
+      const current = updated[rowId] || {
+        checked: new Array(12).fill(false),
+        values: new Array(12).fill(0),
+      };
+      const newValues = [...current.values];
+      newValues[monthIdx] = Math.max(0, val);
 
-    const updated = {
-      ...rpdMap,
-      [rowId]: {
+      const newChecked = [...current.checked];
+      newChecked[monthIdx] = val > 0;
+
+      updated[rowId] = {
         checked: newChecked,
         values: newValues,
-      },
-    };
+      };
+    } else {
+      // Jika user mengisi di baris parent, distribusikan secara proporsional ke leaf descendants
+      const descendants = descendantMap.get(rowId) || [];
+      const leafDescendants = descendants.filter((id) => leafRowIds.has(id));
+      const targetParentRow = rawRows.find((r) => r.id === rowId);
+      const parentPagu = Number(targetParentRow?.jumlah) || 0;
+
+      if (leafDescendants.length > 0 && parentPagu > 0) {
+        let distributedSoFar = 0;
+        leafDescendants.forEach((leafId, idx) => {
+          const lRow = rawRows.find((r) => r.id === leafId);
+          const lPagu = Number(lRow?.jumlah) || 0;
+          const ratio = lPagu / parentPagu;
+          
+          let lVal = Math.floor(val * ratio);
+          if (idx === leafDescendants.length - 1) {
+            lVal = Math.max(0, val - distributedSoFar);
+          } else {
+            distributedSoFar += lVal;
+          }
+
+          const lCur = updated[leafId] || {
+            checked: new Array(12).fill(false),
+            values: new Array(12).fill(0),
+          };
+          const lValues = [...lCur.values];
+          lValues[monthIdx] = lVal;
+          const lChecked = [...lCur.checked];
+          lChecked[monthIdx] = lVal > 0;
+
+          updated[leafId] = {
+            checked: lChecked,
+            values: lValues,
+          };
+        });
+      }
+
+      // Simpan juga ke parent untuk referensi
+      const current = updated[rowId] || {
+        checked: new Array(12).fill(false),
+        values: new Array(12).fill(0),
+      };
+      const pValues = [...current.values];
+      pValues[monthIdx] = Math.max(0, val);
+      const pChecked = [...current.checked];
+      pChecked[monthIdx] = val > 0;
+      updated[rowId] = { checked: pChecked, values: pValues };
+    }
 
     setRpdMap(updated);
     try {
@@ -432,17 +563,9 @@ export default function RpdPage() {
     try {
       const updatedMap = { ...rpdMap };
 
-      // Identifikasi baris paling spesifik (leaf nodes) yang memiliki alokasi
-      const leafTypes = ["detail", "header2", "header1", "subkomponen_sub", "akun", "subkomponen", "komponen"];
-      
-      // Hitung distribusi leaf yang aktif saat ini
-      const detailRows = rawRows.filter((r) => r.type === "detail");
-      const activeBaseRows = detailRows.length > 0
-        ? detailRows
-        : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
-
-      // Periksa tiap baris agar total 12 bulannya sama dengan jumlah pagu baris tersebut
-      activeBaseRows.forEach((row) => {
+      // Normalisasikan setiap leaf row agar total nilainya sama dengan pagunya
+      rawRows.forEach((row) => {
+        if (!leafRowIds.has(row.id)) return;
         const rowPagu = Number(row.jumlah) || 0;
         if (rowPagu <= 0) return;
 
@@ -451,60 +574,63 @@ export default function RpdPage() {
           values: new Array(12).fill(0),
         };
 
-        const activeMonthIndices = curDist.checked
+        let activeMonthIndices = curDist.checked
           .map((c, i) => (c ? i : -1))
           .filter((i) => i >= 0);
 
-        if (activeMonthIndices.length > 0) {
-          // Bagi rata pagu ke bulan-bulan tercentang
-          const splitAmount = Math.floor(rowPagu / activeMonthIndices.length);
-          const remainder = rowPagu - splitAmount * activeMonthIndices.length;
+        // Jika tidak ada yang dicentang tapi ada nilai > 0
+        if (activeMonthIndices.length === 0) {
+          activeMonthIndices = curDist.values
+            .map((v, i) => (v > 0 ? i : -1))
+            .filter((i) => i >= 0);
+        }
 
-          const adjustedValues = new Array(12).fill(0);
-          activeMonthIndices.forEach((mIdx, pos) => {
-            adjustedValues[mIdx] = splitAmount + (pos === 0 ? remainder : 0);
+        // Jika belum ada alokasi sama sekali, defaultkan ke bulan Januari atau triwulan 1
+        if (activeMonthIndices.length === 0) {
+          activeMonthIndices = [0]; // Januari
+        }
+
+        const newChecked = new Array(12).fill(false);
+        activeMonthIndices.forEach((m) => (newChecked[m] = true));
+
+        const splitAmount = Math.floor(rowPagu / activeMonthIndices.length);
+        const remainder = rowPagu - splitAmount * activeMonthIndices.length;
+
+        const adjustedValues = new Array(12).fill(0);
+        activeMonthIndices.forEach((mIdx, pos) => {
+          adjustedValues[mIdx] = splitAmount + (pos === 0 ? remainder : 0);
+        });
+
+        updatedMap[row.id] = {
+          checked: newChecked,
+          values: adjustedValues,
+        };
+      });
+
+      // Synchronize parents bottom-up ke dalam updatedMap
+      for (let i = rawRows.length - 1; i >= 0; i--) {
+        const row = rawRows[i];
+        if (!leafRowIds.has(row.id)) {
+          const descendants = descendantMap.get(row.id) || [];
+          const leafDescendants = descendants.filter((id) => leafRowIds.has(id));
+
+          const pValues = new Array(12).fill(0);
+          const pChecked = new Array(12).fill(false);
+
+          leafDescendants.forEach((leafId) => {
+            const lDist = updatedMap[leafId];
+            if (lDist) {
+              lDist.values.forEach((v, m) => {
+                pValues[m] += Number(v) || 0;
+                if (lDist.checked[m] || v > 0) pChecked[m] = true;
+              });
+            }
           });
 
           updatedMap[row.id] = {
-            checked: curDist.checked,
-            values: adjustedValues,
+            checked: pChecked,
+            values: pValues,
           };
-        }
-      });
-
-      // Update juga baris parent (subkomponen, komponen, ro, kro, kegiatan, program)
-      // agar sinkron ke atas dengan penjumlahan dari baris anak
-      for (let i = rawRows.length - 1; i >= 0; i--) {
-        const row = rawRows[i];
-        const descendants = descendantMap.get(row.id) || [];
-        if (descendants.length > 0) {
-          // Cek anak langsung
-          const directChildren = rawRows.filter((r) => {
-            return descendants.includes(r.id) && getRowHierarchyLevel(r) === getRowHierarchyLevel(row) + 1;
-          });
-
-          if (directChildren.length > 0) {
-            const parentValues = new Array(12).fill(0);
-            const parentChecked = new Array(12).fill(false);
-
-            directChildren.forEach((child) => {
-              const cDist = updatedMap[child.id];
-              if (cDist) {
-                cDist.values.forEach((v, m) => {
-                  parentValues[m] += v || 0;
-                  if (cDist.checked[m]) parentChecked[m] = true;
-                });
-              }
-            });
-
-            // Hanya set jika anak memiliki nilai
-            if (parentValues.some((v) => v > 0)) {
-              updatedMap[row.id] = {
-                checked: parentChecked,
-                values: parentValues,
-              };
-            }
-          }
         }
       }
 
@@ -519,28 +645,31 @@ export default function RpdPage() {
 
   // ══════════════════════════════════════════════════════════════════════════
   // HITUNG TOTAL PER BULAN (SEPERTI WIDGET REKAPITULASI PENARIKAN KAS)
-  // Menghitung baris paling spesifik (leaf) agar kumulatif = 100% total pagu belanja
+  // Menghitung baris leaf agar sinkron 100% dengan baris level Program di bawah
   // ══════════════════════════════════════════════════════════════════════════
   const totalPerBulan = useMemo(() => {
     const sums = new Array(12).fill(0);
 
-    const detailRows = rawRows.filter((r) => r.type === "detail");
-    const activeBaseRows =
-      detailRows.length > 0
-        ? detailRows
-        : rawRows.filter((r) => r.type === "subkomponen" || r.type === "komponen");
+    // Ambil dari baris Program jika ada (karena sudah dirumus rollup 100% identik)
+    const progRow = rawRows.find((r) => r.type === "program");
+    if (progRow && calculatedRpdMap[progRow.id]) {
+      return calculatedRpdMap[progRow.id].values;
+    }
 
-    activeBaseRows.forEach((row) => {
-      const dist = rpdMap[row.id];
-      if (dist && dist.values) {
-        dist.values.forEach((v, idx) => {
-          sums[idx] += Number(v) || 0;
-        });
+    // Fallback: jumlahkan semua leaf rows
+    rawRows.forEach((row) => {
+      if (leafRowIds.has(row.id)) {
+        const dist = calculatedRpdMap[row.id];
+        if (dist && dist.values) {
+          dist.values.forEach((v, idx) => {
+            sums[idx] += Number(v) || 0;
+          });
+        }
       }
     });
 
     return sums;
-  }, [rawRows, rpdMap]);
+  }, [rawRows, leafRowIds, calculatedRpdMap]);
 
   const grandTotalRpd = useMemo(() => {
     return totalPerBulan.reduce((a, b) => a + b, 0);
@@ -732,20 +861,21 @@ export default function RpdPage() {
 
       {/* ── Tabel Kertas Kerja RPD ── */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Panel scroll vertikal dan horizontal dengan max-height terkontrol & scrollbar rapi */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[560px] relative scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+            <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 shadow-xs">
               <tr>
-                <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[120px] text-center">
+                <th rowSpan={2} className="px-3 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[120px] text-center bg-slate-100 dark:bg-slate-800">
                   Kode
                 </th>
-                <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[280px]">
+                <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[280px] bg-slate-100 dark:bg-slate-800">
                   Output / Suboutput / Komponen / Subkomponen / Detail
                 </th>
-                <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[140px] text-right">
+                <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 dark:border-slate-700 min-w-[140px] text-right bg-slate-100 dark:bg-slate-800">
                   Jumlah (Rp)
                 </th>
-                <th colSpan={12} className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 text-center bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                <th colSpan={12} className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 text-center bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
                   Rencana Penarikan Dana (RPD)
                 </th>
               </tr>
@@ -753,7 +883,7 @@ export default function RpdPage() {
                 {BULAN_NAMES.map((bln, idx) => (
                   <th
                     key={idx}
-                    className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-700 min-w-[95px] font-bold"
+                    className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-700 min-w-[105px] font-bold bg-slate-50 dark:bg-slate-850"
                   >
                     {bln.slice(0, 3)}
                   </th>
@@ -857,15 +987,17 @@ export default function RpdPage() {
                                 className="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300 dark:border-slate-700 focus:ring-indigo-500 cursor-pointer"
                               />
 
-                              {/* Kolom Isian Angka */}
+                              {/* Kolom Isian Angka: format ribuan seperti kolom Jumlah, tanpa spin buttons */}
                               <input
-                                type="number"
-                                value={mVal === 0 ? "" : mVal}
-                                onChange={(e) =>
-                                  handleValueChange(row.id, mIdx, Number(e.target.value) || 0)
-                                }
+                                type="text"
+                                inputMode="numeric"
+                                value={mVal > 0 ? mVal.toLocaleString("id-ID") : ""}
+                                onChange={(e) => {
+                                  const rawNum = Number(e.target.value.replace(/\D/g, "")) || 0;
+                                  handleValueChange(row.id, mIdx, rawNum);
+                                }}
                                 placeholder="0"
-                                className="w-full text-[10px] font-mono text-right px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-full text-[10px] font-mono text-right px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                           </td>
