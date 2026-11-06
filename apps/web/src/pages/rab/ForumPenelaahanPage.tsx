@@ -1342,7 +1342,7 @@ export default function ForumPenelaahanPage() {
               <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    F. Catatan Khusus dan/atau Pending :
+                    A. Catatan Khusus dan/atau Pending :
                   </label>
                   <RichTextEditor
                     value={catatanData.penganggaran.pending}
@@ -1359,7 +1359,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    G. Penilaian / Pendapat Petugas :
+                    B. Penilaian / Pendapat Petugas :
                   </label>
                   <RichTextEditor
                     value={catatanData.penganggaran.pendapat}
@@ -1376,7 +1376,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                    C. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
                   </label>
                   <RichTextEditor
                     value={catatanData.penganggaran.blokir}
@@ -1427,7 +1427,7 @@ export default function ForumPenelaahanPage() {
               <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    F. Catatan Khusus dan/atau Pending :
+                    A. Catatan Khusus dan/atau Pending :
                   </label>
                   <RichTextEditor
                     value={catatanData.perencanaan.pending}
@@ -1444,7 +1444,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    G. Penilaian / Pendapat Petugas :
+                    B. Penilaian / Pendapat Petugas :
                   </label>
                   <RichTextEditor
                     value={catatanData.perencanaan.pendapat}
@@ -1461,7 +1461,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                    C. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
                   </label>
                   <RichTextEditor
                     value={catatanData.perencanaan.blokir}
@@ -1512,7 +1512,7 @@ export default function ForumPenelaahanPage() {
               <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    F. Catatan Khusus dan/atau Pending :
+                    A. Catatan Khusus dan/atau Pending :
                   </label>
                   <RichTextEditor
                     value={catatanData.inspektorat.pending}
@@ -1529,7 +1529,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    G. Penilaian / Pendapat Petugas :
+                    B. Penilaian / Pendapat Petugas :
                   </label>
                   <RichTextEditor
                     value={catatanData.inspektorat.pendapat}
@@ -1546,7 +1546,7 @@ export default function ForumPenelaahanPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
-                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                    C. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
                   </label>
                   <RichTextEditor
                     value={catatanData.inspektorat.blokir}
@@ -2324,21 +2324,21 @@ export default function ForumPenelaahanPage() {
                 </h5>
                 <div className="pl-3 space-y-2">
                   <div>
-                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <span className="font-bold">A. CATATAN KHUSUS DAN/ATAU PENDING:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.pending }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <span className="font-bold">B. PENILAIAN / PENDAPAT PETUGAS:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.pendapat }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <span className="font-bold">C. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.blokir }}
@@ -2354,21 +2354,21 @@ export default function ForumPenelaahanPage() {
                 </h5>
                 <div className="pl-3 space-y-2">
                   <div>
-                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <span className="font-bold">A. CATATAN KHUSUS DAN/ATAU PENDING:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.pending }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <span className="font-bold">B. PENILAIAN / PENDAPAT PETUGAS:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.pendapat }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <span className="font-bold">C. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.blokir }}
@@ -2384,21 +2384,21 @@ export default function ForumPenelaahanPage() {
                 </h5>
                 <div className="pl-3 space-y-2">
                   <div>
-                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <span className="font-bold">A. CATATAN KHUSUS DAN/ATAU PENDING:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.pending }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <span className="font-bold">B. PENILAIAN / PENDAPAT PETUGAS:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.pendapat }}
                     />
                   </div>
                   <div>
-                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <span className="font-bold">C. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
                     <div
                       className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
                       dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.blokir }}
