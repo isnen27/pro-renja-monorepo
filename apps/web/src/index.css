@@ -258,3 +258,47 @@ code, kbd, samp, pre, .font-mono {
   background-color: var(--scrollbar-btn-hover);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%23f1f5f9'><path d='M12 18l8-8H4z'/></svg>");
 }
+
+/* ==========================================================
+   RICH TEXT CONTENT STYLING (Unordered & Ordered Lists dsb.)
+   ========================================================== */
+.rich-text-content ul,
+[contenteditable] ul {
+  list-style-type: disc !important;
+  margin-left: 1.5rem !important;
+  padding-left: 0.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content ol,
+[contenteditable] ol {
+  list-style-type: decimal !important;
+  margin-left: 1.5rem !important;
+  padding-left: 0.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content li,
+[contenteditable] li {
+  display: list-item !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.rich-text-content h1,
+[contenteditable] h1 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.rich-text-content h2,
+[contenteditable] h2 {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.4rem !important;
+}

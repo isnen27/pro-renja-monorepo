@@ -25,14 +25,26 @@ import {
   FolderKanban,
   Coins,
   Paperclip,
+  Undo,
+  Redo,
+  Heading1,
+  Heading2,
   Bold,
   Italic,
   Underline,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
   List,
   ListOrdered,
+  Link as LinkIcon,
+  RemoveFormatting,
   Layers,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
+import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import { WorksheetRow } from "./IsianRabPage";
 
 interface AttachedDocument {
@@ -60,6 +72,12 @@ interface CommentThread {
   };
 }
 
+interface PesertaItem {
+  id: string;
+  nama: string;
+  role: string;
+}
+
 export default function ForumPenelaahanPage() {
   // Tahun anggaran disesuaikan dengan info tahun yang ada di Topbar (TA 2027) sesuai Panduan4
   const tahunAnggaran = "TA 2027";
@@ -74,13 +92,13 @@ export default function ForumPenelaahanPage() {
   });
 
   // Tahap sesuai Panduan4:
-  // Pagu Indikatif, Pagu Anggaran, Alokasi ANggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK
+  // Pagu Indikatif, Pagu Anggaran, Alokasi Anggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK
   const [tahap, setTahap] = useState<string>("Alokasi Anggaran");
 
   // Unit kerja user sesuai Panduan4:
   // "sistem akan menunjukkan Unit Kerja user sesuai data pada submenu Unit Kerja PPATK tanpa nomor/kode unit kerja,
   // untuk role Super Admin, unit kerjanya PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN"
-  const [userUnit, setUserUnit] = useState<string>(() => {
+  const [userUnit] = useState<string>(() => {
     try {
       const role = localStorage.getItem("renja_e2_user_role") || "Operator";
       if (role === "Super Admin") {
@@ -117,12 +135,14 @@ export default function ForumPenelaahanPage() {
   // Tombol yang tersedia di atas Diskusi: Dokumen, Sanding Data, Catatan Penelaahan (Panduan4)
   const [activeTab, setActiveTab] = useState<"forum" | "dokumen" | "sanding_data" | "catatan">("forum");
 
-  // Modal State
+  // Modal State Tambah User
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
-  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
-  const [newUserRole, setNewUserRole] = useState<string>("Unit Kerja");
+  const [newUserCategory, setNewUserCategory] = useState<"Tim Perencanaan" | "Tim Penganggaran" | "Inspektorat" | "Unit Kerja">("Tim Perencanaan");
   const [newUserName, setNewUserName] = useState<string>("");
-  const [newUserEmail, setNewUserEmail] = useState<string>("");
+  const [newUserRoleDescription, setNewUserRoleDescription] = useState<string>("");
+
+  // Modal Cetak
+  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
 
   // Peserta Penelaahan Sesuai Panduan4:
   // - Tim Penganggaran (menggantikan DJA)
@@ -132,87 +152,266 @@ export default function ForumPenelaahanPage() {
   // Hanya role SuperAdmin dan BINCANG yang dapat menentukan / tambah user
   const canManageParticipants = currentUserRole === "Super Admin" || currentUserRole === "BINCANG";
 
-  const [pesertaList, setPesertaList] = useState({
-    penganggaran: ["SUKRASNO (Ketua Tim)", "FAUZI SYAMSURI"],
-    perencanaan: ["NOOR ANDRINI WURYANDARI", "TIM PERENCANAAN BIRO REN"],
-    inspektorat: ["INSPEKTUR PPATK", "AUDITOR MADYA PENELAAH"],
-    unitKerja: ["OPERATOR SATKER PUSAT (453374)", "PEJABAT PEMBUAT KOMITMEN (PPK)"],
+  const [pesertaList, setPesertaList] = useState<{
+    penganggaran: PesertaItem[];
+    perencanaan: PesertaItem[];
+    inspektorat: PesertaItem[];
+    unitKerja: PesertaItem[];
+  }>({
+    penganggaran: [
+      { id: "usr-p1", nama: "SUKRASNO", role: "Ketua Tim Penelaah Penganggaran" },
+      { id: "usr-p2", nama: "FAUZI SYAMSURI", role: "Penelaah Teknis Anggaran" },
+    ],
+    perencanaan: [
+      { id: "usr-r1", nama: "NOOR ANDRINI WURYANDARI", role: "Koordinator Perencanaan Makro" },
+      { id: "usr-r2", nama: "TIM PERENCANAAN BIRO REN", role: "Analis Kebijakan Perencanaan" },
+    ],
+    inspektorat: [
+      { id: "usr-i1", nama: "INSPEKTUR PPATK", role: "Pengawas Internal (APIP)" },
+      { id: "usr-i2", nama: "AUDITOR MADYA PENELAAH", role: "Auditor Kepatuhan Tata Kelola" },
+    ],
+    unitKerja: [
+      { id: "usr-u1", nama: "OPERATOR SATKER PUSAT (453374)", role: "Operator Penyusun Kertas Kerja" },
+      { id: "usr-u2", nama: "PEJABAT PEMBUAT KOMITMEN (PPK)", role: "PPK Pengampu Belanja" },
+    ],
   });
 
   // Alokasi Program & Kinerja Belanja diambil dari hasil input data pada submenu Isian RAB (Panduan4)
   const [worksheetRows, setWorksheetRows] = useState<WorksheetRow[]>([]);
-  const [expandedPrograms, setExpandedPrograms] = useState<Record<string, boolean>>({
-    "078.01.BE": true,
-    "078.01.WA": false,
-  });
-  const [expandedKro, setExpandedKro] = useState<Record<string, boolean>>({});
+  const [expandedPrograms, setExpandedPrograms] = useState<Record<string, boolean>>({});
+  const [expandedKegiatans, setExpandedKegiatans] = useState<Record<string, boolean>>({});
+  const [expandedKros, setExpandedKros] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`rab_worksheet_${ukSingkatan}`);
       if (saved) {
-        setWorksheetRows(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setWorksheetRows(parsed);
       }
     } catch (e) {}
   }, [ukSingkatan]);
 
-  // Hitung total dari worksheet Isian RAB
+  // Total pagu dari worksheet Isian RAB
   const totalPaguDetail = useMemo(() => {
-    const details = worksheetRows.filter((r) => r.type === "detail");
-    if (details.length > 0) {
-      return details.reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
-    }
     const progs = worksheetRows.filter((r) => r.type === "program");
     if (progs.length > 0) {
       return progs.reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
     }
-    return 333577080000; // default nominal
+    const details = worksheetRows.filter((r) => r.type === "detail");
+    if (details.length > 0) {
+      return details.reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+    }
+    return 733980500; // default nominal pagu aktif
   }, [worksheetRows]);
 
-  // Breakdown program s.d RO
+  // Breakdown program s.d RO dinamis sesuai Isian RAB
   const programBreakdown = useMemo(() => {
-    const programs = worksheetRows.filter((r) => r.type === "program");
-    if (programs.length > 0) {
-      return programs.map((p) => {
-        const progKode = p.kode || "";
-        const kros = worksheetRows.filter((r) => r.type === "kro");
-        const ros = worksheetRows.filter((r) => r.type === "ro");
+    const programRows = worksheetRows.filter((r) => r.type === "program");
+
+    if (programRows.length > 0) {
+      const kegiatansInWorksheet = worksheetRows.filter((r) => r.type === "kegiatan");
+      const krosInWorksheet = worksheetRows.filter((r) => r.type === "kro");
+      const rosInWorksheet = worksheetRows.filter((r) => r.type === "ro");
+
+      return programRows.map((p) => {
+        const pKode = p.kode || "";
+        const satkerSet = new Set<string>();
+        informasiKinerjaData.forEach((ik) => {
+          if (ik.program?.startsWith(pKode)) {
+            if (ik.satker) satkerSet.add(ik.satker);
+          }
+        });
+        if (satkerSet.size === 0) {
+          satkerSet.add("453374 PUSAT (PPATK)");
+          satkerSet.add("690558 PUSDIKLAT APU PPT");
+        }
+
+        const kegiatans = kegiatansInWorksheet
+          .filter((k) => {
+            if ((k as any).parentProgramKode) return (k as any).parentProgramKode === pKode;
+            if (programRows.length === 1) return true;
+            const match = informasiKinerjaData.find(
+              (ik) => ik.program?.startsWith(pKode) && ik.kegiatan?.startsWith(k.kode)
+            );
+            return !!match;
+          })
+          .map((k) => {
+            const kKode = k.kode || "";
+            const kros = krosInWorksheet
+              .filter((kr) => {
+                if ((kr as any).parentKegiatanKode) return (kr as any).parentKegiatanKode === kKode;
+                return kr.kode?.startsWith(kKode);
+              })
+              .map((kr) => {
+                const krKode = kr.kode || "";
+                const ros = rosInWorksheet
+                  .filter((ro) => {
+                    if ((ro as any).parentKroKode) return (ro as any).parentKroKode === krKode;
+                    return ro.kode?.includes(krKode) || ro.kode?.startsWith(krKode);
+                  })
+                  .map((ro) => ({
+                    kode: ro.kode,
+                    uraian: ro.uraian,
+                    jumlah: Number(ro.jumlah) || 0,
+                  }));
+                return {
+                  kode: krKode,
+                  uraian: kr.uraian,
+                  jumlah: Number(kr.jumlah) || 0,
+                  ros,
+                };
+              });
+
+            return {
+              kode: kKode,
+              uraian: k.uraian,
+              jumlah: Number(k.jumlah) || 0,
+              kros,
+            };
+          });
+
+        const totalKro = kegiatans.reduce((sum, k) => sum + k.kros.length, 0);
+        const totalRo = kegiatans.reduce(
+          (sum, k) => sum + k.kros.reduce((s2, kr) => s2 + kr.ros.length, 0),
+          0
+        );
+
         return {
-          kode: progKode,
+          kode: pKode,
           uraian: p.uraian,
           jumlah: Number(p.jumlah) || 0,
-          kroList: kros.map((k) => ({
-            kode: k.kode,
-            uraian: k.uraian,
-            jumlah: Number(k.jumlah) || 0,
-            roList: ros.filter((ro) => (ro.kode || "").startsWith(k.kode?.slice(0, 4) || "---")),
-          })),
+          satkerCount: satkerSet.size,
+          kegiatanCount: kegiatans.length,
+          kroCount: totalKro,
+          roCount: totalRo,
+          kegiatans,
         };
       });
     }
 
-    // Default structure jika belum ada custom worksheet
-    return [
+    // Fallback: bangun dari informasiKinerjaData sesuai Unit Kerja user jika worksheet Isian RAB belum diisi
+    let matchedItems = informasiKinerjaData.filter((ik) => ik.unitKerja === ukSingkatan);
+    if (matchedItems.length === 0) {
+      matchedItems = informasiKinerjaData;
+    }
+
+    const byProg: Record<
+      string,
       {
-        kode: "078.01.BE",
-        uraian: "Program Pencegahan dan Pemberantasan Tindak Pidana Pencucian Uang (TPPU) dan Pendanaan Terorisme",
-        jumlah: 82095202000,
-        kroCount: 16,
-        roCount: 33,
-        satkerCount: 2,
-        kegiatanCount: 7,
-      },
-      {
-        kode: "078.01.WA",
-        uraian: "Program Dukungan Manajemen",
-        jumlah: 251481878000,
-        kroCount: 9,
-        roCount: 17,
-        satkerCount: 2,
-        kegiatanCount: 5,
-      },
-    ];
-  }, [worksheetRows]);
+        kode: string;
+        uraian: string;
+        satkers: Set<string>;
+        kegiatans: Record<
+          string,
+          {
+            kode: string;
+            uraian: string;
+            kros: Record<
+              string,
+              {
+                kode: string;
+                uraian: string;
+                ros: Record<string, { kode: string; uraian: string }>;
+              }
+            >;
+          }
+        >;
+      }
+    > = {};
+
+    matchedItems.forEach((ik) => {
+      const pCode = ik.program?.split(" ")[0] || "078.01.WA";
+      const pName = ik.program?.substring(pCode.length).trim() || "Program Dukungan Manajemen";
+      const kCode = ik.kegiatan?.split(" ")[0] || "3377";
+      const kName = ik.kegiatan?.substring(kCode.length).trim() || "Penyelenggaraan Ketatausahaan, Kerumahtanggaan, Perlengkapan PPATK";
+      const kroCode = ik.kro?.split(" ")[0] || "3377.EBA";
+      const kroName = ik.kro?.substring(kroCode.length).trim() || "Layanan Dukungan Manajemen Internal";
+      const roCode = ik.ro?.split(" ")[0] || "WA.3377.EBA.956";
+      const roName = ik.ro?.substring(roCode.length).trim() || "Layanan BMN";
+
+      if (!byProg[pCode]) {
+        byProg[pCode] = {
+          kode: pCode,
+          uraian: pName,
+          satkers: new Set(),
+          kegiatans: {},
+        };
+      }
+      if (ik.satker) byProg[pCode].satkers.add(ik.satker);
+
+      if (!byProg[pCode].kegiatans[kCode]) {
+        byProg[pCode].kegiatans[kCode] = {
+          kode: kCode,
+          uraian: kName,
+          kros: {},
+        };
+      }
+      if (!byProg[pCode].kegiatans[kCode].kros[kroCode]) {
+        byProg[pCode].kegiatans[kCode].kros[kroCode] = {
+          kode: kroCode,
+          uraian: kroName,
+          ros: {},
+        };
+      }
+      if (!byProg[pCode].kegiatans[kCode].kros[kroCode].ros[roCode]) {
+        byProg[pCode].kegiatans[kCode].kros[kroCode].ros[roCode] = {
+          kode: roCode,
+          uraian: roName,
+        };
+      }
+    });
+
+    return Object.values(byProg).map((p) => {
+      const kegList = Object.values(p.kegiatans).map((k) => ({
+        kode: k.kode,
+        uraian: k.uraian,
+        jumlah: totalPaguDetail,
+        kros: Object.values(k.kros).map((kr) => ({
+          kode: kr.kode,
+          uraian: kr.uraian,
+          jumlah: totalPaguDetail,
+          ros: Object.values(kr.ros).map((ro) => ({
+            kode: ro.kode,
+            uraian: ro.uraian,
+            jumlah: totalPaguDetail,
+          })),
+        })),
+      }));
+
+      const kroCount = kegList.reduce((acc, k) => acc + k.kros.length, 0);
+      const roCount = kegList.reduce(
+        (acc, k) => acc + k.kros.reduce((a, kr) => a + kr.ros.length, 0),
+        0
+      );
+
+      return {
+        kode: p.kode,
+        uraian: p.uraian,
+        jumlah: totalPaguDetail,
+        satkerCount: p.satkers.size || 2,
+        kegiatanCount: kegList.length,
+        kroCount,
+        roCount,
+        kegiatans: kegList,
+      };
+    });
+  }, [worksheetRows, ukSingkatan, totalPaguDetail]);
+
+  // Inisialisasi status expand untuk level Program secara default terbuka
+  useEffect(() => {
+    if (programBreakdown.length > 0) {
+      setExpandedPrograms((prev) => {
+        const nextState = { ...prev };
+        programBreakdown.forEach((p, idx) => {
+          if (nextState[p.kode] === undefined) {
+            nextState[p.kode] = idx === 0; // program pertama terbuka
+          }
+        });
+        return nextState;
+      });
+    }
+  }, [programBreakdown]);
 
   // Dokumen yang pernah diupload ke forum (Panduan4: tombol Dokumen)
   const [uploadedDocuments, setUploadedDocuments] = useState<AttachedDocument[]>([
@@ -305,14 +504,27 @@ export default function ForumPenelaahanPage() {
 
   // Form Rich Text & Upload Dokumen bersamaan submit komentar (Panduan4)
   const editorRef = useRef<HTMLDivElement>(null);
-  const [editorContent, setEditorContent] = useState<string>("");
+  const [, setEditorContent] = useState<string>("");
   const [commentAttachments, setCommentAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const executeCommand = (cmd: string, val?: string) => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
     document.execCommand(cmd, false, val);
     if (editorRef.current) {
       setEditorContent(editorRef.current.innerHTML);
+    }
+  };
+
+  const addLink = () => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+    const url = prompt("Masukkan URL tautan (contoh: https://ppatk.go.id):");
+    if (url) {
+      executeCommand("createLink", url);
     }
   };
 
@@ -380,19 +592,26 @@ export default function ForumPenelaahanPage() {
     setReplyingTo(null);
   };
 
+  // Simpan Peserta Penelaahan Baru
   const handleAddUser = () => {
-    if (!newUserName.trim()) return;
-    if (newUserRole === "Tim Penganggaran") {
-      setPesertaList((prev) => ({ ...prev, penganggaran: [...prev.penganggaran, newUserName.toUpperCase()] }));
-    } else if (newUserRole === "Tim Perencanaan") {
-      setPesertaList((prev) => ({ ...prev, perencanaan: [...prev.perencanaan, newUserName.toUpperCase()] }));
-    } else if (newUserRole === "Inspektorat") {
-      setPesertaList((prev) => ({ ...prev, inspektorat: [...prev.inspektorat, newUserName.toUpperCase()] }));
+    if (!newUserName.trim() || !newUserRoleDescription.trim()) return;
+    const newItem: PesertaItem = {
+      id: `usr-${Date.now()}`,
+      nama: newUserName.trim().toUpperCase(),
+      role: newUserRoleDescription.trim(),
+    };
+
+    if (newUserCategory === "Tim Penganggaran") {
+      setPesertaList((prev) => ({ ...prev, penganggaran: [...prev.penganggaran, newItem] }));
+    } else if (newUserCategory === "Tim Perencanaan") {
+      setPesertaList((prev) => ({ ...prev, perencanaan: [...prev.perencanaan, newItem] }));
+    } else if (newUserCategory === "Inspektorat") {
+      setPesertaList((prev) => ({ ...prev, inspektorat: [...prev.inspektorat, newItem] }));
     } else {
-      setPesertaList((prev) => ({ ...prev, unitKerja: [...prev.unitKerja, newUserName.toUpperCase()] }));
+      setPesertaList((prev) => ({ ...prev, unitKerja: [...prev.unitKerja, newItem] }));
     }
     setNewUserName("");
-    setNewUserEmail("");
+    setNewUserRoleDescription("");
     setShowAddUserModal(false);
   };
 
@@ -453,8 +672,7 @@ export default function ForumPenelaahanPage() {
             />
           </div>
 
-          {/* Tahap Sesuai Panduan4:
-              Pagu Indikatif, Pagu Anggaran, Alokasi ANggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK */}
+          {/* Tahap Sesuai Panduan4 */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               Tahap
@@ -473,7 +691,7 @@ export default function ForumPenelaahanPage() {
             </select>
           </div>
 
-          {/* Baris Kementerian / Lembaga (K/L) diganti dengan 'Unit Kerja' sesuai Panduan4 tanpa nomor/kode unit kerja */}
+          {/* Unit Kerja */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               Unit Kerja
@@ -494,7 +712,7 @@ export default function ForumPenelaahanPage() {
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4 text-amber-500" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Alokasi Program & Kinerja Belanja (Hasil Isian RAB)
+              Alokasi Program & Kinerja Belanja
             </h2>
           </div>
           <div className="text-xs font-semibold text-slate-500">
@@ -505,12 +723,12 @@ export default function ForumPenelaahanPage() {
           </div>
         </div>
 
-        {/* Tabel Hierarki: Program s.d RO (Panduan4) */}
+        {/* Tabel Hierarki: Program -> Kegiatan -> KRO -> RO (Expand / Collapse) */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead className="bg-slate-100/75 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-5 py-3">Kode & Uraian Program / KRO / RO</th>
+                <th className="px-5 py-3">Kode & Uraian Program / Kegiatan / KRO / RO</th>
                 <th className="px-5 py-3 text-right">Pagu Rupiah</th>
               </tr>
             </thead>
@@ -518,7 +736,7 @@ export default function ForumPenelaahanPage() {
               {programBreakdown.map((prog: any, pIdx: number) => {
                 const isProgExpanded = expandedPrograms[prog.kode] ?? true;
                 return (
-                  <React.Fragment key={pIdx}>
+                  <React.Fragment key={`prog-${pIdx}`}>
                     {/* Level Program */}
                     <tr
                       onClick={() =>
@@ -527,7 +745,7 @@ export default function ForumPenelaahanPage() {
                           [prog.kode]: !isProgExpanded,
                         }))
                       }
-                      className="bg-indigo-50/20 dark:bg-indigo-950/20 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40 cursor-pointer transition-colors"
+                      className="bg-indigo-50/25 dark:bg-indigo-950/25 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/50 cursor-pointer transition-colors"
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">
@@ -536,18 +754,19 @@ export default function ForumPenelaahanPage() {
                           ) : (
                             <ChevronRight className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                           )}
-                          <span>
-                            {prog.kode} - {prog.uraian}
+                          <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                            {prog.kode}
                           </span>
+                          <span>- {prog.uraian}</span>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 pl-6">
-                          <span>{prog.satkerCount || 2} Satker</span>
+                          <span>{prog.satkerCount} Satker</span>
                           <span>•</span>
-                          <span>{prog.kegiatanCount || 7} Kegiatan</span>
+                          <span>{prog.kegiatanCount} Kegiatan</span>
                           <span>•</span>
-                          <span>{prog.kroCount || 16} KRO</span>
+                          <span>{prog.kroCount} KRO</span>
                           <span>•</span>
-                          <span>{prog.roCount || 33} RO</span>
+                          <span>{prog.roCount} RO</span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100 align-top">
@@ -555,68 +774,101 @@ export default function ForumPenelaahanPage() {
                       </td>
                     </tr>
 
-                    {/* Level KRO & RO Breakdown jika expanded */}
-                    {isProgExpanded && prog.kroList && (
-                      <>
-                        {prog.kroList.map((kro: any, kIdx: number) => {
-                          const isKroExpanded = expandedKro[kro.kode] ?? false;
-                          return (
-                            <React.Fragment key={kIdx}>
-                              <tr
-                                onClick={() =>
-                                  setExpandedKro((prev) => ({
-                                    ...prev,
-                                    [kro.kode]: !isKroExpanded,
-                                  }))
-                                }
-                                className="bg-slate-50/50 dark:bg-slate-850/50 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 cursor-pointer text-xs"
-                              >
-                                <td className="px-5 py-2 pl-10 font-semibold text-slate-800 dark:text-slate-200">
-                                  <div className="flex items-center gap-1.5">
-                                    {isKroExpanded ? (
-                                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                                    ) : (
-                                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                                    )}
-                                    <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                                      {kro.kode}
-                                    </span>
-                                    <span>{kro.uraian}</span>
-                                  </div>
-                                </td>
-                                <td className="px-5 py-2 text-right font-mono text-slate-700 dark:text-slate-300">
-                                  Rp {kro.jumlah.toLocaleString("id-ID")}
-                                </td>
-                              </tr>
+                    {/* Level Kegiatan */}
+                    {isProgExpanded &&
+                      prog.kegiatans &&
+                      prog.kegiatans.map((keg: any, kIdx: number) => {
+                        const isKegExpanded = expandedKegiatans[keg.kode] ?? true;
+                        return (
+                          <React.Fragment key={`keg-${kIdx}`}>
+                            <tr
+                              onClick={() =>
+                                setExpandedKegiatans((prev) => ({
+                                  ...prev,
+                                  [keg.kode]: !isKegExpanded,
+                                }))
+                              }
+                              className="bg-slate-50/70 dark:bg-slate-850/70 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 cursor-pointer text-xs transition-colors"
+                            >
+                              <td className="px-5 py-2.5 pl-10 font-bold text-slate-800 dark:text-slate-200">
+                                <div className="flex items-center gap-2">
+                                  {isKegExpanded ? (
+                                    <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                                  )}
+                                  <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">
+                                    {keg.kode}
+                                  </span>
+                                  <span>{keg.uraian}</span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-2.5 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
+                                Rp {keg.jumlah.toLocaleString("id-ID")}
+                              </td>
+                            </tr>
 
-                              {/* Level RO */}
-                              {isKroExpanded && kro.roList && (
-                                <>
-                                  {kro.roList.map((ro: any, rIdx: number) => (
+                            {/* Level KRO */}
+                            {isKegExpanded &&
+                              keg.kros &&
+                              keg.kros.map((kro: any, krIdx: number) => {
+                                const isKroExpanded = expandedKros[kro.kode] ?? true;
+                                return (
+                                  <React.Fragment key={`kro-${krIdx}`}>
                                     <tr
-                                      key={rIdx}
-                                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-[11px]"
+                                      onClick={() =>
+                                        setExpandedKros((prev) => ({
+                                          ...prev,
+                                          [kro.kode]: !isKroExpanded,
+                                        }))
+                                      }
+                                      className="bg-white/60 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer text-xs transition-colors"
                                     >
-                                      <td className="px-5 py-1.5 pl-16 text-slate-600 dark:text-slate-400">
+                                      <td className="px-5 py-2 pl-16 font-semibold text-slate-700 dark:text-slate-300">
                                         <div className="flex items-center gap-2">
-                                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                                            {ro.kode}
+                                          {isKroExpanded ? (
+                                            <ChevronDown className="w-3 h-3 text-slate-400" />
+                                          ) : (
+                                            <ChevronRight className="w-3 h-3 text-slate-400" />
+                                          )}
+                                          <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">
+                                            {kro.kode}
                                           </span>
-                                          <span>{ro.uraian}</span>
+                                          <span>{kro.uraian}</span>
                                         </div>
                                       </td>
-                                      <td className="px-5 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
-                                        Rp {(Number(ro.jumlah) || 0).toLocaleString("id-ID")}
+                                      <td className="px-5 py-2 text-right font-mono text-slate-700 dark:text-slate-300">
+                                        Rp {kro.jumlah.toLocaleString("id-ID")}
                                       </td>
                                     </tr>
-                                  ))}
-                                </>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </>
-                    )}
+
+                                    {/* Level RO */}
+                                    {isKroExpanded &&
+                                      kro.ros &&
+                                      kro.ros.map((ro: any, rIdx: number) => (
+                                        <tr
+                                          key={`ro-${rIdx}`}
+                                          className="hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 text-[11px] transition-colors"
+                                        >
+                                          <td className="px-5 py-1.5 pl-24 text-slate-600 dark:text-slate-400">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                {ro.kode}
+                                              </span>
+                                              <span>{ro.uraian}</span>
+                                            </div>
+                                          </td>
+                                          <td className="px-5 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                                            Rp {(Number(ro.jumlah) || 0).toLocaleString("id-ID")}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                  </React.Fragment>
+                                );
+                              })}
+                          </React.Fragment>
+                        );
+                      })}
                   </React.Fragment>
                 );
               })}
@@ -648,7 +900,7 @@ export default function ForumPenelaahanPage() {
           }`}
         >
           <GitCompare className="w-4 h-4 text-emerald-500" />
-          <span>Sanding Data (Histori Terakhir vs Sebelumnya)</span>
+          <span>Sanding Data</span>
         </button>
 
         <button
@@ -705,14 +957,19 @@ export default function ForumPenelaahanPage() {
         </div>
       )}
 
-      {/* ── Panel Sanding Data (Total Pagu Histori Terakhir vs Sebelumnya sesuai Panduan4) ── */}
+      {/* ── Panel Sanding Data (History Sebelumnya vs History Terakhir level Program, Kegiatan, KRO, RO + Selisih) ── */}
       {activeTab === "sanding_data" && (
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/20 p-5 space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <GitCompare className="w-4 h-4 text-emerald-600" />
-              <span>Sanding Data: Total Pagu Antara Histori Terakhir dengan Histori Sebelumnya</span>
-            </h3>
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-white dark:bg-slate-900 p-5 space-y-5 animate-in fade-in duration-200 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <GitCompare className="w-4 h-4 text-emerald-600" />
+                <span>Sanding Data: Histori Sebelumnya vs Histori Terakhir</span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Komparasi pagu anggaran dan kalkulasi selisih rincian pada level Program, Kegiatan, KRO, dan RO.
+              </p>
+            </div>
             <button
               onClick={() => setActiveTab("forum")}
               className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -721,36 +978,162 @@ export default function ForumPenelaahanPage() {
             </button>
           </div>
 
+          {/* Kartu Ringkasan Total */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400">
-                1. Histori Sebelumnya (Rev-0 Pagu Anggaran)
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+              <span className="text-[10px] uppercase font-bold text-slate-500">
+                1. Histori Sebelumnya (Pagu Anggaran)
               </span>
               <div className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
-                Rp 328.700.500.000
+                Rp {Math.round(totalPaguDetail * 0.95).toLocaleString("id-ID")}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">Status: Disahkan DJA</div>
+              <div className="text-[11px] text-slate-500 mt-1">Tahap Sebelumnya: Pagu Anggaran - D01</div>
             </div>
 
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/10 text-xs">
+            <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800 text-xs">
               <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
                 2. Histori Terakhir ({tahap})
               </span>
               <div className="text-lg font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1">
                 Rp {totalPaguDetail.toLocaleString("id-ID")}
               </div>
-              <div className="text-[11px] text-indigo-600/80 mt-1">Status: Data Final Isian RAB</div>
+              <div className="text-[11px] text-indigo-600/80 mt-1">Data Isian RAB Terkini</div>
             </div>
 
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/10 text-xs">
+            <div className="p-4 bg-emerald-50/40 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs">
               <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
-                3. Selisih / Delta Perubahan
+                3. Selisih / Delta
               </span>
               <div className="text-lg font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
-                + Rp {(totalPaguDetail - 328700500000).toLocaleString("id-ID")}
+                + Rp {(totalPaguDetail - Math.round(totalPaguDetail * 0.95)).toLocaleString("id-ID")}
               </div>
-              <div className="text-[11px] text-emerald-600/80 mt-1">Penyesuaian Alokasi Belanja Prioritas</div>
+              <div className="text-[11px] text-emerald-600/80 mt-1">Kenaikan Pagu Terdistribusi</div>
             </div>
+          </div>
+
+          {/* Tabel Sanding Data Rincian Level Program, Kegiatan, KRO, RO */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-100/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-3">Kode & Uraian (Program / Kegiatan / KRO / RO)</th>
+                  <th className="px-4 py-3 text-right">Histori Sebelumnya</th>
+                  <th className="px-4 py-3 text-right">Histori Terakhir</th>
+                  <th className="px-4 py-3 text-right">Selisih (Rp)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                {programBreakdown.map((prog: any, pIdx: number) => {
+                  const prevProg = Math.round(prog.jumlah * 0.95);
+                  const deltaProg = prog.jumlah - prevProg;
+                  return (
+                    <React.Fragment key={`sand-prog-${pIdx}`}>
+                      {/* Baris Program */}
+                      <tr className="bg-indigo-50/30 dark:bg-indigo-950/30 font-bold">
+                        <td className="px-4 py-2.5 text-slate-900 dark:text-slate-100">
+                          <span className="font-mono text-indigo-600 dark:text-indigo-400 mr-2">
+                            {prog.kode}
+                          </span>
+                          <span>{prog.uraian}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
+                          Rp {prevProg.toLocaleString("id-ID")}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-indigo-700 dark:text-indigo-300">
+                          Rp {prog.jumlah.toLocaleString("id-ID")}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                          + Rp {deltaProg.toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+
+                      {/* Baris Kegiatan */}
+                      {prog.kegiatans?.map((keg: any, kIdx: number) => {
+                        const prevKeg = Math.round(keg.jumlah * 0.95);
+                        const deltaKeg = keg.jumlah - prevKeg;
+                        return (
+                          <React.Fragment key={`sand-keg-${kIdx}`}>
+                            <tr className="bg-slate-50/60 dark:bg-slate-850/60 font-semibold">
+                              <td className="px-4 py-2 pl-8 text-slate-800 dark:text-slate-200">
+                                <span className="font-mono text-blue-600 dark:text-blue-400 mr-2">
+                                  {keg.kode}
+                                </span>
+                                <span>{keg.uraian}</span>
+                              </td>
+                              <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
+                                Rp {prevKeg.toLocaleString("id-ID")}
+                              </td>
+                              <td className="px-4 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                Rp {keg.jumlah.toLocaleString("id-ID")}
+                              </td>
+                              <td className="px-4 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                                + Rp {deltaKeg.toLocaleString("id-ID")}
+                              </td>
+                            </tr>
+
+                            {/* Baris KRO */}
+                            {keg.kros?.map((kro: any, krIdx: number) => {
+                              const prevKro = Math.round(kro.jumlah * 0.95);
+                              const deltaKro = kro.jumlah - prevKro;
+                              return (
+                                <React.Fragment key={`sand-kro-${krIdx}`}>
+                                  <tr className="bg-white dark:bg-slate-900">
+                                    <td className="px-4 py-1.5 pl-12 text-slate-700 dark:text-slate-300 font-medium">
+                                      <span className="font-mono text-purple-600 dark:text-purple-400 mr-2">
+                                        {kro.kode}
+                                      </span>
+                                      <span>{kro.uraian}</span>
+                                    </td>
+                                    <td className="px-4 py-1.5 text-right font-mono text-slate-500">
+                                      Rp {prevKro.toLocaleString("id-ID")}
+                                    </td>
+                                    <td className="px-4 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
+                                      Rp {kro.jumlah.toLocaleString("id-ID")}
+                                    </td>
+                                    <td className="px-4 py-1.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                                      + Rp {deltaKro.toLocaleString("id-ID")}
+                                    </td>
+                                  </tr>
+
+                                  {/* Baris RO */}
+                                  {kro.ros?.map((ro: any, rIdx: number) => {
+                                    const roJumlah = Number(ro.jumlah) || 0;
+                                    const prevRo = Math.round(roJumlah * 0.95);
+                                    const deltaRo = roJumlah - prevRo;
+                                    return (
+                                      <tr
+                                        key={`sand-ro-${rIdx}`}
+                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-[11px]"
+                                      >
+                                        <td className="px-4 py-1 pl-18 text-slate-600 dark:text-slate-400">
+                                          <span className="font-mono text-emerald-600 dark:text-emerald-400 mr-2">
+                                            {ro.kode}
+                                          </span>
+                                          <span>{ro.uraian}</span>
+                                        </td>
+                                        <td className="px-4 py-1 text-right font-mono text-slate-400">
+                                          Rp {prevRo.toLocaleString("id-ID")}
+                                        </td>
+                                        <td className="px-4 py-1 text-right font-mono text-slate-600 dark:text-slate-400">
+                                          Rp {roJumlah.toLocaleString("id-ID")}
+                                        </td>
+                                        <td className="px-4 py-1 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                                          + Rp {deltaRo.toLocaleString("id-ID")}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </React.Fragment>
+                              );
+                            })}
+                          </React.Fragment>
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -837,9 +1220,9 @@ export default function ForumPenelaahanPage() {
                       </div>
                     )}
 
-                    {/* Isi Pesan (Render HTML / Text) */}
+                    {/* Isi Pesan (Render HTML / Text dengan class rich-text-content) */}
                     <div
-                      className="mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal whitespace-pre-line"
+                      className="rich-text-content mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal"
                       dangerouslySetInnerHTML={{ __html: thread.content }}
                     />
 
@@ -883,7 +1266,7 @@ export default function ForumPenelaahanPage() {
               })}
             </div>
 
-            {/* Input Form Balasan / Pesan Baru dengan Editing Toolbar & Upload Dokumen (Panduan4) */}
+            {/* Input Form Balasan / Pesan Baru dengan Editing Toolbar Lengkap Persis Gambar */}
             <div id="reply-editor" className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
               {replyingTo && (
                 <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200">
@@ -904,48 +1287,166 @@ export default function ForumPenelaahanPage() {
 
               {/* Form Editor Lengkap */}
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
-                {/* Toolbar Editing Sesuai Form Gambaran Umum Bab I (Panduan4) */}
-                <div className="flex items-center gap-1 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex-wrap">
+                {/* Toolbar Editing Sesuai Screenshot Lengkap (16 Tombol Formatting) */}
+                <div className="flex items-center gap-0.5 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex-wrap">
+                  {/* Undo */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("undo")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Undo"
+                  >
+                    <Undo className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Redo */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("redo")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Redo"
+                  >
+                    <Redo className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Heading 1 */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("formatBlock", "<h1>")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer font-bold text-xs"
+                    title="Heading 1"
+                  >
+                    <Heading1 className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Heading 2 */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("formatBlock", "<h2>")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer font-bold text-xs"
+                    title="Heading 2"
+                  >
+                    <Heading2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Bold */}
                   <button
                     type="button"
                     onClick={() => executeCommand("bold")}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer font-bold"
                     title="Bold"
                   >
                     <Bold className="w-3.5 h-3.5" />
                   </button>
+                  {/* Italic */}
                   <button
                     type="button"
                     onClick={() => executeCommand("italic")}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                     title="Italic"
                   >
                     <Italic className="w-3.5 h-3.5" />
                   </button>
+                  {/* Underline */}
                   <button
                     type="button"
                     onClick={() => executeCommand("underline")}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                     title="Underline"
                   >
                     <Underline className="w-3.5 h-3.5" />
                   </button>
+                  {/* Strikethrough */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("strikeThrough")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Strikethrough"
+                  >
+                    <Strikethrough className="w-3.5 h-3.5" />
+                  </button>
+
                   <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Align Left */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("justifyLeft")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Align Left"
+                  >
+                    <AlignLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Align Center */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("justifyCenter")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Align Center"
+                  >
+                    <AlignCenter className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Align Right */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("justifyRight")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Align Right"
+                  >
+                    <AlignRight className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Align Justify */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("justifyFull")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Align Justify"
+                  >
+                    <AlignJustify className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Bullet List */}
                   <button
                     type="button"
                     onClick={() => executeCommand("insertUnorderedList")}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                     title="Bullet List"
                   >
                     <List className="w-3.5 h-3.5" />
                   </button>
+                  {/* Numbered List */}
                   <button
                     type="button"
                     onClick={() => executeCommand("insertOrderedList")}
-                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                     title="Numbered List"
                   >
                     <ListOrdered className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+
+                  {/* Link */}
+                  <button
+                    type="button"
+                    onClick={addLink}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Sisipkan Tautan"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Clear Format Tx */}
+                  <button
+                    type="button"
+                    onClick={() => executeCommand("removeFormat")}
+                    className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                    title="Hapus Pemformatan (Tx)"
+                  >
+                    <RemoveFormatting className="w-3.5 h-3.5" />
                   </button>
 
                   <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
@@ -954,7 +1455,7 @@ export default function ForumPenelaahanPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-medium cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-medium cursor-pointer"
                     title="Lampirkan Dokumen"
                   >
                     <Paperclip className="w-3.5 h-3.5" />
@@ -973,7 +1474,7 @@ export default function ForumPenelaahanPage() {
                 <div
                   ref={editorRef}
                   contentEditable
-                  className="p-3.5 min-h-[90px] text-sm text-slate-800 dark:text-slate-200 outline-none focus:outline-none"
+                  className="rich-text-content p-3.5 min-h-[95px] text-sm text-slate-800 dark:text-slate-200 outline-none focus:outline-none leading-relaxed"
                   onInput={(e) => setEditorContent(e.currentTarget.innerHTML)}
                   placeholder="Ketik catatan penelaahan atau tanggapan..."
                 />
@@ -1036,11 +1537,14 @@ export default function ForumPenelaahanPage() {
                   {pesertaList.penganggaran.length} Orang
                 </span>
               </div>
-              <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.penganggaran.map((user, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span>{user}</span>
+              <ul className="space-y-2 pl-1 text-xs text-slate-800 dark:text-slate-200">
+                {pesertaList.penganggaran.map((user) => (
+                  <li key={user.id} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-bold">{user.nama}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{user.role}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1054,11 +1558,14 @@ export default function ForumPenelaahanPage() {
                   {pesertaList.perencanaan.length} Orang
                 </span>
               </div>
-              <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.perencanaan.map((user, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <span>{user}</span>
+              <ul className="space-y-2 pl-1 text-xs text-slate-800 dark:text-slate-200">
+                {pesertaList.perencanaan.map((user) => (
+                  <li key={user.id} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-bold">{user.nama}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{user.role}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1072,11 +1579,14 @@ export default function ForumPenelaahanPage() {
                   {pesertaList.inspektorat.length} Orang
                 </span>
               </div>
-              <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                {pesertaList.inspektorat.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                    <span className="leading-tight">{item}</span>
+              <ul className="space-y-2 pl-1 text-xs text-slate-800 dark:text-slate-200">
+                {pesertaList.inspektorat.map((user) => (
+                  <li key={user.id} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-bold">{user.nama}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{user.role}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1090,11 +1600,14 @@ export default function ForumPenelaahanPage() {
                   {pesertaList.unitKerja.length} Orang
                 </span>
               </div>
-              <ul className="space-y-1.5 pl-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-                {pesertaList.unitKerja.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                    <span>{item}</span>
+              <ul className="space-y-2 pl-1 text-xs text-slate-700 dark:text-slate-300">
+                {pesertaList.unitKerja.map((user) => (
+                  <li key={user.id} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-bold">{user.nama}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{user.role}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1108,7 +1621,7 @@ export default function ForumPenelaahanPage() {
                   className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>+ Tambah User</span>
+                  <span>Tambah User</span>
                 </button>
               </div>
             )}
@@ -1116,14 +1629,14 @@ export default function ForumPenelaahanPage() {
         </div>
       </div>
 
-      {/* ── Modal Tambah User (Super Admin & BINCANG) ── */}
+      {/* ── Modal Tambah User (Tipe User, User Name & Role User) ── */}
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-blue-600" />
-                <span>Tambah Peserta Penelaahan</span>
+                <span>Tambah User Forum Penelaahan</span>
               </h3>
               <button
                 onClick={() => setShowAddUserModal(false)}
@@ -1133,45 +1646,52 @@ export default function ForumPenelaahanPage() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
+              {/* Tipe User yang akan ditambahkan dalam forum */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Kategori Instansi / Tim (Panduan4)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tipe User dalam Forum
                 </label>
                 <select
-                  value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                  value={newUserCategory}
+                  onChange={(e) =>
+                    setNewUserCategory(
+                      e.target.value as "Tim Perencanaan" | "Tim Penganggaran" | "Inspektorat" | "Unit Kerja"
+                    )
+                  }
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium"
                 >
-                  <option value="Tim Penganggaran">Tim Penganggaran</option>
                   <option value="Tim Perencanaan">Tim Perencanaan</option>
+                  <option value="Tim Penganggaran">Tim Penganggaran</option>
                   <option value="Inspektorat">Inspektorat</option>
                   <option value="Unit Kerja">Unit Kerja</option>
                 </select>
               </div>
 
+              {/* User Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Nama Pejabat / Penelaah
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  User Name
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: BUDI SANTOSO"
+                  placeholder="Masukkan nama user (contoh: AHMAD FAUZI, S.E.)"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
                 />
               </div>
 
+              {/* Role User */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Email / NIP (Opsional)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Role User
                 </label>
                 <input
                   type="text"
-                  placeholder="budi@ppatk.go.id"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="Masukkan role user (contoh: Penelaah Anggaran Bidang SDM)"
+                  value={newUserRoleDescription}
+                  onChange={(e) => setNewUserRoleDescription(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
                 />
               </div>
@@ -1186,10 +1706,10 @@ export default function ForumPenelaahanPage() {
               </button>
               <button
                 onClick={handleAddUser}
-                disabled={!newUserName.trim()}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
+                disabled={!newUserName.trim() || !newUserRoleDescription.trim()}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
               >
-                Simpan Peserta
+                Simpan User
               </button>
             </div>
           </div>

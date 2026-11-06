@@ -49,6 +49,9 @@ export default function RichTextEditor({
 
   const executeCommand = (command: string, valueArg: string | undefined = undefined) => {
     if (disabled) return;
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
     document.execCommand(command, false, valueArg);
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -272,7 +275,7 @@ export default function RichTextEditor({
           onInput={handleInput}
           onBlur={handleInput}
           suppressContentEditableWarning
-          className="p-3 text-sm focus:outline-none overflow-y-auto leading-relaxed"
+          className="rich-text-content p-3 text-sm focus:outline-none overflow-y-auto leading-relaxed"
           style={{
             minHeight,
             color: disabled ? "var(--text-muted)" : "var(--text)",
