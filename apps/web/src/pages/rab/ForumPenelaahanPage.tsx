@@ -42,9 +42,15 @@ import {
   Link as LinkIcon,
   RemoveFormatting,
   Layers,
+  Save,
+  Check,
+  Plus,
+  Trash2,
+  FileSpreadsheet,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
+import RichTextEditor from "../../components/ui/RichTextEditor";
 import { WorksheetRow } from "./IsianRabPage";
 
 interface AttachedDocument {
@@ -76,6 +82,27 @@ interface PesertaItem {
   id: string;
   nama: string;
   role: string;
+}
+
+interface PenandatanganItem {
+  id: string;
+  nama: string;
+  nip: string;
+  instansi: string;
+  jabatan: string;
+}
+
+interface CatatanSectionData {
+  pending: string;
+  pendapat: string;
+  blokir: string;
+}
+
+interface CatatanPenelaahanState {
+  penganggaran: CatatanSectionData;
+  perencanaan: CatatanSectionData;
+  inspektorat: CatatanSectionData;
+  penandatangan: PenandatanganItem[];
 }
 
 export default function ForumPenelaahanPage() {
@@ -141,8 +168,9 @@ export default function ForumPenelaahanPage() {
   const [newUserName, setNewUserName] = useState<string>("");
   const [newUserRoleDescription, setNewUserRoleDescription] = useState<string>("");
 
-  // Modal Cetak
+  // Modal Cetak Forum & Modal Cetak Catatan Penelaahan
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
+  const [showPrintCatatanModal, setShowPrintCatatanModal] = useState<boolean>(false);
 
   // Peserta Penelaahan Sesuai Panduan4:
   // - Tim Penganggaran (menggantikan DJA)
@@ -412,6 +440,108 @@ export default function ForumPenelaahanPage() {
       });
     }
   }, [programBreakdown]);
+
+  // ── State Catatan Penelaahan (Tim Penganggaran, Tim Perencanaan, Inspektorat & Penanda tangan Catatan Penelaahan) ──
+  const defaultCatatanState: CatatanPenelaahanState = {
+    penganggaran: {
+      pending: "• Kesesuaian SBM Uang Harian Konsinyering Luar Kota pada KRO Layanan Dukungan Manajemen telah diverifikasi.\n• Dokumen kelengkapan RAB operasional perkantoran telah dilampirkan.",
+      pendapat: "Alokasi anggaran belanja barang operasional dan modal telah sesuai dengan Standar Biaya Masukan (SBM) dan tidak melebihi batasan Standar Struktur Biaya (SSB).",
+      blokir: "Nihil. Seluruh akun belanja dibuka dan tidak ada pagu yang diberi tanda '@'/Blokir.",
+    },
+    perencanaan: {
+      pending: "• Keterkaitan IKU Target Output Satuan Kerja dengan Renja Eselon II telah selaras.\n• Seluruh komponen belanja mendukung langsung Sasaran Strategis Organisasi PPATK TA 2027.",
+      pendapat: "Usulan program kerja dan target output relevan dan telah memenuhi indikator kinerja program prioritas nasional PPATK.",
+      blokir: "Nihil.",
+    },
+    inspektorat: {
+      pending: "• Kelengkapan TOR/KAK dan analisis standar harga satuan belanja modal telah diverifikasi.\n• Rekomendasi tindak lanjut LHP tahun anggaran sebelumnya telah dipenuhi oleh Unit Kerja.",
+      pendapat: "Secara administratif dan prinsip akuntabilitas pengelolaan anggaran negara telah memenuhi ketentuan peraturan perundang-undangan.",
+      blokir: "Nihil.",
+    },
+    penandatangan: [
+      {
+        id: "ttd-1",
+        nama: "SUKRASNO",
+        nip: "197701012000011001",
+        instansi: "Tim Penganggaran",
+        jabatan: "Ketua Tim Penelaah Penganggaran",
+      },
+      {
+        id: "ttd-2",
+        nama: "NOOR ANDRINI WURYANDARI",
+        nip: "198003152005022001",
+        instansi: "Tim Perencanaan",
+        jabatan: "Koordinator Perencanaan Makro",
+      },
+      {
+        id: "ttd-3",
+        nama: "INSPEKTUR PPATK",
+        nip: "197508201999031002",
+        instansi: "Inspektorat",
+        jabatan: "Pengawas Internal (APIP)",
+      },
+    ],
+  };
+
+  const [catatanData, setCatatanData] = useState<CatatanPenelaahanState>(() => {
+    try {
+      const saved = localStorage.getItem(`rab_catatan_penelaahan_${ukSingkatan}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return defaultCatatanState;
+  });
+
+  const [catatanAccordion, setCatatanAccordion] = useState<{
+    penganggaran: boolean;
+    perencanaan: boolean;
+    inspektorat: boolean;
+    penandatangan: boolean;
+  }>({
+    penganggaran: true,
+    perencanaan: true,
+    inspektorat: true,
+    penandatangan: true,
+  });
+
+  const [catatanSaveStatus, setCatatanSaveStatus] = useState<string>("");
+
+  const handleSaveCatatan = () => {
+    try {
+      localStorage.setItem(`rab_catatan_penelaahan_${ukSingkatan}`, JSON.stringify(catatanData));
+      setCatatanSaveStatus("Catatan Penelaahan berhasil disimpan!");
+      setTimeout(() => setCatatanSaveStatus(""), 3500);
+    } catch (e) {
+      alert("Gagal menyimpan Catatan Penelaahan.");
+    }
+  };
+
+  const handleAddPenandatangan = () => {
+    const newTtd: PenandatanganItem = {
+      id: `ttd-${Date.now()}`,
+      nama: "PEJABAT PENANDATANGAN",
+      nip: "-",
+      instansi: "Tim Penelaah",
+      jabatan: "Penelaah",
+    };
+    setCatatanData((prev) => ({
+      ...prev,
+      penandatangan: [...prev.penandatangan, newTtd],
+    }));
+  };
+
+  const handleRemovePenandatangan = (id: string) => {
+    setCatatanData((prev) => ({
+      ...prev,
+      penandatangan: prev.penandatangan.filter((t) => t.id !== id),
+    }));
+  };
+
+  const handleUpdatePenandatangan = (id: string, field: keyof PenandatanganItem, val: string) => {
+    setCatatanData((prev) => ({
+      ...prev,
+      penandatangan: prev.penandatangan.map((t) => (t.id === id ? { ...t, [field]: val } : t)),
+    }));
+  };
 
   // Dokumen yang pernah diupload ke forum (Panduan4: tombol Dokumen)
   const [uploadedDocuments, setUploadedDocuments] = useState<AttachedDocument[]>([
@@ -1138,6 +1268,443 @@ export default function ForumPenelaahanPage() {
         </div>
       )}
 
+      {/* ── Panel Catatan Penelaahan (Tim Perencanaan, Tim Penganggaran, Inspektorat & Penanda tangan Catatan Penelaahan) ── */}
+      {activeTab === "catatan" && (
+        <div className="rounded-2xl border border-rose-200 dark:border-rose-900/40 bg-white dark:bg-slate-900 p-5 space-y-6 animate-in fade-in duration-200 shadow-xs">
+          {/* Header Panel */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="w-5 h-5 text-rose-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Formulir Catatan Penelaahan Anggaran
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Catatan resmi penelaahan Rencana Kerja Anggaran yang diisi oleh Tim Penganggaran, Tim Perencanaan, dan Inspektorat.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPrintCatatanModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-blue-600" />
+                <span>Unduh Report</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("forum")}
+                className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer px-2 py-1"
+              >
+                ✕ Tutup Panel
+              </button>
+            </div>
+          </div>
+
+          {/* Alert Status Simpan */}
+          {catatanSaveStatus && (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>{catatanSaveStatus}</span>
+            </div>
+          )}
+
+          {/* Section 1: Catatan Tim Penganggaran (DJA) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+            <button
+              onClick={() =>
+                setCatatanAccordion((prev) => ({
+                  ...prev,
+                  penganggaran: !prev.penganggaran,
+                }))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-750 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                {catatanAccordion.penganggaran ? (
+                  <ChevronDown className="w-4 h-4 text-blue-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-blue-600" />
+                )}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  Catatan Tim Penganggaran
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-semibold">
+                  Tim Penganggaran
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {catatanAccordion.penganggaran ? "Sembunyikan Form" : "Tampilkan Form"}
+              </span>
+            </button>
+
+            {catatanAccordion.penganggaran && (
+              <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    F. Catatan Khusus dan/atau Pending :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.penganggaran.pending}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        penganggaran: { ...prev.penganggaran, pending: val },
+                      }))
+                    }
+                    placeholder="Tuliskan catatan khusus atau hal-hal pending oleh Tim Penganggaran..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    G. Penilaian / Pendapat Petugas :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.penganggaran.pendapat}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        penganggaran: { ...prev.penganggaran, pendapat: val },
+                      }))
+                    }
+                    placeholder="Tuliskan penilaian/pendapat petugas Tim Penganggaran..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.penganggaran.blokir}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        penganggaran: { ...prev.penganggaran, blokir: val },
+                      }))
+                    }
+                    placeholder="Tuliskan rincian anggaran yang diberi tanda @/blokir..."
+                    minHeight="80px"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Catatan Tim Perencanaan (Bappenas) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+            <button
+              onClick={() =>
+                setCatatanAccordion((prev) => ({
+                  ...prev,
+                  perencanaan: !prev.perencanaan,
+                }))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-750 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                {catatanAccordion.perencanaan ? (
+                  <ChevronDown className="w-4 h-4 text-amber-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-amber-600" />
+                )}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  Catatan Tim Perencanaan
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-semibold">
+                  Tim Perencanaan
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {catatanAccordion.perencanaan ? "Sembunyikan Form" : "Tampilkan Form"}
+              </span>
+            </button>
+
+            {catatanAccordion.perencanaan && (
+              <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    F. Catatan Khusus dan/atau Pending :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.perencanaan.pending}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        perencanaan: { ...prev.perencanaan, pending: val },
+                      }))
+                    }
+                    placeholder="Tuliskan catatan khusus atau hal-hal pending oleh Tim Perencanaan..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    G. Penilaian / Pendapat Petugas :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.perencanaan.pendapat}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        perencanaan: { ...prev.perencanaan, pendapat: val },
+                      }))
+                    }
+                    placeholder="Tuliskan penilaian/pendapat petugas Tim Perencanaan..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.perencanaan.blokir}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        perencanaan: { ...prev.perencanaan, blokir: val },
+                      }))
+                    }
+                    placeholder="Tuliskan rincian anggaran yang diberi tanda @/blokir..."
+                    minHeight="80px"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Catatan Inspektorat (K/L) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+            <button
+              onClick={() =>
+                setCatatanAccordion((prev) => ({
+                  ...prev,
+                  inspektorat: !prev.inspektorat,
+                }))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-750 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                {catatanAccordion.inspektorat ? (
+                  <ChevronDown className="w-4 h-4 text-purple-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-purple-600" />
+                )}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  Catatan Inspektorat
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-semibold">
+                  Inspektorat
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {catatanAccordion.inspektorat ? "Sembunyikan Form" : "Tampilkan Form"}
+              </span>
+            </button>
+
+            {catatanAccordion.inspektorat && (
+              <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    F. Catatan Khusus dan/atau Pending :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.inspektorat.pending}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        inspektorat: { ...prev.inspektorat, pending: val },
+                      }))
+                    }
+                    placeholder="Tuliskan catatan khusus atau hal-hal pending oleh Inspektorat..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    G. Penilaian / Pendapat Petugas :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.inspektorat.pendapat}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        inspektorat: { ...prev.inspektorat, pendapat: val },
+                      }))
+                    }
+                    placeholder="Tuliskan penilaian/pendapat auditor/petugas Inspektorat..."
+                    minHeight="90px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
+                    H. Anggaran yang Diberikan Tanda &quot;@&quot; / Blokir :
+                  </label>
+                  <RichTextEditor
+                    value={catatanData.inspektorat.blokir}
+                    onChange={(val) =>
+                      setCatatanData((prev) => ({
+                        ...prev,
+                        inspektorat: { ...prev.inspektorat, blokir: val },
+                      }))
+                    }
+                    placeholder="Tuliskan rincian anggaran yang diberi tanda @/blokir..."
+                    minHeight="80px"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Penanda tangan Catatan Penelaahan (Menggantikan Penanda tangan K/L) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+            <button
+              onClick={() =>
+                setCatatanAccordion((prev) => ({
+                  ...prev,
+                  penandatangan: !prev.penandatangan,
+                }))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-750 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                {catatanAccordion.penandatangan ? (
+                  <ChevronDown className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-emerald-600" />
+                )}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                  Penanda tangan Catatan Penelaahan
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold">
+                  {catatanData.penandatangan.length} Penandatangan
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {catatanAccordion.penandatangan ? "Sembunyikan Daftar" : "Tampilkan Daftar"}
+              </span>
+            </button>
+
+            {catatanAccordion.penandatangan && (
+              <div className="p-4 bg-white dark:bg-slate-900 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">
+                    Daftar pejabat/petugas penanda tangan berita acara dan catatan penelaahan:
+                  </p>
+                  <button
+                    onClick={handleAddPenandatangan}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Penandatangan</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  {catatanData.penandatangan.map((ttd, idx) => (
+                    <div
+                      key={ttd.id}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 relative"
+                    >
+                      <button
+                        onClick={() => handleRemovePenandatangan(ttd.id)}
+                        className="absolute top-2 right-2 text-slate-400 hover:text-red-500 cursor-pointer"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="text-[10px] uppercase font-bold text-slate-400">
+                        Penandatangan #{idx + 1}
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                          Nama Pejabat:
+                        </label>
+                        <input
+                          type="text"
+                          value={ttd.nama}
+                          onChange={(e) => handleUpdatePenandatangan(ttd.id, "nama", e.target.value)}
+                          className="w-full text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                          NIP:
+                        </label>
+                        <input
+                          type="text"
+                          value={ttd.nip}
+                          onChange={(e) => handleUpdatePenandatangan(ttd.id, "nip", e.target.value)}
+                          className="w-full text-xs font-mono px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                          Instansi / Tim:
+                        </label>
+                        <input
+                          type="text"
+                          value={ttd.instansi}
+                          onChange={(e) => handleUpdatePenandatangan(ttd.id, "instansi", e.target.value)}
+                          className="w-full text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+                          Jabatan Penelaah:
+                        </label>
+                        <input
+                          type="text"
+                          value={ttd.jabatan}
+                          onChange={(e) => handleUpdatePenandatangan(ttd.id, "jabatan", e.target.value)}
+                          className="w-full text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Footer: Tombol Simpan & Cetak Catatan Penelaahan (Paling Bawah) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Perubahan pada catatan penelaahan akan tersimpan pada profil unit kerja: <strong className="text-slate-700 dark:text-slate-300">{userUnit}</strong>.
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveCatatan}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Catatan Penelaahan</span>
+              </button>
+              <button
+                onClick={() => setShowPrintCatatanModal(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak Catatan Penelaahan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Main Layout: Chat / Forum Feed (75%) & Peserta Penelaahan Sidebar (25%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Kolom Kiri: Forum Feed & Reply Area */}
@@ -1222,7 +1789,7 @@ export default function ForumPenelaahanPage() {
 
                     {/* Isi Pesan (Render HTML / Text dengan class rich-text-content) */}
                     <div
-                      className="rich-text-content mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal"
+                      className="rich-text-content mt-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal whitespace-pre-line"
                       dangerouslySetInnerHTML={{ __html: thread.content }}
                     />
 
@@ -1710,6 +2277,175 @@ export default function ForumPenelaahanPage() {
                 className="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
               >
                 Simpan User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Cetak Catatan Penelaahan ── */}
+      {showPrintCatatanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Printer className="w-4 h-4 text-rose-600" />
+                <span>Cetak Lembar Catatan Hasil Penelaahan Anggaran</span>
+              </h3>
+              <button
+                onClick={() => setShowPrintCatatanModal(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Dokumen Lembar Catatan Siap Cetak */}
+            <div className="space-y-6 p-6 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200">
+              <div className="text-center border-b-2 border-slate-900 dark:border-slate-200 pb-4">
+                <h3 className="font-bold text-base uppercase tracking-tight">
+                  PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN
+                </h3>
+                <h4 className="font-bold text-sm uppercase mt-1">
+                  LEMBAR CATATAN HASIL PENELAAHAN RENCANA KERJA DAN ANGGARAN
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-mono">
+                  TAHUN ANGGARAN: {tahunAnggaran} • TAHAP: {tahap}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold uppercase mt-0.5">
+                  UNIT KERJA: {userUnit}
+                </p>
+              </div>
+
+              {/* 1. Tim Penganggaran */}
+              <div className="space-y-3">
+                <h5 className="font-bold text-xs uppercase bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                  I. CATATAN TIM PENGANGGARAN
+                </h5>
+                <div className="pl-3 space-y-2">
+                  <div>
+                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.pending }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.pendapat }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.penganggaran.blokir }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Tim Perencanaan */}
+              <div className="space-y-3 pt-2">
+                <h5 className="font-bold text-xs uppercase bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                  II. CATATAN TIM PERENCANAAN
+                </h5>
+                <div className="pl-3 space-y-2">
+                  <div>
+                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.pending }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.pendapat }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.perencanaan.blokir }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Inspektorat */}
+              <div className="space-y-3 pt-2">
+                <h5 className="font-bold text-xs uppercase bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                  III. CATATAN INSPEKTORAT
+                </h5>
+                <div className="pl-3 space-y-2">
+                  <div>
+                    <span className="font-bold">F. HAL-HAL KHUSUS DAN/ATAU PENDING:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.pending }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">G. PENILAIAN / PENDAPAT PETUGAS:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.pendapat }}
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold">H. ANGGARAN YANG DIBERIKAN TANDA &quot;@&quot; / BLOKIR:</span>
+                    <div
+                      className="rich-text-content pl-3 pt-1 text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: catatanData.inspektorat.blokir }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Penanda tangan Catatan Penelaahan */}
+              <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
+                <h5 className="font-bold text-xs uppercase mb-4 text-center">
+                  PENANDA TANGAN CATATAN PENELAAHAN
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                  {catatanData.penandatangan.map((ttd) => (
+                    <div key={ttd.id} className="space-y-1">
+                      <div className="font-semibold text-slate-600 dark:text-slate-400">
+                        {ttd.jabatan}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium">{ttd.instansi}</div>
+                      <div className="h-16 flex items-center justify-center text-slate-300 text-[10px] italic">
+                        (Tanda Tangan Elektronik)
+                      </div>
+                      <div className="font-bold underline">{ttd.nama}</div>
+                      <div className="text-[11px] font-mono text-slate-500">NIP. {ttd.nip}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setShowPrintCatatanModal(false)}
+                className="px-3.5 py-2 text-xs font-medium rounded-xl text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => {
+                  window.print();
+                  setShowPrintCatatanModal(false);
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Cetak Lembar Catatan</span>
               </button>
             </div>
           </div>
