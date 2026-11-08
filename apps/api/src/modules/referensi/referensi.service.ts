@@ -14,6 +14,7 @@ import {
   standarBiayaMasukan,
   seriesAnggaran,
   refLokasi,
+  refKewenanganRevisi,
 } from '../../database/schema.js';
 import { eq, like, or, desc, asc, sql, count, and } from 'drizzle-orm';
 
@@ -564,6 +565,53 @@ export class SeriesAnggaranService {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KEWENANGAN REVISI ANGGARAN SERVICE (kewenangan revisi.xlsx)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GetKewenanganRevisiParams {
+  search?: string;
+  jenisRevisi?: string;
+  scope?: string;
+}
+
+export class KewenanganRevisiService {
+  async getKewenanganRevisi(params: GetKewenanganRevisiParams = {}) {
+    const { search, jenisRevisi, scope } = params;
+    const conditions = [];
+
+    if (search) {
+      conditions.push(
+        or(
+          like(refKewenanganRevisi.uraian, `%${search}%`),
+          like(refKewenanganRevisi.noButir, `%${search}%`),
+          like(refKewenanganRevisi.jenisRevisi, `%${search}%`),
+          like(refKewenanganRevisi.kewenangan, `%${search}%`),
+          like(refKewenanganRevisi.keterangan, `%${search}%`),
+        ),
+      );
+    }
+
+    if (jenisRevisi && jenisRevisi !== 'Semua Klaster') {
+      conditions.push(eq(refKewenanganRevisi.jenisRevisi, jenisRevisi));
+    }
+
+    if (scope) {
+      conditions.push(eq(refKewenanganRevisi.scope, scope));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const data = await db
+      .select()
+      .from(refKewenanganRevisi)
+      .where(whereClause)
+      .orderBy(asc(refKewenanganRevisi.id));
+
+    return data;
+  }
+}
+
 // Export singleton instances
 export const baganAkunService = new BaganAkunService();
 export const pejabatService = new PejabatService();
@@ -577,3 +625,4 @@ export const informasiKinerjaService = new InformasiKinerjaService();
 export const sasaranKinerjaService = new SasaranKinerjaService();
 export const sbmService = new SbmService();
 export const seriesAnggaranService = new SeriesAnggaranService();
+export const kewenanganRevisiService = new KewenanganRevisiService();

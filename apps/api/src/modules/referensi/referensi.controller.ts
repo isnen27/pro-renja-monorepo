@@ -16,6 +16,7 @@ import {
   sasaranKinerjaService,
   sbmService,
   seriesAnggaranService,
+  kewenanganRevisiService,
 } from './referensi.service.js';
 
 @Controller('api/referensi')
@@ -567,6 +568,34 @@ export class ReferensiController {
       success: true,
       message: 'Ringkasan Series Anggaran berhasil diambil',
       data: result,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEWENANGAN REVISI ANGGARAN ENDPOINTS (kewenangan revisi.xlsx)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/referensi/kewenangan-revisi
+   * Get list of kewenangan revisi items filtered by search, jenisRevisi, scope
+   */
+  @Get('kewenangan-revisi')
+  async getKewenanganRevisi(
+    @Query('search') search?: string,
+    @Query('jenisRevisi') jenisRevisi?: string,
+    @Query('scope') scope?: string,
+  ) {
+    const data = await kewenanganRevisiService.getKewenanganRevisi({
+      search,
+      jenisRevisi,
+      scope,
+    });
+
+    return {
+      success: true,
+      message: 'Data kewenangan revisi anggaran berhasil diambil',
+      total: data.length,
+      data,
     };
   }
 

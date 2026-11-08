@@ -22,6 +22,8 @@ import {
   X,
   FileCheck2,
   AlertTriangle,
+  Lock,
+  CheckCheck,
   FolderKanban,
   Coins,
   Paperclip,
@@ -118,9 +120,76 @@ export default function ForumPenelaahanPage() {
     }
   });
 
-  // Tahap sesuai Panduan4:
-  // Pagu Indikatif, Pagu Anggaran, Alokasi Anggaran, DIPA Awal, Usulan Revisi DIPA, Usulan Revisi POK
-  const [tahap, setTahap] = useState<string>("Alokasi Anggaran");
+  // Membaca histori aktif RAB dari localStorage untuk menentukan kodifikasi & tahap otomatis
+  const activeRabHistori = useMemo(() => {
+    try {
+      const saved = localStorage.getItem("rab_active_histori");
+      if (saved) return JSON.parse(saved);
+      const kakSaved = localStorage.getItem("kak_active_histori");
+      if (kakSaved) return JSON.parse(kakSaved);
+    } catch (e) {}
+    return {
+      kdsatker: "Biro Hukum dan Kerja Sama",
+      kode_sts_history: "B00",
+      status_histori: "DIPA Awal",
+      label: "DIPA Awal - B00",
+    };
+  }, []);
+
+  const kodeHistoriAktif = (activeRabHistori?.kode_sts_history || "B00").toUpperCase();
+
+  // Helper fungsi memetakan kodifikasi histori ke Nama Tahap resmi sesuai permintaan user:
+  // • G00, G01 – Angka Dasar
+  // • D00 – Pagu Indikatif / RKA-K/L Awal
+  // • D01 s.d. D99 – Pagu Anggaran (Alokasi setelah pembagian pagu)
+  // • E00 s.d. E99 – Alokasi Anggaran
+  // • B00 – DIPA Awal
+  // • A01 s.d. A99 – Usulan Revisi DIPA ke-... (melibatkan persetujuan Kanwil DJPb / KPPN / DJA)
+  // • B01 s.d. B99 – DIPA Revisi ke-... (setelah revisi DIPA disahkan)
+  // • C01 s.d. C99 – Usulan Revisi Satker / POK
+  const mapKodifikasiToTahap = (kode: string, defaultStatus?: string): string => {
+    const k = (kode || "").toUpperCase();
+    if (/^Gd{2}$/i.test(k)) {
+      return "Angka Dasar";
+    }
+    if (k === "D00" || /^D0[a-z]$/i.test(k)) {
+      return "Pagu Indikatif / RKA-K/L Awal";
+    }
+    if (/^Dd{2}$/i.test(k)) {
+      return "Pagu Anggaran";
+    }
+    if (/^Ed{2}$/i.test(k)) {
+      return "Alokasi Anggaran";
+    }
+    if (k === "B00") {
+      return "DIPA Awal";
+    }
+    if (/^Bd{2}$/i.test(k)) {
+      const num = parseInt(k.replace(/\D/g, ""), 10);
+      return `DIPA Revisi ke-${num}`;
+    }
+    if (/^Ad{2}$/i.test(k)) {
+      const num = parseInt(k.replace(/\D/g, ""), 10);
+      return `Usulan Revisi DIPA ke-${num}`;
+    }
+    if (/^Cd{2}$/i.test(k)) {
+      const num = parseInt(k.replace(/\D/g, ""), 10);
+      return `Usulan Revisi Satker / POK (Rev ke-${num})`;
+    }
+    return defaultStatus || "Alokasi Anggaran";
+  };
+
+  const determinedTahap = useMemo(() => {
+    return mapKodifikasiToTahap(kodeHistoriAktif, activeRabHistori?.status_histori);
+  }, [kodeHistoriAktif, activeRabHistori]);
+
+  // Tahap terisi otomatis sesuai kodifikasi histori terakhir yang aktif di isian RAB
+  const [tahap, setTahap] = useState<string>(determinedTahap);
+
+  // Sinkronisasi tahap saat activeRabHistori berubah
+  useEffect(() => {
+    setTahap(determinedTahap);
+  }, [determinedTahap]);
 
   // Unit kerja user sesuai Panduan4:
   // "sistem akan menunjukkan Unit Kerja user sesuai data pada submenu Unit Kerja PPATK tanpa nomor/kode unit kerja,
@@ -232,6 +301,66 @@ export default function ForumPenelaahanPage() {
     }
     return 733980500; // default nominal pagu aktif
   }, [worksheetRows]);
+
+  // ── Identifikasi Histori Sebelum & Histori Aktif untuk Sanding Data ──
+  const sandingInfo = useMemo(() => {
+    const rawKode = kodeHistoriAktif;
+    const sumber = activeRabHistori?.sumber;
+    const revKe = activeRabHistori?.rev_ke;
+
+    let prevKode = "";
+    let prevLabel = "";
+    let hasPrevious = false;
+
+    // Cek kode histori
+    const matchDigits = rawKode.match(/\d+/);
+    const num = matchDigits ? parseInt(matchDigits[0], 10) : (typeof revKe === "number" ? revKe : 0);
+
+    if (num > 0) {
+      hasPrevious = true;
+      if (sumber && sumber !== rawKode) {
+        prevKode = sumber;
+      } else {
+        const prefix = rawKode.replace(/\d+/g, "");
+        prevKode = `${prefix}${String(num - 1).padStart(2, "0")}`;
+      }
+    } else if (rawKode.startsWith("C") || rawKode.startsWith("A")) {
+      hasPrevious = true;
+      prevKode = "B00";
+    } else if (rawKode.startsWith("E")) {
+      hasPrevious = true;
+      prevKode = "D01";
+    } else if (rawKode.startsWith("D") && rawKode !== "D00") {
+      hasPrevious = true;
+      prevKode = "D00";
+    }
+
+    if (hasPrevious) {
+      prevLabel = mapKodifikasiToTahap(prevKode) + " (" + prevKode + ")";
+    } else {
+      prevLabel = "Baseline Awal (Tidak ada histori sebelum)";
+    }
+
+    const currentLabel = `${tahap} (${rawKode})`;
+
+    // Ambil worksheet histori sebelum jika tersimpan di localStorage, atau fallback perbandingan pagu dinamis
+    let prevWorksheetRows: WorksheetRow[] = [];
+    try {
+      const savedPrev = localStorage.getItem(`rab_worksheet_${ukSingkatan}_${prevKode}`);
+      if (savedPrev) {
+        prevWorksheetRows = JSON.parse(savedPrev);
+      }
+    } catch (e) {}
+
+    return {
+      hasPrevious,
+      prevKode,
+      prevLabel,
+      currentKode: rawKode,
+      currentLabel,
+      prevWorksheetRows,
+    };
+  }, [kodeHistoriAktif, activeRabHistori, tahap, ukSingkatan]);
 
   // Breakdown program s.d RO dinamis sesuai Isian RAB
   const programBreakdown = useMemo(() => {
@@ -504,6 +633,142 @@ export default function ForumPenelaahanPage() {
   });
 
   const [catatanSaveStatus, setCatatanSaveStatus] = useState<string>("");
+
+  // State Tutup Forum Penelaahan (Khusus role BINCANG & Super Admin)
+  const isBincangOrSuperAdmin = currentUserRole === "BINCANG" || currentUserRole === "Super Admin";
+  const [isForumClosed, setIsForumClosed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("rab_forum_tutup_status");
+      return saved === "closed";
+    } catch (e) {
+      return false;
+    }
+  });
+  const [showTutupForumModal, setShowTutupForumModal] = useState<boolean>(false);
+  const [tutupForumSuccessMsg, setTutupForumSuccessMsg] = useState<string>("");
+
+  const handleTutupForum = () => {
+    try {
+      // 1. Simpan status tutup forum di localStorage
+      localStorage.setItem("rab_forum_tutup_status", "closed");
+      setIsForumClosed(true);
+
+      // 2. Tandai Tahap 3 (Penelaahan) selesai pada monitoring revisi
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-");
+      const timeStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+      let currentMonitoringList = [];
+      try {
+        const savedList = localStorage.getItem("rab_revisi_monitoring_list");
+        if (savedList) {
+          currentMonitoringList = JSON.parse(savedList);
+        }
+      } catch (e) {}
+
+      if (!currentMonitoringList || currentMonitoringList.length === 0) {
+        // Ambil default list jika belum pernah tersimpan
+        currentMonitoringList = [
+          {
+            id: "rev-mon-1",
+            idRevisi: "2026.417654.007",
+            kewenangan: "KPA",
+            kdsatker: "417654",
+            satkerNama: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+            kodeHistori: "C02",
+            uraianSingkat: "Pergeseran pos anggaran antar rincian belanja operasional dan honorarium kegiatan diklat semester II",
+            tujuanRevisi: "Optimalisasi belanja operasional dan pergeseran pagu rincian belanja antar akun pada subkomponen yang sama guna mendukung pelaksanaan diklat semester II.",
+            alasanPentingRevisi: "Pergeseran pagu rincian mendesak dilakukan untuk mencukupi kebutuhan riil honorarium narasumber dan akomodasi kegiatan diklat penegakan hukum tindak pidana pencucian uang.",
+            uraianKewenanganKpa: [
+              { no: "a.11", uraian: "Pergeseran anggaran antar-subkomponen dalam 1 (satu) Komponen yang sama", kewenangan: "KPA Satker (POK)" },
+              { no: "a.12", uraian: "Pergeseran anggaran antar-akun dalam 1 (satu) Subkomponen yang sama", kewenangan: "KPA Satker (POK)" }
+            ],
+            validasiPmk: true,
+            tahap1Pengajuan: { date: "23-10-2026", time: "16:24", status: "done" },
+            tahap2Penelitian: { status: "none" },
+            tahap3Penelaahan: { status: "none" },
+            tahap4Penetapan: { date: "23-10-2026", time: "16:35", status: "done" },
+            tahapStatus: 4,
+            statusLabel: "Selesai Ditetapkan KPA",
+          },
+          {
+            id: "rev-mon-2",
+            idRevisi: "2026.417654.006",
+            kewenangan: "KPA",
+            kdsatker: "417654",
+            satkerNama: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+            kodeHistori: "C01",
+            uraianSingkat: "Penyesuaian akun bahan dan konsumsi rapat pendukung koordinasi pelatihan",
+            validasiPmk: true,
+            tahap1Pengajuan: { date: "15-10-2026", time: "09:12", status: "done" },
+            tahap2Penelitian: { status: "none" },
+            tahap3Penelaahan: { status: "none" },
+            tahap4Penetapan: { date: "15-10-2026", time: "11:40", status: "done" },
+            tahapStatus: 4,
+            statusLabel: "Selesai Ditetapkan KPA",
+          },
+          {
+            id: "rev-mon-3",
+            idRevisi: "2026.417654.005",
+            kewenangan: "Kanwil DJPb",
+            kdsatker: "417654",
+            satkerNama: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+            kodeHistori: "A02",
+            uraianSingkat: "Revisi DIPA antar KRO percepatan implementasi kurikulum anti-money laundering",
+            validasiPmk: true,
+            tahap1Pengajuan: { date: "08-10-2026", time: "10:05", status: "done" },
+            tahap2Penelitian: { date: "09-10-2026", time: "14:20", status: "done" },
+            tahap3Penelaahan: { date: "12-10-2026", time: "11:15", status: "done" },
+            tahap4Penetapan: { date: "14-10-2026", time: "15:00", status: "done" },
+            tahapStatus: 4,
+            statusLabel: "Disahkan Kanwil DJPb",
+          },
+          {
+            id: "rev-mon-4",
+            idRevisi: "2026.417654.008",
+            kewenangan: "DJA",
+            kdsatker: "417654",
+            satkerNama: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
+            kodeHistori: "A03",
+            uraianSingkat: "Usulan revisi anggaran antar unit kerja eselon I",
+            validasiPmk: true,
+            tahap1Pengajuan: { date: "02-11-2026", time: "14:10", status: "done" },
+            tahap2Penelitian: { date: "04-11-2026", time: "16:45", status: "done" },
+            tahap3Penelaahan: { status: "pending" },
+            tahap4Penetapan: { status: "none" },
+            tahapStatus: 2,
+            statusLabel: "Proses Penelaahan DJA",
+          },
+        ];
+      }
+
+      // Update item yang sedang di tahap 3 atau rev-mon-4
+      const updatedList = currentMonitoringList.map((item: any) => {
+        if (item.id === "rev-mon-4" || item.tahap3Penelaahan?.status === "pending" || !item.tahap3Penelaahan?.date) {
+          return {
+            ...item,
+            tahap3Penelaahan: {
+              date: dateStr,
+              time: timeStr,
+              status: "done",
+            },
+            tahapStatus: 3,
+            statusLabel: "Penelaahan Selesai Ditetapkan",
+          };
+        }
+        return item;
+      });
+
+      localStorage.setItem("rab_revisi_monitoring_list", JSON.stringify(updatedList));
+      window.dispatchEvent(new Event("rab_monitoring_updated"));
+
+      setShowTutupForumModal(false);
+      setTutupForumSuccessMsg("Forum Penelaahan berhasil ditutup! Tahap 3 (Penelaahan) telah resmi diselesaikan.");
+      setTimeout(() => setTutupForumSuccessMsg(""), 5000);
+    } catch (e) {
+      alert("Gagal menutup Forum Penelaahan.");
+    }
+  };
 
   const handleSaveCatatan = () => {
     try {
@@ -787,6 +1052,22 @@ export default function ForumPenelaahanPage() {
           </div>
         </div>
 
+        {/* Notifikasi Tutup Forum Berhasil */}
+        {tutupForumSuccessMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{tutupForumSuccessMsg}</span>
+            </div>
+            <button
+              onClick={() => setTutupForumSuccessMsg("")}
+              className="text-emerald-600 hover:text-emerald-800 cursor-pointer text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* ── Filter Form Fields ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
           {/* Tahun Anggaran */}
@@ -807,18 +1088,26 @@ export default function ForumPenelaahanPage() {
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               Tahap
             </label>
-            <select
-              value={tahap}
-              onChange={(e) => setTahap(e.target.value)}
-              className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-            >
-              <option value="Pagu Indikatif">Pagu Indikatif</option>
-              <option value="Pagu Anggaran">Pagu Anggaran</option>
-              <option value="Alokasi Anggaran">Alokasi Anggaran</option>
-              <option value="DIPA Awal">DIPA Awal</option>
-              <option value="Usulan Revisi DIPA">Usulan Revisi DIPA</option>
-              <option value="Usulan Revisi POK">Usulan Revisi POK</option>
-            </select>
+            <div className="space-y-1">
+              <select
+                value={tahap}
+                onChange={(e) => setTahap(e.target.value)}
+                className="w-full text-sm px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold"
+              >
+                <option value={tahap}>{tahap} (Otomatis dari Histori {kodeHistoriAktif})</option>
+                <option value="Angka Dasar">Angka Dasar (G00, G01)</option>
+                <option value="Pagu Indikatif / RKA-K/L Awal">Pagu Indikatif / RKA-K/L Awal (D00)</option>
+                <option value="Pagu Anggaran">Pagu Anggaran (D01 s.d. D99)</option>
+                <option value="Alokasi Anggaran">Alokasi Anggaran (E00 s.d. E99)</option>
+                <option value="DIPA Awal">DIPA Awal (B00)</option>
+                <option value="Usulan Revisi DIPA ke-1">Usulan Revisi DIPA (A01 s.d. A99)</option>
+                <option value="DIPA Revisi ke-1">DIPA Revisi (B01 s.d. B99)</option>
+                <option value="Usulan Revisi Satker / POK (Rev ke-1)">Usulan Revisi Satker / POK (C01 s.d. C99)</option>
+              </select>
+              <p className="text-[10px] text-slate-400 font-medium">
+                Terisi otomatis berdasarkan kodifikasi histori aktif: <strong className="font-mono text-indigo-600 dark:text-indigo-400">{kodeHistoriAktif}</strong>
+              </p>
+            </div>
           </div>
 
           {/* Unit Kerja */}
@@ -1008,7 +1297,8 @@ export default function ForumPenelaahanPage() {
       </div>
 
       {/* ── Shortcut Toolbar: Dokumen, Sanding Data, Catatan Penelaahan (Panduan4) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* ── Shortcut Toolbar: Dokumen, Sanding Data, Catatan Penelaahan, & Tutup Forum (Panduan4) ── */}
+      <div className={`grid grid-cols-1 ${isBincangOrSuperAdmin ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3`}>
         <button
           onClick={() => setActiveTab(activeTab === "dokumen" ? "forum" : "dokumen")}
           className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
@@ -1044,6 +1334,32 @@ export default function ForumPenelaahanPage() {
           <FileCheck2 className="w-4 h-4 text-rose-500" />
           <span>Catatan Penelaahan</span>
         </button>
+
+        {/* Tombol Tutup Forum (Hanya muncul pada role BINCANG & Super Admin) */}
+        {isBincangOrSuperAdmin && (
+          <button
+            onClick={() => setShowTutupForumModal(true)}
+            disabled={isForumClosed}
+            className={`flex items-center justify-center gap-2 p-3.5 rounded-xl border text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              isForumClosed
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 cursor-not-allowed"
+                : "bg-rose-600 hover:bg-rose-700 text-white border-rose-600 hover:border-rose-700"
+            }`}
+            title="Tutup Forum Penelaahan dan selesaikan Tahap 3 (Penelaahan)"
+          >
+            {isForumClosed ? (
+              <>
+                <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Tahap 3 Selesai (Forum Ditutup)</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" />
+                <span>Tutup Forum</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ── Panel Tombol Dokumen (Seluruh dokumen yang pernah diupload ke forum sesuai Panduan4) ── */}
@@ -1090,56 +1406,74 @@ export default function ForumPenelaahanPage() {
       {/* ── Panel Sanding Data (History Sebelumnya vs History Terakhir level Program, Kegiatan, KRO, RO + Selisih) ── */}
       {activeTab === "sanding_data" && (
         <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-white dark:bg-slate-900 p-5 space-y-5 animate-in fade-in duration-200 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <GitCompare className="w-4 h-4 text-emerald-600" />
-                <span>Sanding Data: Histori Sebelumnya vs Histori Terakhir</span>
+                <span>Sanding Data: Histori Sebelum vs Histori Aktif Isian RAB</span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Komparasi pagu anggaran dan kalkulasi selisih rincian pada level Program, Kegiatan, KRO, dan RO.
+                Komparasi riil rincian pagu anggaran dari Isian RAB antara <strong>{sandingInfo.prevLabel}</strong> dengan <strong>{sandingInfo.currentLabel}</strong> pada level Program s.d. RO.
               </p>
             </div>
             <button
               onClick={() => setActiveTab("forum")}
-              className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+              className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer self-start sm:self-auto"
             >
               ✕ Tutup Panel
             </button>
           </div>
 
           {/* Kartu Ringkasan Total */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-500">
-                1. Histori Sebelumnya (Pagu Anggaran)
-              </span>
-              <div className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
-                Rp {Math.round(totalPaguDetail * 0.95).toLocaleString("id-ID")}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-1">Tahap Sebelumnya: Pagu Anggaran - D01</div>
-            </div>
+          {(() => {
+            // Hitung total pagu sebelum & delta riil
+            const prevTotal = sandingInfo.hasPrevious
+              ? (sandingInfo.prevWorksheetRows.length > 0
+                  ? sandingInfo.prevWorksheetRows.filter((r: any) => r.type === "detail").reduce((s: number, r: any) => s + (Number(r.jumlah) || 0), 0)
+                  : Math.round(totalPaguDetail * 0.95))
+              : totalPaguDetail;
+            const deltaTotal = totalPaguDetail - prevTotal;
 
-            <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800 text-xs">
-              <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
-                2. Histori Terakhir ({tahap})
-              </span>
-              <div className="text-lg font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1">
-                Rp {totalPaguDetail.toLocaleString("id-ID")}
-              </div>
-              <div className="text-[11px] text-indigo-600/80 mt-1">Data Isian RAB Terkini</div>
-            </div>
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                    1. Histori Sebelum {sandingInfo.prevKode ? `(${sandingInfo.prevKode})` : ""}
+                  </span>
+                  <div className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
+                    Rp {prevTotal.toLocaleString("id-ID")}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1 truncate" title={sandingInfo.prevLabel}>
+                    {sandingInfo.prevLabel}
+                  </div>
+                </div>
 
-            <div className="p-4 bg-emerald-50/40 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs">
-              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
-                3. Selisih / Delta
-              </span>
-              <div className="text-lg font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">
-                + Rp {(totalPaguDetail - Math.round(totalPaguDetail * 0.95)).toLocaleString("id-ID")}
+                <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                    2. Histori Aktif ({sandingInfo.currentKode})
+                  </span>
+                  <div className="text-lg font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1">
+                    Rp {totalPaguDetail.toLocaleString("id-ID")}
+                  </div>
+                  <div className="text-[11px] text-indigo-600/80 mt-1 truncate" title={sandingInfo.currentLabel}>
+                    {sandingInfo.currentLabel}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-emerald-50/40 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                    3. Selisih / Delta
+                  </span>
+                  <div className={`text-lg font-bold font-mono mt-1 ${deltaTotal >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}>
+                    {deltaTotal >= 0 ? "+" : ""} Rp {deltaTotal.toLocaleString("id-ID")}
+                  </div>
+                  <div className="text-[11px] text-emerald-600/80 mt-1">
+                    {deltaTotal >= 0 ? "Peningkatan Alokasi Pagu" : "Penyesuaian / Efisiensi Pagu"}
+                  </div>
+                </div>
               </div>
-              <div className="text-[11px] text-emerald-600/80 mt-1">Kenaikan Pagu Terdistribusi</div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Tabel Sanding Data Rincian Level Program, Kegiatan, KRO, RO */}
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -1147,14 +1481,16 @@ export default function ForumPenelaahanPage() {
               <thead className="bg-slate-100/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="px-4 py-3">Kode & Uraian (Program / Kegiatan / KRO / RO)</th>
-                  <th className="px-4 py-3 text-right">Histori Sebelumnya</th>
-                  <th className="px-4 py-3 text-right">Histori Terakhir</th>
+                  <th className="px-4 py-3 text-right">Histori Sebelum ({sandingInfo.prevKode || "-"})</th>
+                  <th className="px-4 py-3 text-right">Histori Aktif ({sandingInfo.currentKode})</th>
                   <th className="px-4 py-3 text-right">Selisih (Rp)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {programBreakdown.map((prog: any, pIdx: number) => {
-                  const prevProg = Math.round(prog.jumlah * 0.95);
+                  const prevProg = sandingInfo.hasPrevious
+                    ? (sandingInfo.prevWorksheetRows.find((r: any) => r.type === "program" && r.kode === prog.kode)?.jumlah ?? Math.round(prog.jumlah * 0.95))
+                    : prog.jumlah;
                   const deltaProg = prog.jumlah - prevProg;
                   return (
                     <React.Fragment key={`sand-prog-${pIdx}`}>
@@ -1172,14 +1508,16 @@ export default function ForumPenelaahanPage() {
                         <td className="px-4 py-2.5 text-right font-mono text-indigo-700 dark:text-indigo-300">
                           Rp {prog.jumlah.toLocaleString("id-ID")}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                          + Rp {deltaProg.toLocaleString("id-ID")}
+                        <td className={`px-4 py-2.5 text-right font-mono ${deltaProg >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
+                          {deltaProg >= 0 ? "+" : ""} Rp {deltaProg.toLocaleString("id-ID")}
                         </td>
                       </tr>
 
                       {/* Baris Kegiatan */}
                       {prog.kegiatans?.map((keg: any, kIdx: number) => {
-                        const prevKeg = Math.round(keg.jumlah * 0.95);
+                        const prevKeg = sandingInfo.hasPrevious
+                          ? (sandingInfo.prevWorksheetRows.find((r: any) => r.type === "kegiatan" && r.kode === keg.kode)?.jumlah ?? Math.round(keg.jumlah * 0.95))
+                          : keg.jumlah;
                         const deltaKeg = keg.jumlah - prevKeg;
                         return (
                           <React.Fragment key={`sand-keg-${kIdx}`}>
@@ -1196,14 +1534,16 @@ export default function ForumPenelaahanPage() {
                               <td className="px-4 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
                                 Rp {keg.jumlah.toLocaleString("id-ID")}
                               </td>
-                              <td className="px-4 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                                + Rp {deltaKeg.toLocaleString("id-ID")}
+                              <td className={`px-4 py-2 text-right font-mono ${deltaKeg >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
+                                {deltaKeg >= 0 ? "+" : ""} Rp {deltaKeg.toLocaleString("id-ID")}
                               </td>
                             </tr>
 
                             {/* Baris KRO */}
                             {keg.kros?.map((kro: any, krIdx: number) => {
-                              const prevKro = Math.round(kro.jumlah * 0.95);
+                              const prevKro = sandingInfo.hasPrevious
+                                ? (sandingInfo.prevWorksheetRows.find((r: any) => r.type === "kro" && r.kode === kro.kode)?.jumlah ?? Math.round(kro.jumlah * 0.95))
+                                : kro.jumlah;
                               const deltaKro = kro.jumlah - prevKro;
                               return (
                                 <React.Fragment key={`sand-kro-${krIdx}`}>
@@ -1220,35 +1560,37 @@ export default function ForumPenelaahanPage() {
                                     <td className="px-4 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
                                       Rp {kro.jumlah.toLocaleString("id-ID")}
                                     </td>
-                                    <td className="px-4 py-1.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                                      + Rp {deltaKro.toLocaleString("id-ID")}
+                                    <td className={`px-4 py-1.5 text-right font-mono ${deltaKro >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
+                                      {deltaKro >= 0 ? "+" : ""} Rp {deltaKro.toLocaleString("id-ID")}
                                     </td>
                                   </tr>
 
                                   {/* Baris RO */}
                                   {kro.ros?.map((ro: any, rIdx: number) => {
                                     const roJumlah = Number(ro.jumlah) || 0;
-                                    const prevRo = Math.round(roJumlah * 0.95);
+                                    const prevRo = sandingInfo.hasPrevious
+                                      ? (sandingInfo.prevWorksheetRows.find((r: any) => r.type === "ro" && r.kode === ro.kode)?.jumlah ?? Math.round(roJumlah * 0.95))
+                                      : roJumlah;
                                     const deltaRo = roJumlah - prevRo;
                                     return (
                                       <tr
                                         key={`sand-ro-${rIdx}`}
-                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-[11px]"
+                                        className="bg-slate-50/30 dark:bg-slate-850/30 text-[11px]"
                                       >
-                                        <td className="px-4 py-1 pl-18 text-slate-600 dark:text-slate-400">
-                                          <span className="font-mono text-emerald-600 dark:text-emerald-400 mr-2">
+                                        <td className="px-4 py-1.5 pl-16 text-slate-600 dark:text-slate-400">
+                                          <span className="font-mono text-slate-500 mr-2">
                                             {ro.kode}
                                           </span>
                                           <span>{ro.uraian}</span>
                                         </td>
-                                        <td className="px-4 py-1 text-right font-mono text-slate-400">
+                                        <td className="px-4 py-1.5 text-right font-mono text-slate-500">
                                           Rp {prevRo.toLocaleString("id-ID")}
                                         </td>
-                                        <td className="px-4 py-1 text-right font-mono text-slate-600 dark:text-slate-400">
+                                        <td className="px-4 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
                                           Rp {roJumlah.toLocaleString("id-ID")}
                                         </td>
-                                        <td className="px-4 py-1 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                                          + Rp {deltaRo.toLocaleString("id-ID")}
+                                        <td className={`px-4 py-1.5 text-right font-mono ${deltaRo >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
+                                          {deltaRo >= 0 ? "+" : ""} Rp {deltaRo.toLocaleString("id-ID")}
                                         </td>
                                       </tr>
                                     );
@@ -1685,7 +2027,7 @@ export default function ForumPenelaahanPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Perubahan pada catatan penelaahan akan tersimpan pada profil unit kerja: <strong className="text-slate-700 dark:text-slate-300">{userUnit}</strong>.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleSaveCatatan}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
@@ -1700,6 +2042,31 @@ export default function ForumPenelaahanPage() {
                 <Printer className="w-4 h-4" />
                 <span>Cetak Catatan Penelaahan</span>
               </button>
+              {/* Tombol Tutup Forum di samping Catatan Penelaahan (Hanya untuk BINCANG & Super Admin) */}
+              {isBincangOrSuperAdmin && (
+                <button
+                  onClick={() => setShowTutupForumModal(true)}
+                  disabled={isForumClosed}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer ${
+                    isForumClosed
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 cursor-not-allowed"
+                      : "bg-rose-600 text-white hover:bg-rose-700"
+                  }`}
+                  title="Tutup Forum Penelaahan dan selesaikan Tahap 3 (Penelaahan)"
+                >
+                  {isForumClosed ? (
+                    <>
+                      <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>Tahap 3 Selesai (Forum Ditutup)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Tutup Forum</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2526,6 +2893,56 @@ export default function ForumPenelaahanPage() {
           </div>
         </div>
       )}
+      {/* ── Modal Konfirmasi Tutup Forum (BINCANG & Super Admin) ── */}
+      {showTutupForumModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Tutup Forum Penelaahan?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Kewenangan: {currentUserRole}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
+              <p>
+                Dengan menutup forum ini:
+              </p>
+              <ul className="list-disc list-inside space-y-1 font-medium text-slate-800 dark:text-slate-200">
+                <li>Sistem secara otomatis akan <strong>menyelesaikan Tahap 3 (Penelaahan)</strong>.</li>
+                <li>Status pada <strong>Monitoring Revisi</strong> akan diperbarui menjadi selesai dengan tanggal &amp; jam saat ini.</li>
+                <li>Tahap selanjutnya (Tahap 4 - Penetapan) siap untuk diproses.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowTutupForumModal(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleTutupForum}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Ya, Tutup Forum &amp; Selesaikan Tahap 3</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Bold,
   Italic,
@@ -16,7 +16,17 @@ import {
   Undo,
   Redo,
   RemoveFormatting,
+  Paperclip,
+  FileText,
+  X,
 } from "lucide-react";
+
+export interface AttachedDocument {
+  id: string;
+  name: string;
+  size?: string;
+  url?: string;
+}
 
 interface RichTextEditorProps {
   label?: string;
@@ -25,6 +35,9 @@ interface RichTextEditorProps {
   disabled?: boolean;
   placeholder?: string;
   minHeight?: string;
+  allowAttachments?: boolean;
+  attachments?: AttachedDocument[];
+  onAttachmentsChange?: (files: AttachedDocument[]) => void;
 }
 
 export default function RichTextEditor({
@@ -34,8 +47,12 @@ export default function RichTextEditor({
   disabled = false,
   placeholder = "Ketik teks di sini...",
   minHeight = "120px",
+  allowAttachments = false,
+  attachments = [],
+  onAttachmentsChange,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync internal HTML with value prop without breaking active typing
   useEffect(() => {
@@ -266,7 +283,73 @@ export default function RichTextEditor({
           >
             <RemoveFormatting size={14} />
           </button>
+
+          {/* Lampirkan Dokumen (persis seperti gambar referensi pengguna) */}
+          {allowAttachments && (
+            <>
+              <div className="w-px h-4 bg-gray-300 mx-0.5" />
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 disabled:opacity-40 transition-colors cursor-pointer"
+                title="Lampirkan Dokumen Pendukung (PDF, DOCX, XLSX, dsb.)"
+              >
+                <Paperclip size={14} className="text-purple-600 dark:text-purple-400" />
+                <span>Lampirkan Dokumen</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  const newAtts: AttachedDocument[] = Array.from(files).map((f) => ({
+                    id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                    name: f.name,
+                    size: (f.size / 1024).toFixed(1) + " KB",
+                  }));
+                  if (onAttachmentsChange) {
+                    onAttachmentsChange([...attachments, ...newAtts]);
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </>
+          )}
         </div>
+
+        {/* List Dokumen Terlampir */}
+        {allowAttachments && attachments.length > 0 && (
+          <div className="px-3 py-2 bg-purple-50/50 dark:bg-purple-950/20 border-b border-purple-100 dark:border-purple-900/40 flex flex-wrap gap-2 items-center text-xs">
+            <span className="text-[11px] font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1">
+              <Paperclip size={12} />
+              <span>Berkas Terlampir ({attachments.length}):</span>
+            </span>
+            {attachments.map((att) => (
+              <span
+                key={att.id}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 font-medium text-[11px] shadow-2xs"
+              >
+                <FileText size={12} className="text-purple-500" />
+                <span className="max-w-[160px] truncate" title={att.name}>{att.name}</span>
+                {att.size && <span className="text-[10px] text-slate-400">({att.size})</span>}
+                {!disabled && onAttachmentsChange && (
+                  <button
+                    type="button"
+                    onClick={() => onAttachmentsChange(attachments.filter((a) => a.id !== att.id))}
+                    className="text-slate-400 hover:text-rose-600 transition-colors ml-0.5 cursor-pointer"
+                    title="Hapus berkas"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Content Area */}
         <div

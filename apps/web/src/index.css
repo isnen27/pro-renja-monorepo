@@ -302,3 +302,28 @@ code, kbd, samp, pre, .font-mono {
   margin-top: 0.4rem !important;
   margin-bottom: 0.4rem !important;
 }
+
+/* ==========================================================
+   HILANGKAN PANAH ATAS-BAWAH (SPINNER) PADA INPUT TYPE NUMBER
+   ========================================================== */
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Utilitas khusus no-spinner */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   History,
@@ -18,6 +18,7 @@ import {
   ArrowRight,
   AlertCircle,
   Building2,
+  Search,
 } from "lucide-react";
 
 import unitKerjaData from "../../data/unitKerjaData.json";
@@ -259,6 +260,48 @@ export default function PilihHistoriEselon2Page() {
   });
 
   const [unitKerja, setUnitKerja] = useState<string>("Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme");
+  const [isSatkerDropdownOpen, setIsSatkerDropdownOpen] = useState(false);
+  const [satkerSearch, setSatkerSearch] = useState("");
+  const satkerDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        satkerDropdownRef.current &&
+        !satkerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSatkerDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Filter list unit kerja saat pencarian
+  const filteredSatkerList = useMemo(() => {
+    if (!satkerSearch.trim()) return SATKER_LIST_E2;
+    const q = satkerSearch.toLowerCase();
+    return SATKER_LIST_E2.filter(
+      (s) =>
+        s.nama.toLowerCase().includes(q) ||
+        s.singkatan.toLowerCase().includes(q) ||
+        s.labelFull.toLowerCase().includes(q)
+    );
+  }, [satkerSearch]);
+
+  const currentSatkerObj = useMemo(() => {
+    return (
+      SATKER_LIST_E2.find((s) => s.nama === unitKerja) || {
+        singkatan: "Satker",
+        nama: unitKerja,
+        labelFull: unitKerja || "— Pilih Satuan Kerja / Unit Kerja Eselon II —",
+      }
+    );
+  }, [unitKerja]);
+
   const parentE1Unit = getEselon1UnitForEselon2Satker(unitKerja);
   const eselon1Active = getEselon1ActiveHistori(parentE1Unit);
   const [statusHistori, setStatusHistori] = useState<StatusHistori | "">(
@@ -538,26 +581,103 @@ export default function PilihHistoriEselon2Page() {
             </p>
           </div>
 
-          {/* Field 1: Satuan Kerja Eselon II */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[var(--text)] uppercase tracking-wider">
-              1. Pilih Satuan Kerja / Unit Kerja Eselon II <span className="text-red-500">*</span>
+          {/* Field 1: Satuan Kerja Eselon II (Custom Responsive Anti-Glitch & Anti-Overflow Dropdown) */}
+          <div className="space-y-2 relative" ref={satkerDropdownRef}>
+            <label className="block text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-[var(--primary)]" />
+              <span>1. Pilih Satuan Kerja / Unit Kerja Eselon II</span>
+              <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <select
-                value={unitKerja}
-                onChange={(e) => setUnitKerja(e.target.value)}
-                className="w-full appearance-none bg-[var(--accent)] border border-[var(--border)] text-[var(--text)] text-sm rounded-xl px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all cursor-pointer font-semibold shadow-xs"
-              >
-                <option value="">— Pilih Satuan Kerja / Unit Kerja Eselon II —</option>
-                {SATKER_LIST_E2.map((u) => (
-                  <option key={u.singkatan} value={u.nama}>
-                    {u.labelFull}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)] pointer-events-none" />
-            </div>
+
+            {/* Custom Dropdown Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsSatkerDropdownOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--accent)] text-sm font-semibold text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] hover:border-slate-400 dark:hover:border-slate-600 transition-colors cursor-pointer text-left shadow-xs"
+              aria-haspopup="listbox"
+              aria-expanded={isSatkerDropdownOpen}
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                {unitKerja ? (
+                  <>
+                    <span className="shrink-0 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold font-mono text-xs border border-indigo-200 dark:border-indigo-800">
+                      {currentSatkerObj.singkatan}
+                    </span>
+                    <span className="truncate text-slate-800 dark:text-slate-200">
+                      {currentSatkerObj.nama}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[var(--text-muted)] font-normal">
+                    — Pilih Satuan Kerja / Unit Kerja Eselon II —
+                  </span>
+                )}
+              </div>
+              <ChevronDown
+                className={`h-5 w-5 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${
+                  isSatkerDropdownOpen ? "rotate-180 text-[var(--primary)]" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu Popup (Bounded to screen width & scrollable) */}
+            {isSatkerDropdownOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 w-full max-w-[calc(100vw-2rem)] bg-[var(--card)] rounded-xl border border-[var(--border)] shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                {/* Search Bar inside Dropdown */}
+                <div className="p-2.5 border-b border-[var(--border)] bg-[var(--accent)]/50">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={satkerSearch}
+                      onChange={(e) => setSatkerSearch(e.target.value)}
+                      placeholder="Cari nama atau singkatan Satker Eselon II..."
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* List Items */}
+                <div className="max-h-60 overflow-y-auto p-1.5 space-y-1 scrollbar-thin">
+                  {filteredSatkerList.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-[var(--text-muted)] italic">
+                      Tidak ada satuan kerja yang sesuai dengan kata kunci "{satkerSearch}".
+                    </div>
+                  ) : (
+                    filteredSatkerList.map((s) => {
+                      const isSelected = unitKerja === s.nama;
+                      return (
+                        <button
+                          key={s.singkatan}
+                          type="button"
+                          onClick={() => {
+                            setUnitKerja(s.nama);
+                            setIsSatkerDropdownOpen(false);
+                            setSatkerSearch("");
+                          }}
+                          className={`w-full text-left px-3 py-2.5 rounded-lg text-xs flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold"
+                              : "hover:bg-[var(--accent)] text-[var(--text)]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="shrink-0 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-bold">
+                              {s.singkatan}
+                            </span>
+                            <span className="truncate">{s.nama}</span>
+                          </div>
+                          {isSelected && (
+                            <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Field 2: Status Histori Cards */}

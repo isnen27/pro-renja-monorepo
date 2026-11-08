@@ -1,0 +1,560 @@
+[
+  {
+    "id": "rev-item-1",
+    "jenisRevisi": "Administratif",
+    "no": "a.0",
+    "uraian": "Revisi otomatis berupa sinkronisasi data yang tercantum dalam konsep DIPA dengan data RKA-K/L alokasi anggaran hasil penelaahan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "sebelum DIPA berlaku (pengesahan)"
+  },
+  {
+    "id": "rev-item-2",
+    "jenisRevisi": "Administratif",
+    "no": "d",
+    "uraian": "Perubahan/penambahan penandaan (tagging)",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-3",
+    "jenisRevisi": "Administratif",
+    "no": "e.1",
+    "uraian": "Halaman IV.A : Blokir",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-4",
+    "jenisRevisi": "Administratif",
+    "no": "e.2",
+    "uraian": "Halaman IV.B : Catatan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-5",
+    "jenisRevisi": "Administratif",
+    "no": "e",
+    "uraian": "Pencantuman/penghapusan/perubahan catatan IV DIPA / DIPA BUN",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-6",
+    "jenisRevisi": "Administratif",
+    "no": "e.1.a",
+    "uraian": "Pembukaan/pencantuman blokir DIPA K/L dikarenakan antara lain :\r\n1. Alokasi anggaran yang masih harus dilengkapi dokumen sebagai dasar pengalokasian anggaran\r\n2. Alokasi anggaran yang masih terpusat dan belum didistribusikan ke Satker daerah\r\n3. RO Cadangan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "berupa Penelaahan namun untuk blokir dikarenakan pemenuhan kekurangan dokumen sebagai dasar pengalokasian anggaran, maka bersifat pengesahan"
+  },
+  {
+    "id": "rev-item-7",
+    "jenisRevisi": "Administratif",
+    "no": "e.1.b",
+    "uraian": "Pembukaan/pencantuman blokir DIPA BUN dikarenakan antara lain :\r\n1. Alokasi anggaran yang masih harus dilengkapi dokumen sebagai dasar pengalokasian anggaran\r\n2. Alokasi anggaran yang masih terpusat dan belum didistribusikan\r\n3. Perubahan anggaran/perubahan peruntukan anggaran\r\n4. Alokasi anggaran belum dilengkapi reviu APIP K/L",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Penelaahan dan khusus untuk perubahan anggaran/perubahan peruntukan anggaran harus direviu APIP K/L terlebih dahulu"
+  },
+  {
+    "id": "rev-item-8",
+    "jenisRevisi": "Administratif",
+    "no": "e.1.c",
+    "uraian": "Pencantuman/pembukaan blokir dikarenakan kebijakan Penyesuaian Belanja Negara, termasuk berupa pemblokiran mandiri oleh Direktorat Jenderal Anggaran",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-9",
+    "jenisRevisi": "Administratif",
+    "no": "e.2.a",
+    "uraian": "Pencantuman/penghapusan/perubahan penyelesaian tunggakan melalui mekanisme revisi DIPA/DIPA BUN",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : tunggakan tahun-tahun anggaran sebelumnya dan/atau 1 (satu) tahun sebelumnya yang dipenuhi dari pergeseran anggaran antar-program\r\n\r\nDit. PA : tunggakan tahun-tahun anggaran sebelumnya yang dipenuhi dari pergeseran anggaran dalam 1 (satu) Program antar-Kanwil DJPb\r\n\r\nKanwil DJPb : tunggakan tahun-tahun anggaran sebelumnya yang dipenuhi dari pergeseran anggaran dalam 1 (satu) Program dalam 1 (satu) Kanwil DJPb"
+  },
+  {
+    "id": "rev-item-10",
+    "jenisRevisi": "Administratif",
+    "no": "e.2.b.",
+    "uraian": "Pencantuman/penghapusan/perubahan anggaran yang berasal dari SP SABA",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : penambahan biaya satuan (unit cost) dan/atau perubahan target volume RO total sebagai akibat dari pemanfaatan sisa anggaran\r\n\r\nDit. PA : pergeseran yang tidak mengakibatkan perubahan biaya satuan (unit cost) dan/atau target volume RO total antar-Kanwil DJPb\r\n\r\nKanwil DJPb : pergeseran yang tidak mengakibatkan perubahan biaya satuan (unit cost) dan/atau target volume RO total dalam 1 (satu) satker atau dalam 1 (satu) Kanwil DJPb"
+  },
+  {
+    "id": "rev-item-11",
+    "jenisRevisi": "Administratif",
+    "no": "e.2.c",
+    "uraian": "Pencantuman/penghapusan/perubahan volume dan alokasi anggaran pembangunan/renovasi gedung/bangunan dan/atau kendaraan bermotor",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : pengadaan barang milik negara baru, penurunan volume, dan/atau penambahan alokasi anggaran yang tidak mengakibatkan penambahan volume\r\n\r\nDit. PA : penambahan volume dan/atau penambahan alokasi anggaran yang mengakibatkan penambahan volume\r\n\r\nKanwil DJPb : pengurangan alokasi anggaran"
+  },
+  {
+    "id": "rev-item-12",
+    "jenisRevisi": "Administratif",
+    "no": "g.1",
+    "uraian": "Perubahan kantor bayar (KPPN)/lokasi Satker",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Setelah mendapat persetujuan dari Direktur Jenderal Perbendaharaan c.1. Sekretaris Direktorat Jenderal Perbendaharaan.\r\nDilanjutkan dengan proses perubahan kode satker dan pergeseran anggaran untuk kantor Satker baru"
+  },
+  {
+    "id": "rev-item-13",
+    "jenisRevisi": "Administratif",
+    "no": "g.2",
+    "uraian": "Ralat/perubahan kode kewenangan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-14",
+    "jenisRevisi": "Administratif",
+    "no": "g.3",
+    "uraian": "Ralat/perubahan /penghapusan kode bagian anggaran dan/atau Satker",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-15",
+    "jenisRevisi": "Administratif",
+    "no": "g.4",
+    "uraian": "Pencantuman/perubahan rencana penarikan dana dan/atau perkiraan penerimaan dalam halaman III DIPA",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : perubahan perkiraan penerimaan secara total, penambahan perkiraan penerimaan dikarenakan perkiraan kenaikan PNBP berdasarkan surat pernyataan KPA untuk menambah volume RO, dan/atau pencantuman perkiraan penerimaan baru\r\n\r\nKanwil DJPb : perubahan yang tidak mengakibatkan perubahan perkiraan penerimaan secara total, penambahan perkiraan penerimaan dikarenakan penggunaan kelebihan realisasi atas target PNBP, dan/atau perubahan rencana penarikan dana"
+  },
+  {
+    "id": "rev-item-16",
+    "jenisRevisi": "Administratif",
+    "no": "g.9",
+    "uraian": "Perubahan pejabat penandatangan DIPA",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-17",
+    "jenisRevisi": "Administratif",
+    "no": "g.10",
+    "uraian": "Perubahan nomenklatur bagian anggaran dan/atau Satker",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : Satker Pusat atau selain Satker Dekon TP\r\n\r\nKanwil DJPb : Satker Dekon TP"
+  },
+  {
+    "id": "rev-item-18",
+    "jenisRevisi": "Administratif",
+    "no": "d.1",
+    "uraian": "Ralat karena kesalahan aplikasi berupa tidak berfungsinya sebagian atau seluruh fungsi matematis Sistem Aplikasi",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-19",
+    "jenisRevisi": "Administratif",
+    "no": "f",
+    "uraian": "Revisi administrasi terkait RO Prioritas Nasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-20",
+    "jenisRevisi": "Administratif",
+    "no": "g",
+    "uraian": "Persyaratan pencairan anggaran",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-21",
+    "jenisRevisi": "Belanja Operasional",
+    "no": "h.",
+    "uraian": "Belanja Operasional ke selain Belanja Operasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Dalam hal pergeseran berasal dari Belanja Pegawai Operasional, dilampiri surat persetujuan sebagaimana dimaksud dalam Pasal 146 ayat (2)"
+  },
+  {
+    "id": "rev-item-22",
+    "jenisRevisi": "Belanja Operasional",
+    "no": "a.1",
+    "uraian": "Pemenuhan Belanja Operasional, termasuk penyelesaian pagu minus Belanja Pegawai Operasional (Dalam Satu Kegiatan)",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "Kelengkapan : Surat Persetujuan Pejabat Eselon I dalam hal pergeseran antar Program dalam rangka Pemenuhan Belanja Operasional"
+  },
+  {
+    "id": "rev-item-23",
+    "jenisRevisi": "Belanja Operasional",
+    "no": "a.2",
+    "uraian": "Pemenuhan Belanja Operasional, termasuk penyelesaian pagu minus Belanja Pegawai Operasional (Antar-Kegiatan / Antar-Satker)",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "Kelengkapan : Surat Persetujuan Pejabat Eselon I dalam hal pergeseran antar Program dalam rangka Pemenuhan Belanja Operasional"
+  },
+  {
+    "id": "rev-item-24",
+    "jenisRevisi": "DIPA",
+    "no": "p.",
+    "uraian": "Antar-jenis belanja",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : mengakibatkan penurunan volume RO secara tota dan/atau revisi dalam BAB BUN\r\nDit. Pa : tidak mengakibatkan penurunan volume RO secara total anatar-Kanwil DJPb\r\nKanwil DJPb : tidak mengakibatkan penurunan volume RO secara total dalam satu kanwil DJPb"
+  },
+  {
+    "id": "rev-item-25",
+    "jenisRevisi": "DIPA",
+    "no": "a.3",
+    "uraian": "Pergeseran anggaran antar-RO dalam 1 (satu) KRO, Kegiatan, Program, dan Antar-Satker",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-26",
+    "jenisRevisi": "DIPA",
+    "no": "a.4",
+    "uraian": "Pergeseran anggaran antar-KRO dalam 1 (satu) Kegiatan, Program, dan Satker yang sama",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-27",
+    "jenisRevisi": "DIPA",
+    "no": "a.5",
+    "uraian": "Pergeseran anggaran antar-Kegiatan dalam 1 (satu) Program dan Satker yang sama dalam program yang sama",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-28",
+    "jenisRevisi": "DIPA",
+    "no": "a.6",
+    "uraian": "Pergeseran anggaran antar-Kegiatan dalam 1 (satu) Program dan Antar-Satker dalam program yang sama",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-29",
+    "jenisRevisi": "DIPA",
+    "no": "a.7",
+    "uraian": "Pergeseran anggaran antar-detail dalam 1 (satu) Akun Belanja Modal yang mengakibatkan perubahan volume RO",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-30",
+    "jenisRevisi": "DIPA",
+    "no": "a.8",
+    "uraian": "Perubahan target RO",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-31",
+    "jenisRevisi": "KDP",
+    "no": "y",
+    "uraian": "Penyelesaian pekerjaan yang tidak terselesaikan sampai dengan akhir tahun anggaran",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Dit. PA : antar-kanwil DJPb\r\nKanwil DJPb : dalam 1 (satu) Kanwil DJPb"
+  },
+  {
+    "id": "rev-item-32",
+    "jenisRevisi": "KDP",
+    "no": "ad",
+    "uraian": "Revisi Anggaran yang disampaikan melewati Tahun Anggaran berkenaan yang diusulkan dalam rangka pengesahan dan/atau penyusunan laporan keuangan Pemerintah Pusat",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Dit. PA : antar-Kanwil DJPb\r\nKanwil DJPb : dalam 1 (satu) Kanwil DJPb"
+  },
+  {
+    "id": "rev-item-33",
+    "jenisRevisi": "Kinerja",
+    "no": "b",
+    "uraian": "Revisi Rumusan Informasi Kinerja pada DIPA induk dan/atau DIPA BUN, termasuk untuk hasil pengendalian dan pemantauan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-34",
+    "jenisRevisi": "Kinerja",
+    "no": "c",
+    "uraian": "Perubahan Rumusan Informasi Kinerja dalam basis data RKA-K/L DIPA / RDP BUN DIPA BUN dengan menggunakan Sistem Aplikasi",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-35",
+    "jenisRevisi": "Perubahan Anggaran DIPA",
+    "no": "b.1",
+    "uraian": "Pergeseran anggaran dari BA BUN ke BA K/L",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-36",
+    "jenisRevisi": "Perubahan Anggaran DIPA",
+    "no": "z",
+    "uraian": "Pergeseran anggaran pada DIPA K/L untuk anggaran yang berasal dari SP SABA",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "DJA : penambahan biaya satuan (unit cost) dan/atau perubahan target volume RO total sebagai akibat dari pemanfaatan sisa anggaran\r\n\r\nDit. PA : pergeseran yang tidak mengakibatkan perubahan biaya satuan (unit cost) dan/atau target volume RO total antar-kanwil DJPb\r\n\r\nKanwil DJPb : pergeseran yang tidak mengakibatkan perubahan biaya satuan (unit cost) dan/atau target volume RO total dalam 1 (satu) satker atau dalam 1 (satu) Kanwil DJPb"
+  },
+  {
+    "id": "rev-item-37",
+    "jenisRevisi": "PN",
+    "no": "j.",
+    "uraian": "Perubahan RO Prioritas Nasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Kanwil DJPB : penambahan dan/ atau alokasi RO Prioritas Nasional yang anggarannya bersumber dari hibah yang penarikannya tidak melalui Kuasa BUN dan/atau PNBP termasuk PNBPBLU-"
+  },
+  {
+    "id": "rev-item-38",
+    "jenisRevisi": "PN",
+    "no": "r",
+    "uraian": "RO Prioritas Nasional :\r\n1. Pergeseran anggaran antar-RO Prioritas Nasional\r\n2. Pergeseran anggaran yang mengakibatkan penambahan/pengurangan alokasi dan/atau target RO Prioritas Nasional\r\n3. Pergeseran anggaran yang mengakibatkan perubahan antar-lokasi kegiatan pada RO Prioritas Nasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-39",
+    "jenisRevisi": "PN",
+    "no": "f.1",
+    "uraian": "Perubahan nomenklatur lainnya selain ralat administratif",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-40",
+    "jenisRevisi": "PN",
+    "no": "f.2",
+    "uraian": "Ralat administratif nomenklatur",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-41",
+    "jenisRevisi": "PN",
+    "no": "f.3",
+    "uraian": "Perubahan lokasi",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-42",
+    "jenisRevisi": "PN",
+    "no": "k",
+    "uraian": "Pergeseran anggaran dalam 1 (satu) RO Prioritas Nasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "K/L : 1 (satu) Satker dan 1 (satu) jenis belanja sepanjang tidak mengubah lokasi"
+  },
+  {
+    "id": "rev-item-43",
+    "jenisRevisi": "PNBP",
+    "no": "c.1",
+    "uraian": "Jenis PNBP, tarif atas jenis PNBP, dan Satker PNBP baru",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-44",
+    "jenisRevisi": "PNBP",
+    "no": "c.2",
+    "uraian": "Persetujuan penggunaan PNBP baru atau peningkatan persetujuan penggunaan  PNBP oleh Menteri Keuangan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-45",
+    "jenisRevisi": "PNBP",
+    "no": "c.3",
+    "uraian": "Penggunaan perkiraan kenaikan PNBP untuk meningkatkan volume RO",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-46",
+    "jenisRevisi": "PNBP",
+    "no": "c.4",
+    "uraian": "Peningkatan Target PNBP dalam Perubahan APBN",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-47",
+    "jenisRevisi": "PNBP",
+    "no": "c.5",
+    "uraian": "Penggunaan penerimaan klaim asuransi BMN dalam rangka pengadaan BMN yang dipertanggungkan",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Berupa penambahan RO/KRObaru dalam DIPA • dan/ataumenambah volume RO/KRO."
+  },
+  {
+    "id": "rev-item-48",
+    "jenisRevisi": "POK",
+    "no": "e.3",
+    "uraian": "Ralat kode akun dalam rangka penerapan kebijakan akuntansi (dalam satu jenis belanja yang sama)",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "dapat dilakukan sepanjang merupakan tindak lanjut adanya peraturan/ketentuan terkait kebijakan akuntansi"
+  },
+  {
+    "id": "rev-item-49",
+    "jenisRevisi": "POK",
+    "no": "a.9",
+    "uraian": "Pergeseran anggaran antar-RO dalam 1 (satu) KRO, Kegiatan, Program, dan Satker yang sama",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "DJA : pada BA BUN\r\nKPA : pada BA K/L"
+  },
+  {
+    "id": "rev-item-50",
+    "jenisRevisi": "POK",
+    "no": "a.10",
+    "uraian": "Pergeseran anggaran antar-komponen dalam 1 (satu) RO yang sama",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-51",
+    "jenisRevisi": "POK",
+    "no": "a.11",
+    "uraian": "Pergeseran anggaran antar-subkomponen dalam 1 (satu) Komponen yang sama",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-52",
+    "jenisRevisi": "POK",
+    "no": "a.12",
+    "uraian": "Pergeseran anggaran antar-akun dalam 1 (satu) Subkomponen yang sama",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-53",
+    "jenisRevisi": "POK",
+    "no": "a.13",
+    "uraian": "Pergeseran anggaran antar-detail dalam 1 (satu) Akun yang sama",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-54",
+    "jenisRevisi": "POK",
+    "no": "a.14",
+    "uraian": "Perubahan uraian rincian detail",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-55",
+    "jenisRevisi": "POK",
+    "no": "b.1",
+    "uraian": "Pergeseran anggaran dalam 1 (satu) RO dalam 1 (satu) Satker",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "Termasuk pada BA BUN"
+  },
+  {
+    "id": "rev-item-56",
+    "jenisRevisi": "POK",
+    "no": "b.2",
+    "uraian": "Pergeseran anggaran Antar-Detil dalam 1 (satu) Akun dalam 1 (satu) Satker",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-57",
+    "jenisRevisi": "POK",
+    "no": "c.6",
+    "uraian": "Penambahan/perubahan akun beserta alokasi anggarannya dalam 1 (satu) RO",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "Termasuk pada BA BUN"
+  },
+  {
+    "id": "rev-item-58",
+    "jenisRevisi": "POK",
+    "no": "d.2",
+    "uraian": "Pemutakhiran data hasil revisi Petunjuk Operasional Kegiatan (belum terakomodir di aplikasi SAKTI)",
+    "kewenangan": "KPA Satker (POK)",
+    "scope": "pok",
+    "keterangan": "KPA :\r\n1. Tidak mengakibatkan perubahan halaman III DIPA\r\n2. Batas akhir pemutakhiran POK tanggal 27 Desember"
+  },
+  {
+    "id": "rev-item-59",
+    "jenisRevisi": "Program",
+    "no": "b.7",
+    "uraian": "Pergeseran anggaran antar-Program dalam unit eselon 1 yang sama",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "tanpa  persetujuan DPR"
+  },
+  {
+    "id": "rev-item-60",
+    "jenisRevisi": "Volume RO",
+    "no": "o.",
+    "uraian": "Pemanfaatan Sisa Anggaran Kontraktual dan/atau Swakelola selain untuk menambah volume RO kecuali untuk pemenuhan Belanja Operasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-61",
+    "jenisRevisi": "Volume RO",
+    "no": "t",
+    "uraian": "Penurunan volume RO secara total",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": ""
+  },
+  {
+    "id": "rev-item-62",
+    "jenisRevisi": "Volume RO",
+    "no": "c.7",
+    "uraian": "Pemanfaatan Sisa Anggaran Kontraktual/Swakelola :\r\n1. untuk menambah volume RO yang sama dan/atau RO yang lain (kecuali untuk RO Dukungan Manajemen tidak harus dalam rangka menambah volume RO), termasuk sisa RO Prioritas Nasional\r\n2. untuk pemenuhan Belanja Operasional",
+    "kewenangan": "Kemenkeu (DJA/DJPb)",
+    "scope": "dipa",
+    "keterangan": "Kelengkapan : surat persetujuan Pejabat Eselon I kecuali yang bersumber dari PNBP BLU"
+  }
+]

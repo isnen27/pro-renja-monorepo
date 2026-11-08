@@ -24,6 +24,7 @@ export type StatusHistoriRab =
   | "Alokasi Anggaran"
   | "DIPA Awal"
   | "Usulan Revisi DIPA"
+  | "DIPA Revisi"
   | "Usulan Revisi Satker (POK)"
   | "Angka Dasar";
 
@@ -75,10 +76,23 @@ export function buildKodifikasiListRab(status: StatusHistoriRab): HistoriEntryRa
       const kode = "A" + numStr;
       return {
         kode,
-        label: `Usulan Revisi DIPA - ${kode}`,
+        label: `Usulan Revisi DIPA ke-${numStr} - ${kode}`,
         status,
         rev_ke: i + 1,
         sumber: i === 0 ? "B00" : `A${String(i).padStart(2, "0")}`,
+      };
+    });
+  }
+  if (status === "DIPA Revisi") {
+    return Array.from({ length: 99 }, (_, i) => {
+      const numStr = String(i + 1).padStart(2, "0");
+      const kode = "B" + numStr;
+      return {
+        kode,
+        label: `DIPA Revisi ke-${numStr} - ${kode}`,
+        status,
+        rev_ke: i + 1,
+        sumber: `A${numStr}`,
       };
     });
   }
@@ -559,7 +573,8 @@ export default function PilihHistoriRabPage() {
               </optgroup>
               <optgroup label="Tahapan DIPA & Usulan Revisi Satker">
                 <option value="DIPA Awal">DIPA Awal (Kode B00)</option>
-                <option value="Usulan Revisi DIPA">Usulan Revisi DIPA (Kode A01 s.d. A99)</option>
+                <option value="Usulan Revisi DIPA">Usulan Revisi DIPA ke-... (Kode A01 s.d. A99)</option>
+                <option value="DIPA Revisi">DIPA Revisi ke-... (Kode B01 s.d. B99)</option>
                 <option value="Usulan Revisi Satker (POK)">Usulan Revisi Satker - POK (Kode C01 s.d. C99)</option>
               </optgroup>
               <optgroup label="Tahapan Pagu Renja">

@@ -49,6 +49,7 @@ import {
   Users,
 } from "lucide-react";
 import unitKerjaData from "../../data/unitKerjaData.json";
+import seriesAnggaranData from "../../data/seriesAnggaranData.json";
 import templateRabGajiKantor from "../../data/templateRabGajiKantor.json";
 import { baganAkunStandar } from "../../data/baganAkunStandar";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
@@ -390,6 +391,17 @@ export function calculateHierarchyAmounts(rows: WorksheetRow[]): WorksheetRow[] 
     ...r,
     jumlah: computedAmounts[i]
   }));
+}
+
+// Helper pembersih string uraian untuk pencocokan penanda blokir (*) & penyesuaian pagu Automatic Adjustment
+export function cleanUraianForMatch(s: string | undefined): string {
+  if (!s) return "";
+  return String(s)
+    .replace(/\(.*?\)/g, "")
+    .replace(/[-*•>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function formatRupiah(num: number): string {
@@ -833,6 +845,90 @@ function IsianRabPageContent() {
   });
 
   const activeUnit = activeHistori.kdsatker || "Biro Hukum dan Kerja Sama";
+  // Deteksi apakah histori aktif merupakan usulan revisi DIPA (A01 s.d. A99) atau usulan revisi POK (C01 s.d. C99)
+  const kodeHistoriAktif = (activeHistori.kode_sts_history || "B00").toUpperCase();
+  const showRealisasiColumn = /^A\d{2}$/i.test(kodeHistoriAktif) || /^C\d{2}$/i.test(kodeHistoriAktif);
+
+  // Ambil data realisasi per akun dari upload Automatic Adjustment atau default SAKTI
+  const realisasiPerAkunMap = useMemo(() => {
+    try {
+      const saved = localStorage.getItem("rab_realisasi_per_akun");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    const defMap: Record<string, number> = {};
+    (seriesAnggaranData as any[]).forEach((item) => {
+      if (item.tahun === 2025 && item.akun6) {
+        const m = String(item.akun6).match(/^\d{6}/);
+        if (m) {
+          const kodeAkun = m[0];
+          defMap[kodeAkun] = (defMap[kodeAkun] || 0) + (Number(item.realisasi) || 0);
+        }
+      }
+    });
+    return defMap;
+  }, []);
+
+  // Helper untuk mendapatkan realisasi akun belanja tertentu
+  const getRealisasiForAkun = (kodeAkun?: string): number => {
+    if (!kodeAkun) return 0;
+    const cleanKode = String(kodeAkun).trim();
+
+    const storedRealisasi = localStorage.getItem("rab_realisasi_per_akun");
+    if (storedRealisasi) {
+      try {
+        const parsed = JSON.parse(storedRealisasi);
+        if (parsed[cleanKode] !== undefined) return parsed[cleanKode];
+      } catch (e) {}
+    }
+
+    const simulationMap: Record<string, number> = {
+      "521211": 45000000,
+      "521219": 5500000,
+      "522151": 2500000,
+      "524113": 16000000,
+      "524219": 40000000,
+    };
+
+    if (simulationMap[cleanKode] !== undefined) {
+      return simulationMap[cleanKode];
+    }
+
+    if (realisasiPerAkunMap[cleanKode]) return realisasiPerAkunMap[cleanKode];
+    return 15000000;
+  };
+
+  // Helper untuk mendapatkan nilai realisasi per baris (khusus baris detail belanja & akun)
+  const getRealisasiForRow = (row: WorksheetRow): number => {
+    if (row.type === "detail") {
+      try {
+        const storedDetailRealisasi = localStorage.getItem("rab_realisasi_per_detail");
+        if (storedDetailRealisasi) {
+          const parsed = JSON.parse(storedDetailRealisasi);
+          if (parsed[row.id] !== undefined) return parsed[row.id];
+        }
+      } catch (e) {}
+
+      // Simulasi 2 baris detail yang perlu perbaikan (Jumlah < Realisasi)
+      if (row.id === "row-det-3" || row.uraian?.includes("Jamuan Tamu")) {
+        return 5500000;
+      }
+      if (row.id === "row-det-5" || row.uraian?.includes("Transport Lokal")) {
+        return 16000000;
+      }
+      return Math.round((Number(row.jumlah) || 0) * 0.45);
+    }
+
+    if (row.type === "akun") {
+      return getRealisasiForAkun(row.kode);
+    }
+
+    if (row.type === "program" || row.type === "kegiatan" || row.type === "kro" || row.type === "ro" || row.type === "komponen") {
+      return Math.round(Number(row.jumlah || 0) * 0.45);
+    }
+
+    return 0;
+  };
+
   const ukSingkatan = getUnitKerjaByNamaOrSingkatan(activeUnit).singkatan;
 
   // Sinkronisasi data Informasi Kinerja untuk Unit Kerja aktif
@@ -1457,6 +1553,10 @@ function IsianRabPageContent() {
   const [duplicateErrors, setDuplicateErrors] = useState<string[]>([]);
   const [duplicateRowIds, setDuplicateRowIds] = useState<string[]>([]);
 
+  // State untuk penandaan visual baris yang melanggar ketentuan (JUMLAH < REALISASI)
+  const [realisasiViolatingRowIds, setRealisasiViolatingRowIds] = useState<string[]>([]);
+  const [realisasiErrors, setRealisasiErrors] = useState<string[]>([]);
+
   function triggerAlert(msg: string) {
     setActionAlert(msg);
     setTimeout(() => setActionAlert(null), 3500);
@@ -1896,16 +1996,102 @@ function IsianRabPageContent() {
     [worksheetRows, selectedRowId]
   );
 
-  // Sinkronisasi bila unit kerja berganti
+  // Sinkronisasi otomatis penanda visual baris pelanggaran realisasi secara real-time pada level DETAIL BELANJA
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`rab_worksheet_${ukSingkatan}`);
-      if (saved) {
-        setWorksheetRows(JSON.parse(saved));
-        return;
+    if (!showRealisasiColumn) {
+      setRealisasiViolatingRowIds([]);
+      return;
+    }
+    const violatingIds: string[] = [];
+    worksheetRows.forEach((r) => {
+      if (r.type === "detail") {
+        const realisasi = getRealisasiForRow(r);
+        const jumlah = Number(r.jumlah || 0);
+        if (jumlah < realisasi) {
+          violatingIds.push(r.id);
+        }
       }
-    } catch (e) {}
-    setWorksheetRows(initialWorksheet);
+    });
+    setRealisasiViolatingRowIds(violatingIds);
+  }, [worksheetRows, showRealisasiColumn]);
+
+  // Sinkronisasi bila unit kerja berganti atau saat Automatic Adjustment diterapkan
+  useEffect(() => {
+    const loadAndSyncWorksheet = () => {
+      try {
+        const saved = localStorage.getItem(`rab_worksheet_${ukSingkatan}`);
+        let rowsToUse: WorksheetRow[] = saved ? JSON.parse(saved) : initialWorksheet;
+
+        // Baca penyesuaian manual Automatic Adjustment jika ada
+        const manualAdjRaw = localStorage.getItem("rab_aa_manual_adj_map");
+        const blockedRowsRaw = localStorage.getItem("rab_aa_blocked_rows");
+        const manualAdjMap = manualAdjRaw ? JSON.parse(manualAdjRaw) : null;
+        const blockedMap = blockedRowsRaw ? JSON.parse(blockedRowsRaw) : null;
+
+        if (manualAdjMap || blockedMap) {
+          let hasChange = false;
+          const updated = rowsToUse.map((r) => {
+            let nextR = { ...r };
+            const cu = cleanUraianForMatch(r.uraian);
+
+            // Cek penyesuaian manual pagu
+            if (manualAdjMap) {
+              const adj = manualAdjMap[r.id] || (r.kode && manualAdjMap[r.kode]) || (cu && manualAdjMap[cu]);
+              if (adj !== undefined) {
+                const newJumlah = adj.jumlah;
+                if (nextR.jumlah !== newJumlah) {
+                  hasChange = true;
+                  nextR.jumlah = newJumlah;
+                  if (nextR.type === "detail") {
+                    const vol = Number(nextR.vol) || 1;
+                    nextR.harga = vol > 0 ? Math.round(newJumlah / vol) : newJumlah;
+                  }
+                }
+              }
+            }
+
+            // Cek status blokir (*)
+            if (blockedMap) {
+              const isBlocked =
+                blockedMap[r.id] ||
+                (r.kode && blockedMap[r.kode]) ||
+                (cu && blockedMap[cu]);
+              if (isBlocked && nextR.tStar !== "*") {
+                hasChange = true;
+                nextR.tStar = "*";
+              }
+            }
+
+            return nextR;
+          });
+
+          if (hasChange) {
+            rowsToUse = calculateHierarchyAmounts(updated);
+            try {
+              localStorage.setItem(`rab_worksheet_${ukSingkatan}`, JSON.stringify(rowsToUse));
+            } catch (e) {}
+          }
+        }
+
+        setWorksheetRows(rowsToUse);
+      } catch (e) {
+        setWorksheetRows(initialWorksheet);
+      }
+    };
+
+    loadAndSyncWorksheet();
+
+    const handleAaChange = () => {
+      loadAndSyncWorksheet();
+    };
+
+    window.addEventListener("rab_aa_updated", handleAaChange);
+    window.addEventListener("rab_worksheet_updated", handleAaChange);
+
+    return () => {
+      window.removeEventListener("rab_aa_updated", handleAaChange);
+      window.removeEventListener("rab_worksheet_updated", handleAaChange);
+    };
   }, [ukSingkatan, initialWorksheet]);
 
   // Simpan otomatis ke localStorage
@@ -5066,6 +5252,41 @@ function IsianRabPageContent() {
 
   // Handler Simpan Data Toolbar Worksheet: Validasi Duplikasi & Pengurutan Ascending
   function handleSaveAndValidateWorksheet() {
+    // 0. Validasi Khusus Histori Revisi (A01-A99 & C01-C99): Angka pada kolom JUMLAH tidak boleh lebih kecil dari kolom REALISASI pada level DETAIL BELANJA
+    if (showRealisasiColumn) {
+      const violatingDetails: { kode: string; uraian: string; jumlah: number; realisasi: number; id: string }[] = [];
+      worksheetRows.forEach((r) => {
+        if (r.type === "detail") {
+          const realisasi = getRealisasiForRow(r);
+          const jumlah = Number(r.jumlah || 0);
+          if (jumlah < realisasi) {
+            violatingDetails.push({
+              id: r.id,
+              kode: r.kode || "-",
+              uraian: r.uraian || "",
+              jumlah,
+              realisasi,
+            });
+          }
+        }
+      });
+
+      if (violatingDetails.length > 0) {
+        setRealisasiViolatingRowIds(violatingDetails.map((a) => a.id));
+        setRealisasiErrors(
+          violatingDetails.map(
+            (a) =>
+              "Detail [" + a.uraian.replace(/^[-*•\s]+/, "") + "]: Pagu Usulan Rp " + formatRupiah(a.jumlah) + " lebih kecil dari Batas Realisasi Rp " + formatRupiah(a.realisasi) + " (Selisih Kurang: Rp " + formatRupiah(a.realisasi - a.jumlah) + ")"
+          )
+        );
+        const errorMsg = "Data tidak dapat disimpan! Angka pada kolom JUMLAH tidak boleh lebih kecil dari kolom REALISASI pada " + violatingDetails.length + " detail belanja (baris detail ditandai warna merah pada tabel).";
+        triggerAlert(errorMsg);
+        return;
+      } else {
+        setRealisasiErrors([]);
+        setRealisasiViolatingRowIds([]);
+      }
+    }
     // 1. Validasi Duplikasi pada seluruh hierarki (KRO, RO, Komponen, Sub Komponen, Akun, Header 1, Header 2)
     const validationResult = validateWorksheetDuplicates(worksheetRows);
     if (!validationResult.isValid) {
@@ -5456,7 +5677,7 @@ function IsianRabPageContent() {
             }
           }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full h-full min-h-[22px] px-1 py-0.5 bg-white text-slate-900 border-2 border-emerald-500 rounded-none shadow-inner outline-none font-inherit text-inherit text-center"
+          className="w-full h-full min-h-[22px] px-1 py-0.5 bg-white text-slate-900 border-2 border-emerald-500 rounded-none shadow-inner outline-none font-inherit text-inherit text-center no-spinner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       );
     }
@@ -5481,6 +5702,36 @@ function IsianRabPageContent() {
       >
         {displayValue}
       </div>
+    );
+  }
+
+  // Helper render kolom REALISASI per baris (ditampilkan di samping kanan kolom JUMLAH pada histori revisi A01-A99 & C01-C99)
+  function renderRealisasiCell(row: WorksheetRow) {
+    if (!showRealisasiColumn) return null;
+
+    const realisasiVal = getRealisasiForRow(row);
+    const isViolatingFloor = row.type === "detail" && Number(row.jumlah || 0) < realisasiVal;
+
+    return (
+      <td
+        className={`p-2 border-r border-slate-200 dark:border-slate-700 text-right tabular-nums font-semibold transition-colors ${
+          isViolatingFloor
+            ? "bg-rose-200/90 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 ring-2 ring-rose-500 font-bold"
+            : "bg-amber-50/50 dark:bg-amber-950/20 text-slate-700 dark:text-slate-300"
+        }`}
+        title={
+          isViolatingFloor
+            ? "PELANGGARAN! Angka JUMLAH (" + formatRupiah(row.jumlah) + ") lebih kecil dari REALISASI (" + formatRupiah(realisasiVal) + "). Baris detail ini perlu diperbaiki sebelum dapat disimpan!"
+            : realisasiVal > 0 ? "Realisasi Dokumen AA: Rp " + formatRupiah(realisasiVal) : "-"
+        }
+      >
+        <div className="flex items-center justify-end gap-1">
+          {isViolatingFloor && (
+            <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold animate-pulse" title="Perlu Perbaikan: Jumlah < Realisasi">⚠️</span>
+          )}
+          <span>{realisasiVal > 0 ? formatRupiah(realisasiVal) : "-"}</span>
+        </div>
+      </td>
     );
   }
 
@@ -5552,7 +5803,41 @@ function IsianRabPageContent() {
     );
   }
 
-  return (
+  // Memeriksa apakah baris ini memiliki penanda blokir (*) dari Automatic Adjustment
+  const [aaBlockedVersion, setAaBlockedVersion] = useState(0);
+
+  useEffect(() => {
+    const handleAaUpdated = () => setAaBlockedVersion((v) => v + 1);
+    window.addEventListener("rab_aa_updated", handleAaUpdated);
+    window.addEventListener("rab_worksheet_updated", handleAaUpdated);
+    return () => {
+      window.removeEventListener("rab_aa_updated", handleAaUpdated);
+      window.removeEventListener("rab_worksheet_updated", handleAaUpdated);
+    };
+  }, []);
+
+  const aaBlockedMap = useMemo<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("rab_aa_blocked_rows");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
+  }, [aaBlockedVersion]);
+
+  const hasAaBlock = (row: WorksheetRow) => {
+    if (row.tStar === "*" || row.tStar === "*T") return true;
+    const cu = cleanUraianForMatch(row.uraian);
+    if (
+      aaBlockedMap[row.id] ||
+      (row.kode && aaBlockedMap[row.kode]) ||
+      (cu && aaBlockedMap[cu])
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+return (
     <div className={`min-h-full space-y-4 ${isFullscreen ? "fixed inset-0 z-50 bg-white dark:bg-slate-900 p-4 overflow-y-auto" : "p-4 sm:p-6 max-w-[1550px] mx-auto"}`}>
       
       {/* ── BREADCRUMB & TOP HEADER (Hanya Tampil saat Bukan Fullscreen) ── */}
@@ -6279,6 +6564,14 @@ function IsianRabPageContent() {
                 <th rowSpan={2} className="py-2 px-2.5 border-r border-blue-400/40 w-[115px] text-right font-bold">
                   JUMLAH
                 </th>
+                {showRealisasiColumn && (
+                  <th rowSpan={2} className="py-2 px-2.5 border-r border-blue-400/40 w-[115px] text-right font-bold bg-amber-600/90 text-white" title="Batas Realisasi Belanja (Floor): Jumlah usulan tidak boleh lebih kecil dari realisasi">
+                    <div className="flex flex-col items-end">
+                      <span>REALISASI</span>
+                      <span className="text-[9px] font-normal opacity-90 font-sans tracking-tight">Dokumen AA</span>
+                    </div>
+                  </th>
+                )}
                 <th rowSpan={2} className="py-2 px-1 border-r border-blue-400/40 w-[30px] text-center font-bold">
                   *T
                 </th>
@@ -6367,11 +6660,17 @@ function IsianRabPageContent() {
               {visibleRows.map((row) => {
                 const isSelected = selectedRowId === row.id;
                 const isDuplicate = duplicateRowIds.includes(row.id);
+                const isViolatingRealisasi = showRealisasiColumn && realisasiViolatingRowIds.includes(row.id);
+                const isHighlighted = isDuplicate || isViolatingRealisasi;
 
-                // Badge duplikat merah yang kontras dan jelas
+                // Badge penanda perbaikan (duplikat atau pelanggaran realisasi)
                 const duplicateBadge = isDuplicate ? (
-                  <span className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[0.62rem] font-bold bg-rose-600 text-white shadow-xs shrink-0 tracking-wide">
+                  <span className="inline-flex items-center gap-1 ml-1.5 px-1.5 py-0.5 rounded text-[0.62rem] font-bold bg-rose-600 text-white shadow-xs shrink-0 tracking-wide">
                     ⚠️ Duplikat
+                  </span>
+                ) : isViolatingRealisasi ? (
+                  <span className="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[0.62rem] font-bold bg-rose-600 text-white shadow-xs shrink-0 tracking-tight" title="Pagu Detail < Realisasi! Data perlu diperbaiki">
+                    ⚠️ Perlu Perbaikan
                   </span>
                 ) : null;
 
@@ -6410,6 +6709,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       {renderStatusCheckboxes(row)}
@@ -6452,6 +6752,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold underline tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold underline tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       {renderStatusCheckboxes(row)}
@@ -6505,6 +6806,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right italic font-semibold tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right italic font-semibold tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       {renderStatusCheckboxes(row)}
@@ -6655,6 +6957,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       {renderStatusCheckboxes(row)}
@@ -6744,6 +7047,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center font-bold font-mono">
                         {renderEditableCell(row, "sd", row.sd || "A00", "font-bold font-mono text-center")}
@@ -6790,6 +7094,7 @@ function IsianRabPageContent() {
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-right font-bold tabular-nums">
                         {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                       </td>
+                      {renderRealisasiCell(row)}
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center"></td>
                       {renderStatusCheckboxes(row)}
@@ -6805,7 +7110,7 @@ function IsianRabPageContent() {
                     className={`cursor-pointer transition-colors ${
                       isSelected
                         ? "bg-[#0078d4] text-white font-medium shadow-inner"
-                        : isDuplicate
+                        : isHighlighted
                         ? "bg-rose-100/90 dark:bg-rose-950/70 text-rose-950 dark:text-rose-100 border-l-4 border-l-rose-600 font-semibold"
                         : "hover:bg-blue-50/40 text-slate-800 dark:text-slate-200"
                     }`}
@@ -6813,9 +7118,9 @@ function IsianRabPageContent() {
                     <td className={`p-2 border-r border-slate-200 dark:border-slate-700 text-center ${isDuplicate && !isSelected ? "bg-rose-200/90 dark:bg-rose-900/80" : ""}`}>
                       {renderEditableCell(row, "kode", row.kode, "text-center font-mono")}
                     </td>
-                    <td className={`p-2 border-r border-slate-200 dark:border-slate-700 pl-6 font-mono text-[0.72rem] ${isDuplicate && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
-                      <div className="flex items-center justify-between">
-                        <span>{renderEditableCell(row, "uraian", row.uraian, "text-left font-mono")}</span>
+                    <td className={`p-2 border-r border-slate-200 dark:border-slate-700 pl-6 font-mono text-[0.72rem] overflow-hidden ${isHighlighted && !isSelected ? "bg-rose-100/90 dark:bg-rose-950/60 text-rose-950 dark:text-rose-100" : ""}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate">{renderEditableCell(row, "uraian", row.uraian, "text-left font-mono")}</span>
                         {duplicateBadge}
                       </div>
                     </td>
@@ -6862,9 +7167,12 @@ function IsianRabPageContent() {
                       {renderEditableCell(row, "jumlah", formatRupiah(row.jumlah), "text-right font-bold tabular-nums", "number")}
                     </td>
 
+                    {/* REALISASI */}
+                    {renderRealisasiCell(row)}
+
                     {/* Status Checkbox *T, SD */}
                     <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center font-mono text-xs">
-                      {renderEditableCell(row, "tStar", row.tStar || "", "text-center font-mono")}
+                      {renderEditableCell(row, "tStar", (row.tStar || (hasAaBlock(row) ? "*" : "")), "text-center font-mono font-bold text-amber-600")}
                     </td>
                     <td className="p-2 border-r border-slate-200 dark:border-slate-700 text-center font-mono text-xs">
                       {renderEditableCell(row, "sd", row.sd || "", "text-center font-mono")}
@@ -6883,6 +7191,14 @@ function IsianRabPageContent() {
         <div className="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3 text-slate-500">
             <span>Tingkat Tampilan: <strong className="text-slate-900 dark:text-slate-100">{viewScope === "komponen" ? "s.d. Komponen" : "Semua Rincian Belanja"}</strong></span>
+            {showRealisasiColumn && realisasiViolatingRowIds.length > 0 && (
+              <>
+                <span>&bull;</span>
+                <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 animate-pulse">
+                  ⚠️ {realisasiViolatingRowIds.length} Baris Perlu Perbaikan (Jumlah &lt; Realisasi)
+                </span>
+              </>
+            )}
             <span>&bull;</span>
             <span>Baris Terpilih: <strong className="text-slate-900 dark:text-slate-100">{selectedRowId ? worksheetRows.find((r) => r.id === selectedRowId)?.uraian || selectedRowId : "Belum ada"}</strong></span>
           </div>

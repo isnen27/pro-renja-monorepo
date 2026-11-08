@@ -549,6 +549,41 @@ export default function MonitoringRpdPage() {
         </div>
       </div>
 
+      {/* ── Rencana Penarikan Kumulatif per Triwulan (Diletakkan setelah Jadwal RPD Bulanan TA 2027) ── */}
+      <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-emerald-500" />
+          <span>Rencana Penarikan Kumulatif per Triwulan</span>
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          {triwulanData.map((tw, idx) => {
+            const pct =
+              grandTotalPagu > 0
+                ? ((tw.nominal / grandTotalPagu) * 100).toFixed(1)
+                : "0.0";
+
+            return (
+              <div
+                key={idx}
+                className="p-4 rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-slate-800/40 space-y-2"
+              >
+                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                  {tw.label}
+                </div>
+                <div className="text-base font-bold font-mono text-slate-900 dark:text-white">
+                  Rp {tw.nominal.toLocaleString("id-ID")}
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span>Alokasi: <strong className="text-indigo-600 dark:text-indigo-400">{pct}%</strong></span>
+                  <span>Target: {tw.targetPct}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── TABEL RINCIAN PER LEVEL: PROGRAM, KEGIATAN, KRO, RO, KOMPONEN, SUBKOMPONEN (12 BULAN) ── */}
       <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
@@ -677,41 +712,6 @@ export default function MonitoringRpdPage() {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* ── Rencana Penarikan Kumulatif per Triwulan ── */}
-      <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-6 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-emerald-500" />
-          <span>Rencana Penarikan Kumulatif per Triwulan</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          {triwulanData.map((tw, idx) => {
-            const pct =
-              grandTotalPagu > 0
-                ? ((tw.nominal / grandTotalPagu) * 100).toFixed(1)
-                : "0.0";
-
-            return (
-              <div
-                key={idx}
-                className="p-4 rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-slate-800/40 space-y-2"
-              >
-                <div className="font-semibold text-slate-700 dark:text-slate-300">
-                  {tw.label}
-                </div>
-                <div className="text-base font-bold font-mono text-slate-900 dark:text-white">
-                  Rp {tw.nominal.toLocaleString("id-ID")}
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>Alokasi: <strong className="text-indigo-600 dark:text-indigo-400">{pct}%</strong></span>
-                  <span>Target: {tw.targetPct}</span>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

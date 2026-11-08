@@ -1018,6 +1018,27 @@ export const refLokasi = pgTable('ref_lokasi', {
 export type RefLokasi = typeof refLokasi.$inferSelect;
 export type NewRefLokasi = typeof refLokasi.$inferInsert;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 46. REFERENSI KEWENANGAN REVISI ANGGARAN (kewenangan revisi.xlsx)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const refKewenanganRevisi = pgTable('ref_kewenangan_revisi', {
+  id: serial('id').primaryKey(),
+  kodeItem: varchar('kode_item', { length: 50 }).notNull().unique(), // e.g. 'rev-item-1'
+  jenisRevisi: varchar('jenis_revisi', { length: 100 }).notNull(), // Klaster: 'POK', 'DIPA', 'Administratif', dll.
+  noButir: varchar('no_butir', { length: 50 }), // 'a.1', 'a.2', 'b', dll.
+  uraian: text('uraian').notNull(),
+  kewenangan: varchar('kewenangan', { length: 150 }).notNull(), // 'KPA Satker (POK)' | 'Kemenkeu (DJA/DJPb)'
+  scope: varchar('scope', { length: 20 }).notNull(), // 'pok' | 'dipa'
+  keterangan: text('keterangan'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type RefKewenanganRevisi = typeof refKewenanganRevisi.$inferSelect;
+export type NewRefKewenanganRevisi = typeof refKewenanganRevisi.$inferInsert;
+
+
 
 
 
