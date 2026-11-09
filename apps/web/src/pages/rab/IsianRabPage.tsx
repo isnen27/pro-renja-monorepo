@@ -898,6 +898,38 @@ function IsianRabPageContent() {
   };
 
   // Helper untuk mendapatkan nilai realisasi per baris (khusus baris detail belanja & akun)
+
+  // Helper mendapatkan nilai BLOKIR untuk suatu baris (dari Kertas Kerja Automatic Adjustment / Blokir Anggaran)
+  const getBlokirForRow = (row: WorksheetRow): number => {
+    try {
+      const saved = localStorage.getItem("rab_aa_blokir_rows_v2");
+      if (saved) {
+        const blokirRows: any[] = JSON.parse(saved);
+        const cu = cleanUraianForMatch(row.uraian);
+        const match = blokirRows.find(
+          (b) =>
+            b.id === row.id ||
+            b.id === `blk-${row.id.replace(/^row-/, "")}` ||
+            (row.kode && b.kode === row.kode) ||
+            (cu && cleanUraianForMatch(b.uraian) === cu)
+        );
+        if (match && match.blokir > 0) {
+          return Number(match.blokir);
+        }
+      }
+    } catch (e) {}
+
+    // Fallback jika baris ditandai tStar = "*" atau "*T" namun belum ada nominal khusus di list
+    if (row.tStar === "*" || row.tStar === "*T") {
+      // Default blokir pada simulasi detail yang diblokir (Souvenir Kunjungan Tamu Internasional)
+      if (row.uraian?.toLowerCase().includes("souvenir")) {
+        return Number(row.jumlah || 266000);
+      }
+    }
+
+    return 0;
+  };
+
   const getRealisasiForRow = (row: WorksheetRow): number => {
     if (row.type === "detail") {
       try {
@@ -1996,7 +2028,7 @@ function IsianRabPageContent() {
     [worksheetRows, selectedRowId]
   );
 
-  // Sinkronisasi otomatis penanda visual baris pelanggaran realisasi secara real-time pada level DETAIL BELANJA
+  // Sinkronisasi otomatis penanda visual baris pelanggaran realisasi secara real-time pada level DETAIL BELANJA: (JUMLAH - BLOKIR) >= REALISASI
   useEffect(() => {
     if (!showRealisasiColumn) {
       setRealisasiViolatingRowIds([]);
@@ -2007,7 +2039,9 @@ function IsianRabPageContent() {
       if (r.type === "detail") {
         const realisasi = getRealisasiForRow(r);
         const jumlah = Number(r.jumlah || 0);
-        if (jumlah < realisasi) {
+        const blokir = getBlokirForRow(r);
+        const paguEfektif = jumlah - blokir;
+        if (paguEfektif < realisasi) {
           violatingIds.push(r.id);
         }
       }
@@ -5252,19 +5286,23 @@ function IsianRabPageContent() {
 
   // Handler Simpan Data Toolbar Worksheet: Validasi Duplikasi & Pengurutan Ascending
   function handleSaveAndValidateWorksheet() {
-    // 0. Validasi Khusus Histori Revisi (A01-A99 & C01-C99): Angka pada kolom JUMLAH tidak boleh lebih kecil dari kolom REALISASI pada level DETAIL BELANJA
+    // 0. Validasi Khusus Histori Revisi: (JUMLAH - BLOKIR) tidak boleh lebih kecil dari kolom REALISASI pada level DETAIL BELANJA
     if (showRealisasiColumn) {
-      const violatingDetails: { kode: string; uraian: string; jumlah: number; realisasi: number; id: string }[] = [];
+      const violatingDetails: { kode: string; uraian: string; jumlah: number; blokir: number; paguEfektif: number; realisasi: number; id: string }[] = [];
       worksheetRows.forEach((r) => {
         if (r.type === "detail") {
           const realisasi = getRealisasiForRow(r);
           const jumlah = Number(r.jumlah || 0);
-          if (jumlah < realisasi) {
+          const blokir = getBlokirForRow(r);
+          const paguEfektif = jumlah - blokir;
+          if (paguEfektif < realisasi) {
             violatingDetails.push({
               id: r.id,
               kode: r.kode || "-",
               uraian: r.uraian || "",
               jumlah,
+              blokir,
+              paguEfektif,
               realisasi,
             });
           }
@@ -5276,10 +5314,10 @@ function IsianRabPageContent() {
         setRealisasiErrors(
           violatingDetails.map(
             (a) =>
-              "Detail [" + a.uraian.replace(/^[-*•\s]+/, "") + "]: Pagu Usulan Rp " + formatRupiah(a.jumlah) + " lebih kecil dari Batas Realisasi Rp " + formatRupiah(a.realisasi) + " (Selisih Kurang: Rp " + formatRupiah(a.realisasi - a.jumlah) + ")"
+              "Detail [" + a.uraian.replace(/^[-*•\s]+/, "") + "]: Pagu Efektif (Jumlah Rp " + formatRupiah(a.jumlah) + " - Blokir Rp " + formatRupiah(a.blokir) + " = Rp " + formatRupiah(a.paguEfektif) + ") lebih kecil dari Realisasi Rp " + formatRupiah(a.realisasi) + " (Defisit: Rp " + formatRupiah(a.realisasi - a.paguEfektif) + ")"
           )
         );
-        const errorMsg = "Data tidak dapat disimpan! Angka pada kolom JUMLAH tidak boleh lebih kecil dari kolom REALISASI pada " + violatingDetails.length + " detail belanja (baris detail ditandai warna merah pada tabel).";
+        const errorMsg = "Data tidak dapat disimpan! Nilai (JUMLAH - BLOKIR) harus lebih besar atau sama dengan REALISASI pada " + violatingDetails.length + " detail belanja (baris detail ditandai warna merah pada tabel). Silakan perbaiki parameter usulan atau blokir terlebih dahulu!";
         triggerAlert(errorMsg);
         return;
       } else {
@@ -5710,7 +5748,9 @@ function IsianRabPageContent() {
     if (!showRealisasiColumn) return null;
 
     const realisasiVal = getRealisasiForRow(row);
-    const isViolatingFloor = row.type === "detail" && Number(row.jumlah || 0) < realisasiVal;
+    const blokirVal = getBlokirForRow(row);
+    const paguEfektif = Number(row.jumlah || 0) - blokirVal;
+    const isViolatingFloor = row.type === "detail" && paguEfektif < realisasiVal;
 
     return (
       <td
@@ -5721,8 +5761,8 @@ function IsianRabPageContent() {
         }`}
         title={
           isViolatingFloor
-            ? "PELANGGARAN! Angka JUMLAH (" + formatRupiah(row.jumlah) + ") lebih kecil dari REALISASI (" + formatRupiah(realisasiVal) + "). Baris detail ini perlu diperbaiki sebelum dapat disimpan!"
-            : realisasiVal > 0 ? "Realisasi Dokumen AA: Rp " + formatRupiah(realisasiVal) : "-"
+            ? "PELANGGARAN! (JUMLAH - BLOKIR) sebesar Rp " + formatRupiah(paguEfektif) + " (Jumlah Rp " + formatRupiah(row.jumlah) + " - Blokir Rp " + formatRupiah(blokirVal) + ") lebih kecil dari REALISASI (Rp " + formatRupiah(realisasiVal) + "). Baris detail ini perlu diperbaiki terlebih dahulu agar eksekusi dapat tersimpan!"
+            : realisasiVal > 0 ? "Realisasi Belanja: Rp " + formatRupiah(realisasiVal) + (blokirVal > 0 ? " (Blokir: Rp " + formatRupiah(blokirVal) + ")" : "") : "-"
         }
       >
         <div className="flex items-center justify-end gap-1">

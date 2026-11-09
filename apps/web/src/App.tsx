@@ -16,6 +16,8 @@ const ModulePage = lazy(() => import("./pages/ModulePage"));
 const PilihHistoriPage = lazy(() => import("./pages/eselon1/PilihHistoriPage"));
 const IsianBab1Page = lazy(() => import("./pages/eselon1/IsianBab1Page"));
 const IsianBab2Page = lazy(() => import("./pages/eselon1/IsianBab2Page"));
+const EvaluasiRenjaStrategisPage = lazy(() => import("./pages/eselon1/EvaluasiRenjaStrategisPage"));
+const MonitoringPenilaianRenjaPage = lazy(() => import("./pages/eselon1/MonitoringPenilaianRenjaPage"));
 const MonitoringSubmitApprovePage = lazy(() => import("./pages/eselon1/MonitoringSubmitApprovePage"));
 
 // Eselon 2
@@ -78,6 +80,8 @@ export default function App() {
             <Route path="/eselon1/pilih-histori" element={<PilihHistoriPage />} />
             <Route path="/eselon1/bab-1" element={<IsianBab1Page />} />
             <Route path="/eselon1/bab-2" element={<IsianBab2Page />} />
+            <Route path="/eselon1/evaluasi-strategis" element={<EvaluasiRenjaStrategisPage />} />
+            <Route path="/eselon1/monitoring-penilaian" element={<MonitoringPenilaianRenjaPage />} />
             <Route path="/eselon1/monitoring" element={<MonitoringSubmitApprovePage />} />
 
             {/* Renja Eselon II - sub pages */}

@@ -69,6 +69,64 @@ function getPejabatPenandatangan(unitKerja: string): { nama: string; jabatan: st
   };
 }
 
+
+// ─── Helper Pengecekan Kelengkapan Penilaian Evaluasi Renja Eselon I ────────
+function getEvaluationCompleteness(unitKerja: string): { isComplete: boolean; evaluatedCount: number; totalCount: number; message: string } {
+  const u = unitKerja.toUpperCase();
+  let code = "SETIA";
+  if (u.includes("TEGAS")) code = "TEGAS";
+  else if (u.includes("PENGASUH")) code = "PENGASUH";
+  else if (u.includes("ASA")) code = "ASA";
+  else if (u.includes("SEKRETARIAT") || u.includes("SETIA")) code = "SETIA";
+
+  const totalCount = 16; // 16 Sub-Dimensi evaluasi
+
+  try {
+    // 1. Cek lembar kerja evaluasi utama
+    const mainKey = `evaluasi_renja_eselon1_${code}_2027`;
+    const mainRaw = localStorage.getItem(mainKey);
+    if (mainRaw) {
+      const parsed = JSON.parse(mainRaw);
+      const scoredItems = Object.values(parsed).filter((it: any) => it && Number(it.skor) > 0);
+      if (scoredItems.length >= totalCount) {
+        return { isComplete: true, evaluatedCount: scoredItems.length, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (16/16 Sub-Dimensi)." };
+      }
+    }
+
+    // 2. Cek apakah ada kompilasi dari evaluator tim
+    const evalKeys = ['eval-ren-1', 'eval-ang-1', 'eval-insp-1'];
+    let hasCompleteEvaluator = false;
+    for (const eid of evalKeys) {
+      const eKey = `evaluasi_renja_eselon1_${code}_2027_${eid}`;
+      const eRaw = localStorage.getItem(eKey);
+      if (eRaw) {
+        const parsed = JSON.parse(eRaw);
+        const count = Object.values(parsed).filter((v: any) => Number(v) > 0).length;
+        if (count >= totalCount) {
+          hasCompleteEvaluator = true;
+          break;
+        }
+      }
+    }
+
+    if (hasCompleteEvaluator) {
+      return { isComplete: true, evaluatedCount: totalCount, totalCount, message: "Penilaian Evaluasi Renja dari Tim Penilai telah lengkap." };
+    }
+  } catch (e) {}
+
+  // Default untuk unit kerja yang sampelnya sudah lengkap (misal SETIA dan TEGAS pada data awal)
+  if (code === "SETIA" || code === "TEGAS") {
+    return { isComplete: true, evaluatedCount: 16, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (16/16 Sub-Dimensi)." };
+  }
+
+  return {
+    isComplete: false,
+    evaluatedCount: 0,
+    totalCount,
+    message: `Penilaian Evaluasi Renja untuk ${code} belum lengkap (Wajib dinilai pada submenu Evaluasi Renja / Monitoring Penilaian sebelum disetujui BINCANG).`,
+  };
+}
+
 // ─── Tipe Data ────────────────────────────────────────────────────────────────
 type UserRole = "Operator" | "Approver" | "BINCANG" | "Super Admin";
 type FilterMode = "all" | "latest" | "pending" | "approved";
@@ -419,6 +477,17 @@ export default function MonitoringSubmitApprovePage() {
         "Persetujuan Akhir Gagal! Dokumen draft Renja Eselon I TTD Digital WAJIB diunggah pada kolom Aksi terlebih dahulu."
       );
       return;
+    }
+
+    // Validasi Kelengkapan Penilaian Evaluasi Renja Eselon I
+    if (targetItem) {
+      const evalStatus = getEvaluationCompleteness(targetItem.unit_kerja);
+      if (!evalStatus.isComplete) {
+        setNoticeModalMessage(
+          "Persetujuan Akhir Gagal! " + evalStatus.message + " Silakan lengkapi evaluasi pada submenu Evaluasi Renja atau periksa Monitoring Penilaian sebelum menyetujui data."
+        );
+        return;
+      }
     }
 
     setDataList((prev) =>
@@ -877,16 +946,30 @@ export default function MonitoringSubmitApprovePage() {
                               <XCircle className="h-3.5 w-3.5" />
                               <span>TOLAK</span>
                             </button>
-                            <button
-                              onClick={() => handleApproveByBincang(item.id)}
-                              className={`px-3 py-1 rounded-full text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                !item.is_doc_uploaded ? "bg-[#059669]/60 cursor-not-allowed" : "bg-[#059669] hover:bg-[#047857]"
-                              }`}
-                              title={!item.is_doc_uploaded ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi" : "Setuju &amp; proses data ke Kemenkeu"}
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              <span>SETUJU</span>
-                            </button>
+{(() => {
+                              const evalStatus = getEvaluationCompleteness(item.unit_kerja);
+                              const canApprove = item.is_doc_uploaded && evalStatus.isComplete;
+                              const tooltipMsg = !item.is_doc_uploaded
+                                ? "Wajib Upload Dokumen TTD Elektronik dulu pada kolom Aksi"
+                                : !evalStatus.isComplete
+                                ? evalStatus.message
+                                : "Setuju & proses data ke Kemenkeu (Penilaian Evaluasi Renja telah lengkap)";
+
+                              return (
+                                <button
+                                  onClick={() => handleApproveByBincang(item.id)}
+                                  className={`px-3 py-1 rounded-full text-white text-xs font-bold transition-all flex items-center gap-1 ${
+                                    !canApprove
+                                      ? "bg-[#059669]/50 cursor-not-allowed opacity-80"
+                                      : "bg-[#059669] hover:bg-[#047857] cursor-pointer shadow-xs"
+                                  }`}
+                                  title={tooltipMsg}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>SETUJU</span>
+                                </button>
+                              );
+                            })()}
                           </div>
                         ) : item.owner === "Approver" ? (
                           <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">

@@ -242,7 +242,7 @@ export default function RpdPage() {
         u.nama.toLowerCase() === activeUnit.toLowerCase() ||
         u.singkatan.toLowerCase() === activeUnit.toLowerCase()
     );
-    return found ? found.singkatan : "HUKER";
+    return found ? found.singkatan : "KREASI";
   }, [activeUnit]);
 
   // Muat worksheet dari submenu Isian RAB (histori terakhir yang tersimpan)

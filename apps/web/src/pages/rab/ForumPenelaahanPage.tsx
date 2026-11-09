@@ -225,7 +225,7 @@ export default function ForumPenelaahanPage() {
         u.nama.toLowerCase() === userUnit.toLowerCase() ||
         u.singkatan.toLowerCase() === userUnit.toLowerCase()
     );
-    return found ? found.singkatan : "HUKER";
+    return found ? found.singkatan : "KREASI";
   }, [userUnit]);
 
   // Tombol yang tersedia di atas Diskusi: Dokumen, Sanding Data, Catatan Penelaahan (Panduan4)

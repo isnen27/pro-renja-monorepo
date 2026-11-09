@@ -37,8 +37,54 @@ import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import { baganAkunStandar } from "../../data/baganAkunStandar";
 import seriesAnggaranData from "../../data/seriesAnggaranData.json";
 import { UserRole } from "./PilihHistoriRabPage";
+import { buildHierarchyTree, getVisibleRowsFromTree } from "./drillDownHelper";
 
 // Helper pembersih string uraian untuk pencocokan lintas halaman (Automatic Adjustment <-> Isian RAB)
+
+// Helper batas realisasi belanja (floor) untuk validasi Automatic Adjustment: (Pagu - Blokir) >= Realisasi
+export function getRealisasiForAaRow(row: { id?: string; kode?: string; uraian?: string; type?: string; jumlah?: number; jumlahMenjadi?: number; jumlahSemula?: number }): number {
+  if (row.type === "detail") {
+    try {
+      const storedDetailRealisasi = localStorage.getItem("rab_realisasi_per_detail");
+      if (storedDetailRealisasi) {
+        const parsed = JSON.parse(storedDetailRealisasi);
+        if (row.id && parsed[row.id] !== undefined) return parsed[row.id];
+      }
+    } catch (e) {}
+
+    const cleanUraian = (row.uraian || "").toLowerCase();
+    if (row.id === "row-det-3" || row.id === "blk-det-3" || row.id === "man-det-3" || cleanUraian.includes("jamuan tamu")) {
+      return 5500000;
+    }
+    if (row.id === "row-det-5" || row.id === "blk-det-5" || row.id === "man-det-5" || cleanUraian.includes("transport lokal")) {
+      return 16000000;
+    }
+    const val = Number(row.jumlah ?? row.jumlahSemula ?? 0);
+    return Math.round(val * 0.45);
+  }
+
+  if (row.type === "akun" && row.kode) {
+    try {
+      const stored = localStorage.getItem("rab_realisasi_per_akun");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed[row.kode] !== undefined) return parsed[row.kode];
+      }
+    } catch (e) {}
+    const simMap: Record<string, number> = {
+      "521211": 45000000,
+      "521219": 5500000,
+      "522151": 2500000,
+      "524113": 16000000,
+      "524219": 40000000,
+    };
+    if (simMap[row.kode] !== undefined) return simMap[row.kode];
+    return Math.round(Number(row.jumlah ?? row.jumlahSemula ?? 0) * 0.45);
+  }
+
+  return 0;
+}
+
 export function cleanUraianForMatch(s: string | undefined): string {
   if (!s) return "";
   return String(s)
@@ -144,6 +190,24 @@ export interface ManualAaRowItem {
 }
 
 export default function AutomaticAdjustmentPage() {
+
+  // Auto-migrate legacy localStorage unit kerja HUKER -> KREASI
+  useEffect(() => {
+    try {
+      const keys = ['rab_aa_blokir_rows_v2', 'rab_monitoring_blokir_data', 'rab_aa_manual_rows_v2', 'rab_worksheet_HUKER'];
+      keys.forEach((key) => {
+        const raw = localStorage.getItem(key);
+        if (raw && raw.includes('"HUKER"')) {
+          localStorage.setItem(key, raw.replace(/"HUKER"/g, '"KREASI"'));
+        }
+      });
+      const hukerWs = localStorage.getItem('rab_worksheet_HUKER');
+      if (hukerWs && !localStorage.getItem('rab_worksheet_KREASI')) {
+        localStorage.setItem('rab_worksheet_KREASI', hukerWs.replace(/"HUKER"/g, '"KREASI"'));
+      }
+    } catch (e) {}
+  }, []);
+
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
@@ -166,7 +230,10 @@ export default function AutomaticAdjustmentPage() {
   }>(() => {
     try {
       const saved = localStorage.getItem("rab_aa_selected_types");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((item: any) => item.unitKerja === "HUKER" ? { ...item, unitKerja: "KREASI" } : item);
+      }
     } catch (e) {}
     return { blokir: true, pagu: false };
   });
@@ -218,7 +285,10 @@ export default function AutomaticAdjustmentPage() {
   const initialBlokirRows = useMemo<BlokirRowItem[]>(() => {
     try {
       const savedAaBlokir = localStorage.getItem("rab_aa_blokir_rows_v2");
-      if (savedAaBlokir) return JSON.parse(savedAaBlokir);
+      if (savedAaBlokir) {
+        const parsed = JSON.parse(savedAaBlokir);
+        return parsed.map((item: any) => item.unitKerja === "HUKER" ? { ...item, unitKerja: "KREASI" } : item);
+      }
     } catch (e) {}
 
     const rows: BlokirRowItem[] = [
@@ -231,7 +301,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-keg",
@@ -242,7 +312,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-kro",
@@ -253,7 +323,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-ro",
@@ -264,7 +334,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-komp-052",
@@ -275,7 +345,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-subkomp-A",
@@ -286,7 +356,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 1: 521211
       {
@@ -298,7 +368,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-1",
@@ -309,7 +379,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-2",
@@ -320,7 +390,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 2: 521219
       {
@@ -332,7 +402,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-3",
@@ -343,7 +413,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 3: 522151
       {
@@ -355,7 +425,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-4",
@@ -366,7 +436,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 4: 524113
       {
@@ -378,7 +448,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-5",
@@ -389,7 +459,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 5: 524219
       {
@@ -401,7 +471,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-sub-sg",
@@ -412,7 +482,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-6",
@@ -423,7 +493,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-sub-ns",
@@ -434,7 +504,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-7",
@@ -445,7 +515,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-8",
@@ -456,7 +526,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-9",
@@ -467,7 +537,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-sub-tw",
@@ -478,7 +548,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "blk-det-10",
@@ -489,7 +559,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // Komponen Pendukung 054
       {
@@ -501,7 +571,7 @@ export default function AutomaticAdjustmentPage() {
         blokir: 0,
         jenisBlokir: "9",
         isChecklist: false,
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // Data Tambahan untuk Pusdiklat APU PPT (PATIH)
       {
@@ -613,6 +683,33 @@ export default function AutomaticAdjustmentPage() {
 
   // Simpan Kertas Kerja Blokir Anggaran & Tandai '*' di Isian RAB
   const handleSaveBlokirKertasKerja = () => {
+    // Validasi logic: (JUMLAH - BLOKIR) >= REALISASI
+    const violations: { uraian: string; jumlah: number; blokir: number; sisa: number; realisasi: number }[] = [];
+    blokirRows.forEach((r) => {
+      if (r.type === "detail") {
+        const realisasi = getRealisasiForAaRow(r);
+        const paguEfektif = Number(r.jumlah || 0) - Number(r.blokir || 0);
+        if (paguEfektif < realisasi) {
+          violations.push({
+            uraian: r.uraian,
+            jumlah: r.jumlah,
+            blokir: r.blokir,
+            sisa: paguEfektif,
+            realisasi,
+          });
+        }
+      }
+    });
+
+    if (violations.length > 0) {
+      const v = violations[0];
+      showNotification(
+        `Data tidak dapat disimpan! Parameter melanggar ketentuan realisasi: (JUMLAH - BLOKIR) harus >= REALISASI. Pada "${v.uraian.replace(/^[-*•\s]+/, "")}", sisa pagu Rp ${v.sisa.toLocaleString("id-ID")} lebih kecil dari realisasi belanja Rp ${v.realisasi.toLocaleString("id-ID")} (Blokir: Rp ${v.blokir.toLocaleString("id-ID")}). Silakan perbaiki parameter blokir terlebih dahulu!`,
+        "error"
+      );
+      return;
+    }
+
     try {
       localStorage.setItem("rab_aa_blokir_rows_v2", JSON.stringify(blokirRows));
 
@@ -653,7 +750,7 @@ export default function AutomaticAdjustmentPage() {
       // Update worksheetRows di localStorage untuk seluruh unit kerja agar row.tStar = "*"
       const keys = Object.keys(localStorage).filter((k) => k.startsWith("rab_worksheet_"));
       if (keys.length === 0) {
-        keys.push("rab_worksheet_HUKER", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
+        keys.push("rab_worksheet_KREASI", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
       }
       keys.forEach((k) => {
         try {
@@ -735,7 +832,7 @@ export default function AutomaticAdjustmentPage() {
       const multiplier = (100 - persentaseMassal) / 100;
       const keys = Object.keys(localStorage).filter((k) => k.startsWith("rab_worksheet_"));
       if (keys.length === 0) {
-        keys.push("rab_worksheet_HUKER", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
+        keys.push("rab_worksheet_KREASI", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
       }
 
       keys.forEach((key) => {
@@ -834,7 +931,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 743651000,
         jumlahMenjadi: 743651000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-keg",
@@ -844,7 +941,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 743651000,
         jumlahMenjadi: 743651000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-kro",
@@ -854,7 +951,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 743651000,
         jumlahMenjadi: 743651000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-ro",
@@ -864,7 +961,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 743651000,
         jumlahMenjadi: 743651000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-komp-052",
@@ -874,7 +971,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 578910000,
         jumlahMenjadi: 578910000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-subkomp-A",
@@ -884,7 +981,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 181573000,
         jumlahMenjadi: 181573000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 1: 521211
       {
@@ -895,7 +992,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 64709000,
         jumlahMenjadi: 64709000,
         keterangan: "Penyelarasan konsumsi rapat dinas internal",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-1",
@@ -905,7 +1002,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 64443000,
         jumlahMenjadi: 64443000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-2",
@@ -915,7 +1012,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 266000,
         jumlahMenjadi: 266000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 2: 521219
       {
@@ -926,7 +1023,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 4491000,
         jumlahMenjadi: 4491000,
         keterangan: "Efisiensi jamuan tamu",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-3",
@@ -936,7 +1033,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 4491000,
         jumlahMenjadi: 4491000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 3: 522151
       {
@@ -947,7 +1044,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 3800000,
         jumlahMenjadi: 3800000,
         keterangan: "Honorarium narasumber",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-4",
@@ -957,7 +1054,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 3800000,
         jumlahMenjadi: 3800000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 4: 524113
       {
@@ -968,7 +1065,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 14620000,
         jumlahMenjadi: 14620000,
         keterangan: "Transport lokal koordinasi",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-5",
@@ -978,7 +1075,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 14620000,
         jumlahMenjadi: 14620000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // AKUN 5: 524219
       {
@@ -989,7 +1086,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 63787000,
         jumlahMenjadi: 63787000,
         keterangan: "Perjalanan dinas luar negeri",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-sub-sg",
@@ -999,7 +1096,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 5483000,
         jumlahMenjadi: 5483000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-6",
@@ -1009,7 +1106,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 5483000,
         jumlahMenjadi: 5483000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-sub-ns",
@@ -1019,7 +1116,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 50899000,
         jumlahMenjadi: 50899000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-7",
@@ -1029,7 +1126,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 25619000,
         jumlahMenjadi: 25619000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-8",
@@ -1039,7 +1136,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 24799000,
         jumlahMenjadi: 24799000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-9",
@@ -1049,7 +1146,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 481000,
         jumlahMenjadi: 481000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-sub-tw",
@@ -1059,7 +1156,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 2411000,
         jumlahMenjadi: 2411000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       {
         id: "man-det-10",
@@ -1069,7 +1166,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 2411000,
         jumlahMenjadi: 2411000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // Komponen Pendukung 054
       {
@@ -1080,7 +1177,7 @@ export default function AutomaticAdjustmentPage() {
         jumlahSemula: 164741000,
         jumlahMenjadi: 164741000,
         keterangan: "-",
-        unitKerja: "HUKER",
+        unitKerja: "KREASI",
       },
       // Data Tambahan untuk Pusdiklat APU PPT (PATIH)
       {
@@ -1132,6 +1229,36 @@ export default function AutomaticAdjustmentPage() {
   };
 
   const handleSaveManualPagu = () => {
+    // Validasi logic: (JUMLAH MENJADI - BLOKIR) >= REALISASI
+    const violations: { uraian: string; jumlahMenjadi: number; blokir: number; sisa: number; realisasi: number }[] = [];
+    manualRows.forEach((r) => {
+      if (r.type === "detail") {
+        const realisasi = getRealisasiForAaRow(r);
+        // Cek data blokir untuk baris ini jika ada
+        const correspondingBlokir = blokirRows.find((b) => b.id === r.id || b.uraian === r.uraian || (b.kode && b.kode === r.kode));
+        const blokirVal = correspondingBlokir ? Number(correspondingBlokir.blokir || 0) : 0;
+        const paguEfektif = Number(r.jumlahMenjadi || 0) - blokirVal;
+        if (paguEfektif < realisasi) {
+          violations.push({
+            uraian: r.uraian,
+            jumlahMenjadi: r.jumlahMenjadi,
+            blokir: blokirVal,
+            sisa: paguEfektif,
+            realisasi,
+          });
+        }
+      }
+    });
+
+    if (violations.length > 0) {
+      const v = violations[0];
+      showNotification(
+        `Data tidak dapat disimpan! Parameter melanggar ketentuan realisasi: (JUMLAH MENJADI - BLOKIR) harus >= REALISASI. Pada "${v.uraian.replace(/^[-*•\s]+/, "")}", sisa pagu Rp ${v.sisa.toLocaleString("id-ID")} lebih kecil dari batas realisasi Rp ${v.realisasi.toLocaleString("id-ID")}. Perbaiki parameter terlebih dahulu agar eksekusi dapat tersimpan!`,
+        "error"
+      );
+      return;
+    }
+
     try {
       localStorage.setItem("rab_aa_manual_rows_v2", JSON.stringify(manualRows));
       const changedRows = manualRows.filter((r) => r.jumlahMenjadi !== r.jumlahSemula);
@@ -1157,7 +1284,7 @@ export default function AutomaticAdjustmentPage() {
       // Terapkan penyesuaian langsung ke seluruh lembar kerja unit kerja (rab_worksheet_*)
       const keys = Object.keys(localStorage).filter((k) => k.startsWith("rab_worksheet_"));
       if (keys.length === 0) {
-        keys.push("rab_worksheet_HUKER", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
+        keys.push("rab_worksheet_KREASI", "rab_worksheet_PATIH", "rab_worksheet_BINCANG");
       }
       keys.forEach((key) => {
         try {
@@ -1248,6 +1375,66 @@ export default function AutomaticAdjustmentPage() {
       return true;
     });
   }, [manualRows, selectedUnit, searchQuery]);
+
+  // Drill Down State & Tree untuk Kertas Kerja Blokir Anggaran
+  const [expandedBlokirNodes, setExpandedBlokirNodes] = useState<Record<string, boolean>>({});
+  const blokirTreeResult = useMemo(() => {
+    return buildHierarchyTree(filteredBlokirRows, HIERARCHY_RANK);
+  }, [filteredBlokirRows]);
+
+  const visibleBlokirRows = useMemo(() => {
+    if (searchQuery.trim()) return filteredBlokirRows;
+    return getVisibleRowsFromTree(blokirTreeResult.tree, expandedBlokirNodes);
+  }, [blokirTreeResult, expandedBlokirNodes, filteredBlokirRows, searchQuery]);
+
+  const toggleBlokirExpand = (id: string) => {
+    setExpandedBlokirNodes((prev) => ({
+      ...prev,
+      [id]: prev[id] === false ? true : false,
+    }));
+  };
+
+  const handleExpandAllBlokir = () => {
+    const next: Record<string, boolean> = {};
+    blokirTreeResult.allParentIds.forEach((id) => (next[id] = true));
+    setExpandedBlokirNodes(next);
+  };
+
+  const handleCollapseAllBlokir = () => {
+    const next: Record<string, boolean> = {};
+    blokirTreeResult.allParentIds.forEach((id) => (next[id] = false));
+    setExpandedBlokirNodes(next);
+  };
+
+  // Drill Down State & Tree untuk Penyesuaian Pagu Manual
+  const [expandedManualNodes, setExpandedManualNodes] = useState<Record<string, boolean>>({});
+  const manualTreeResult = useMemo(() => {
+    return buildHierarchyTree(filteredManualRows, HIERARCHY_RANK);
+  }, [filteredManualRows]);
+
+  const visibleManualRows = useMemo(() => {
+    if (searchQuery.trim()) return filteredManualRows;
+    return getVisibleRowsFromTree(manualTreeResult.tree, expandedManualNodes);
+  }, [manualTreeResult, expandedManualNodes, filteredManualRows, searchQuery]);
+
+  const toggleManualExpand = (id: string) => {
+    setExpandedManualNodes((prev) => ({
+      ...prev,
+      [id]: prev[id] === false ? true : false,
+    }));
+  };
+
+  const handleExpandAllManual = () => {
+    const next: Record<string, boolean> = {};
+    manualTreeResult.allParentIds.forEach((id) => (next[id] = true));
+    setExpandedManualNodes(next);
+  };
+
+  const handleCollapseAllManual = () => {
+    const next: Record<string, boolean> = {};
+    manualTreeResult.allParentIds.forEach((id) => (next[id] = false));
+    setExpandedManualNodes(next);
+  };
 
   const summaryStats = useMemo(() => {
     const totalPaguAll = blokirRows.reduce((acc, r) => (r.type === "program" ? acc + r.jumlah : acc), 0) || 743651000;
@@ -1506,8 +1693,27 @@ export default function AutomaticAdjustmentPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-slate-500 font-medium">Unit Kerja:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 bg-slate-50 dark:bg-slate-800/60">
+                <button
+                  type="button"
+                  onClick={handleExpandAllBlokir}
+                  className="px-2 py-1 rounded text-[11px] font-bold bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs hover:bg-amber-50 cursor-pointer"
+                  title="Buka seluruh drill-down s.d. Detail Belanja"
+                >
+                  Expand All
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCollapseAllBlokir}
+                  className="px-2 py-1 rounded text-[11px] font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-xs hover:bg-slate-100 cursor-pointer"
+                  title="Tutup drill-down"
+                >
+                  Collapse All
+                </button>
+              </div>
+
+              <span className="text-slate-500 font-medium ml-2">Unit Kerja:</span>
               <select
                 value={selectedUnit}
                 onChange={(e) => setSelectedUnit(e.target.value)}
@@ -1552,7 +1758,9 @@ export default function AutomaticAdjustmentPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-sans">
-                {filteredBlokirRows.map((row) => {
+                {visibleBlokirRows.map((row) => {
+                  const hasChildren = !!blokirTreeResult.hasChildrenMap[row.id];
+                  const isExpanded = expandedBlokirNodes[row.id] !== false;
                   const isBlocked = row.blokir > 0;
                   const isDetail = row.type === "detail";
                   const isHeader = row.type === "header1" || row.type === "header2";
@@ -1585,9 +1793,30 @@ export default function AutomaticAdjustmentPage() {
 
                       <td className="p-2 border-r border-slate-200 dark:border-slate-700 align-top">
                         <div style={{ paddingLeft: `${paddingLeftPx}px` }} className="space-y-0.5">
-                          <span className={isDetail ? "text-slate-700 dark:text-slate-300" : isHeader ? "font-semibold italic text-slate-800 dark:text-slate-200" : ""}>
-                            {row.uraian}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {hasChildren ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleBlokirExpand(row.id)}
+                                className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 cursor-pointer transition-colors shrink-0"
+                                title={isExpanded ? "Ciutkan level ini" : "Buka drill-down"}
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                ) : (
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="w-4 inline-block shrink-0" />
+                            )}
+                            <span
+                              onClick={() => hasChildren && toggleBlokirExpand(row.id)}
+                              className={`${hasChildren ? "cursor-pointer hover:underline " : ""}${isDetail ? "text-slate-700 dark:text-slate-300" : isHeader ? "font-semibold italic text-slate-800 dark:text-slate-200" : isAkun ? "font-bold text-blue-700 dark:text-blue-400" : "font-bold text-slate-900 dark:text-slate-100"}`}
+                            >
+                              {row.uraian}
+                            </span>
+                          </div>
                           <span className="block text-[10px] text-slate-400 font-mono">
                             Unit: {row.unitKerja} • Level: {row.type.toUpperCase()}
                           </span>
@@ -1759,8 +1988,28 @@ export default function AutomaticAdjustmentPage() {
           {/* ── METODE 2: AUTOMATIC ADJUSTMENT MANUAL (s.d. Detail Belanja dengan Nomenklatur Baru) ── */}
           {paguMode === "manual" && (
             <div className="space-y-4 animate-in fade-in">
-              <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200">
-                <strong>Format Kertas Kerja Manual:</strong> Seperti pada submenu Isian RAB yang ditampilkan s.d. detail belanja, dengan penambahan kolom <strong>KETERANGAN</strong> setelah kolom JUMLAH. Setelah klik OK / Simpan, nominal pada kolom JUMLAH akan disesuaikan angkanya dengan isian user role BINCANG atau Super Admin.
+              <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <strong>Format Kertas Kerja Manual:</strong> Seperti pada submenu Isian RAB yang ditampilkan s.d. detail belanja, dengan penambahan kolom <strong>KETERANGAN</strong> setelah kolom JUMLAH. Setelah klik OK / Simpan, nominal pada kolom JUMLAH akan disesuaikan angkanya dengan isian user role BINCANG atau Super Admin.
+                </div>
+                <div className="flex items-center gap-1 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 bg-white dark:bg-slate-800 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleExpandAllManual}
+                    className="px-2 py-1 rounded text-[11px] font-bold bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs hover:bg-blue-100 cursor-pointer"
+                    title="Buka seluruh drill-down s.d. Detail Belanja"
+                  >
+                    Expand All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCollapseAllManual}
+                    className="px-2 py-1 rounded text-[11px] font-bold bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-xs hover:bg-slate-100 cursor-pointer"
+                    title="Tutup drill-down"
+                  >
+                    Collapse All
+                  </button>
+                </div>
               </div>
 
               {/* Tabel Kertas Kerja Manual s.d. Detail Belanja */}
@@ -1780,7 +2029,9 @@ export default function AutomaticAdjustmentPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-sans">
-                    {filteredManualRows.map((row) => {
+                    {visibleManualRows.map((row) => {
+                      const hasChildren = !!manualTreeResult.hasChildrenMap[row.id];
+                      const isExpanded = expandedManualNodes[row.id] !== false;
                       const isChanged = row.jumlahMenjadi !== row.jumlahSemula;
                       const isDetail = row.type === "detail";
                       const isHeader = row.type === "header1" || row.type === "header2";
@@ -1801,9 +2052,30 @@ export default function AutomaticAdjustmentPage() {
                           </td>
                           <td className="p-2 border-r border-slate-200 dark:border-slate-700 align-top">
                             <div style={{ paddingLeft: `${paddingLeftPx}px` }} className="space-y-0.5">
-                              <span className={isDetail ? "text-slate-700 dark:text-slate-300 font-normal" : isHeader ? "font-semibold italic text-slate-800 dark:text-slate-200" : isAkun ? "font-bold text-blue-700 dark:text-blue-400" : "font-medium"}>
-                                {row.uraian}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                {hasChildren ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleManualExpand(row.id)}
+                                    className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 cursor-pointer transition-colors shrink-0"
+                                    title={isExpanded ? "Ciutkan level ini" : "Buka drill-down"}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    ) : (
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="w-4 inline-block shrink-0" />
+                                )}
+                                <span
+                                  onClick={() => hasChildren && toggleManualExpand(row.id)}
+                                  className={`${hasChildren ? "cursor-pointer hover:underline " : ""}${isDetail ? "text-slate-700 dark:text-slate-300 font-normal" : isHeader ? "font-semibold italic text-slate-800 dark:text-slate-200" : isAkun ? "font-bold text-blue-700 dark:text-blue-400" : "font-bold text-slate-900 dark:text-slate-100"}`}
+                                >
+                                  {row.uraian}
+                                </span>
+                              </div>
                               <span className="block text-[10px] text-slate-400 font-mono">
                                 Unit: {row.unitKerja} • Level: {row.type.toUpperCase()}
                               </span>

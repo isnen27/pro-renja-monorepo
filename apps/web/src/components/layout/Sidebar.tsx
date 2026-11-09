@@ -62,10 +62,21 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
   // Filtered menu items when searching & role based
   const filteredGroups = useMemo(() => {
     const isOperatorOrApprover = userRole === "Operator" || userRole === "Approver";
+    const isBincangOrSuperAdmin = userRole === "BINCANG" || userRole === "Super Admin";
 
     // Modifikasi item menu sesuai hak akses role
     const roleAdjustedConfig = menuConfig.map((group) => {
       const items = group.items.map((item) => {
+        // Untuk menu Renja Eselon I: submenu "Monitoring Penilaian" hanya untuk BINCANG & Super Admin
+        if (item.label === "Renja Eselon I") {
+          return {
+            ...item,
+            submenu: item.submenu?.filter(
+              (sub) => sub.label !== "Monitoring Penilaian" || isBincangOrSuperAdmin
+            ),
+          };
+        }
+
         // Untuk menu RAB: jika Operator atau Approver, tampilkan Isian RAB, RPD, Forum Penelaahan, Revisi Anggaran, dan Laporan RAB
         if (item.label === "Rencana Anggaran Biaya (RAB)" && isOperatorOrApprover) {
           return {
