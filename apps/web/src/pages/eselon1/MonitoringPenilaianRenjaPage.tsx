@@ -732,15 +732,15 @@ export default function MonitoringPenilaianRenjaPage() {
                 <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <span>Sangat Baik (&ge;85)</span>
+                    <span>Sangat Baik (≥85)</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                    <span>Baik / Memadai (&ge;65)</span>
+                    <span>Baik / Memadai (≥65)</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                    <span>Perlu Perbaikan (&lt;65)</span>
+                    <span>Perlu Perbaikan (&lt; 65)</span>
                   </span>
                 </div>
               </div>

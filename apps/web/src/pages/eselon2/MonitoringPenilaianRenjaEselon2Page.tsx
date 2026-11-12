@@ -397,6 +397,17 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
         >
           Matriks Komparasi 12 Sub-Dimensi
         </button>
+        <button
+          onClick={() => setActiveTabDetail("grafik")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            activeTabDetail === "grafik"
+              ? "bg-indigo-600 text-white shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Grafik Hasil Penilaian</span>
+        </button>
       </div>
 
       {/* ── TAB 1: KOMPILASI REKAPITULASI 3 TIM PENILAI ── */}
@@ -646,6 +657,302 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── TAB 3: GRAFIK HASIL PENILAIAN (SELURUH UNIT, PER UNIT, PER EVALUATOR) ── */}
+      {activeTabDetail === "grafik" && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Sub-Filter Grafik */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                <span>Visualisasi & Grafik Hasil Penilaian Renja Eselon II</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Komparasi visual capaian nilai mutu perencanaan strategis seluruh unit kerja operasional, distribusi skor 4 dimensi, dan profil evaluasi antar-tim.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold shrink-0">
+              <button
+                type="button"
+                onClick={() => setChartMode("semua_unit")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  chartMode === "semua_unit"
+                    ? "bg-indigo-600 text-white shadow-xs font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                1. Seluruh Unit Kerja (16 Unit)
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartMode("per_unit")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  chartMode === "per_unit"
+                    ? "bg-indigo-600 text-white shadow-xs font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                2. Per Unit Kerja ({selectedUnit})
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartMode("per_evaluator")}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  chartMode === "per_evaluator"
+                    ? "bg-indigo-600 text-white shadow-xs font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                3. Per Evaluator (3 Tim)
+              </button>
+            </div>
+          </div>
+
+          {/* MODE 1: GRAFIK SELURUH UNIT KERJA (16 UNIT) */}
+          {chartMode === "semua_unit" && (
+            <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Peringkat Nilai Konsensus Evaluasi Renja Eselon II (Skala 0 - 100)
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Rata-rata tertimbang gabungan Tim Perencanaan, Tim Penganggaran, dan Inspektorat untuk seluruh unit kerja.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span>Sangat Baik (≥85)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span>Baik / Memadai (≥65)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span>Perlu Perbaikan (&lt;65)</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Bar Chart Horizontal Seluruh Unit */}
+              <div className="space-y-3 pt-1">
+                {allUnitsRanking.map((item, idx) => {
+                  const isCurrent = item.kode === selectedUnit;
+                  const barColor =
+                    item.score >= 85
+                      ? "bg-emerald-500"
+                      : item.score >= 65
+                      ? "bg-blue-500"
+                      : "bg-rose-500";
+
+                  return (
+                    <div
+                      key={item.kode}
+                      onClick={() => setSelectedUnit(item.kode)}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        isCurrent
+                          ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 shadow-xs"
+                          : "bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            idx === 0
+                              ? "bg-amber-400 text-amber-900"
+                              : idx === 1
+                              ? "bg-slate-300 text-slate-800"
+                              : idx === 2
+                              ? "bg-amber-600 text-white"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100">{item.kode}</span>
+                          <span className="text-[11px] text-slate-500 truncate max-w-[280px] sm:max-w-md">
+                            {item.nama}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-[11px] text-slate-500">
+                            {item.score5.toFixed(2)} / 5.00
+                          </span>
+                          <span className="font-bold text-slate-900 dark:text-white text-xs w-14 text-right">
+                            {item.score.toFixed(1)} / 100
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bar Fill */}
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                          style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* MODE 2: GRAFIK PER UNIT KERJA (BREAKDOWN 4 DIMENSI UNIT TERPILIH) */}
+          {chartMode === "per_unit" && (
+            <div className="space-y-5">
+              <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                      Profil Capaian 4 Dimensi Evaluasi: {selectedUnit} ({selectedUnitName})
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Rincian bobot, nilai konsensus antar-tim penilai, dan persentase ketercapaian per dimensi.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400 block">Total Nilai Konsensus:</span>
+                    <span className="text-lg font-black text-indigo-600 font-mono">
+                      {konsensusSummary.avg100.toFixed(1)} <span className="text-xs font-semibold text-slate-500">/ 100</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Cards Grid Dimensi */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {KERANGKA_EVALUASI_RENJA_ESELON2.map((dim) => {
+                    const dimVals = evaluationRecords.map((r) => r.skorPerDimensi[dim.id] || 0);
+                    const avgDim = dimVals.reduce((a, b) => a + b, 0) / (dimVals.length || 1);
+                    const pctDim = (avgDim / 5) * 100;
+                    const kontribusiDim = avgDim * dim.bobot;
+
+                    return (
+                      <div
+                        key={dim.id}
+                        className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                              {dim.nama}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              Bobot Dimensi: {(dim.bobot * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <span className="text-base font-black text-indigo-600">
+                              {avgDim.toFixed(2)}
+                            </span>
+                            <span className="text-[10px] text-slate-400"> / 5.00</span>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500"
+                              style={{ width: `${pctDim}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                            <span>Ketercapaian: {pctDim.toFixed(1)}%</span>
+                            <span>Kontribusi: {kontribusiDim.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        {/* Breakdown Sub-Dimensi Mini Bar */}
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 space-y-1.5">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                            Sub-Dimensi:
+                          </span>
+                          {dim.subDimensi.map((sub) => {
+                            const subVals = evaluationRecords.map((r) => r.scoresMap[sub.id] || 3);
+                            const avgSub = subVals.reduce((a, b) => a + b, 0) / (subVals.length || 1);
+                            return (
+                              <div key={sub.id} className="flex items-center justify-between text-[10px]">
+                                <span className="text-slate-600 dark:text-slate-400 truncate max-w-[200px]" title={sub.nama}>
+                                  {sub.id} {sub.nama.replace(sub.id, "").trim()}
+                                </span>
+                                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                                  {avgSub.toFixed(1)} / 5
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODE 3: GRAFIK PER EVALUATOR (KOMPARASI 3 TIM PENILAI) */}
+          {chartMode === "per_evaluator" && (
+            <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="pb-3 border-b border-[var(--border)]">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Komparasi Nilai Antar-Evaluator ({selectedUnit})
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Perbandingan profil skor dari Tim Perencanaan, Tim Penganggaran, dan Inspektorat pada unit yang sedang dievaluasi.
+                </p>
+              </div>
+
+              {/* 3 Columns Card Evaluator */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {evaluationRecords.map((rec) => (
+                  <div
+                    key={rec.evaluator.id}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 space-y-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${rec.evaluator.badgeColor}`}>
+                        {rec.evaluator.tim.split(" ")[1] || rec.evaluator.tim}
+                      </span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900 dark:text-white">{rec.evaluator.nama}</h5>
+                      <p className="text-[10px] text-slate-400">{rec.evaluator.roleBadge}</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-center space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Total Nilai:</span>
+                      <div className="text-2xl font-black text-indigo-600 font-mono">
+                        {rec.totalSkala100.toFixed(1)}
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500">
+                        ({rec.totalSkala5.toFixed(2)} / 5.00)
+                      </span>
+                    </div>
+
+                    {/* Breakdown per Dimensi */}
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Skor per Dimensi:</span>
+                      {KERANGKA_EVALUASI_RENJA_ESELON2.map((d) => (
+                        <div key={d.id} className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-600 dark:text-slate-400 truncate max-w-[150px]">
+                            {d.id}. {d.nama.split(". ")[1] || d.nama}
+                          </span>
+                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                            {(rec.skorPerDimensi[d.id] || 0).toFixed(2)} / 5
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
