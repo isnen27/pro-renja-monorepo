@@ -865,14 +865,15 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
                   <div>
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                      Profil Capaian 4 Dimensi Evaluasi: {selectedUnit} ({selectedUnitName})
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <span>Radar Capaian 4 Dimensi Evaluasi: {selectedUnit} ({selectedUnitName})</span>
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Rincian bobot, nilai konsensus antar-tim penilai, dan persentase ketercapaian per dimensi.
+                      Visualisasi spider / radar chart profil capaian 4 dimensi evaluasi Renja Eselon II beserta rincian bobot dan sub-dimensi.
                     </p>
                   </div>
                   <div className="text-right">
@@ -882,6 +883,179 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
                     </span>
                   </div>
                 </div>
+
+                {/* ── GRAFIK RADAR (SPIDER CHART) 4 DIMENSI ESELON II ── */}
+                {(() => {
+                  const cx = 250;
+                  const cy = 200;
+                  const maxR = 125;
+                  const totalAxes = KERANGKA_EVALUASI_RENJA_ESELON2.length;
+
+                  // Data koordinat sumbu & titik capaian unit terpilih
+                  const dimStats = KERANGKA_EVALUASI_RENJA_ESELON2.map((dim, i) => {
+                    const angle = (i * 2 * Math.PI) / totalAxes - Math.PI / 2;
+                    const dimVals = evaluationRecords.map((r) => r.skorPerDimensi[dim.id] || 0);
+                    const avgDim = dimVals.reduce((a, b) => a + b, 0) / (dimVals.length || 1);
+                    const ratio = Math.max(0, Math.min(1, avgDim / 5));
+                    const px = cx + maxR * ratio * Math.cos(angle);
+                    const py = cy + maxR * ratio * Math.sin(angle);
+                    const axisX = cx + maxR * Math.cos(angle);
+                    const axisY = cy + maxR * Math.sin(angle);
+                    const labelR = maxR + 18;
+                    const labelX = cx + labelR * Math.cos(angle);
+                    const labelY = cy + labelR * Math.sin(angle);
+                    const cosA = Math.cos(angle);
+                    const anchor = Math.abs(cosA) < 0.25 ? "middle" : cosA > 0 ? "start" : "end";
+
+                    return {
+                      dim,
+                      avgDim,
+                      ratio,
+                      angle,
+                      px,
+                      py,
+                      axisX,
+                      axisY,
+                      labelX,
+                      labelY,
+                      anchor,
+                    };
+                  });
+
+                  // Polygon points string untuk skor capaian
+                  const polygonPoints = dimStats.map((d) => `${d.px},${d.py}`).join(" ");
+
+                  // Ring poligon background skala 1, 2, 3, 4, 5
+                  const ringLevels = [1, 2, 3, 4, 5];
+
+                  return (
+                    <div className="flex flex-col xl:flex-row items-center justify-between gap-6 py-2 px-1">
+                      {/* SVG Canvas Radar Chart dengan padding cukup agar label tidak terpotong */}
+                      <div className="w-full xl:flex-1 flex items-center justify-center overflow-x-auto py-2">
+                        <svg
+                          viewBox="0 0 500 400"
+                          className="w-full max-w-[500px] h-auto max-h-[380px] overflow-visible drop-shadow-sm select-none"
+                        >
+                          {/* Concentric rings (Level 1..5) */}
+                          {ringLevels.map((lvl) => {
+                            const rLvl = (maxR * lvl) / 5;
+                            const ringPoints = Array.from({ length: totalAxes })
+                              .map((_, i) => {
+                                const angle = (i * 2 * Math.PI) / totalAxes - Math.PI / 2;
+                                return `${cx + rLvl * Math.cos(angle)},${cy + rLvl * Math.sin(angle)}`;
+                              })
+                              .join(" ");
+
+                            return (
+                              <g key={lvl}>
+                                <polygon
+                                  points={ringPoints}
+                                  fill={lvl === 5 ? "rgba(99, 102, 241, 0.04)" : "none"}
+                                  stroke={lvl === 5 ? "rgba(99, 102, 241, 0.4)" : "rgba(148, 163, 184, 0.28)"}
+                                  strokeWidth={lvl === 5 ? 1.5 : 1}
+                                  strokeDasharray={lvl < 5 ? "3 3" : undefined}
+                                />
+                                <text
+                                  x={cx + 4}
+                                  y={cy - rLvl + 10}
+                                  fontSize="9"
+                                  fontWeight="600"
+                                  className="fill-slate-400 font-mono"
+                                >
+                                  {lvl}
+                                </text>
+                              </g>
+                            );
+                          })}
+
+                          {/* Axis lines dari pusat ke setiap vertex */}
+                          {dimStats.map((d, i) => (
+                            <line
+                              key={i}
+                              x1={cx}
+                              y1={cy}
+                              x2={d.axisX}
+                              y2={d.axisY}
+                              stroke="rgba(148, 163, 184, 0.35)"
+                              strokeWidth={1}
+                            />
+                          ))}
+
+                          {/* Data Polygon Fill & Stroke */}
+                          <polygon
+                            points={polygonPoints}
+                            fill="rgba(99, 102, 241, 0.25)"
+                            stroke="#4f46e5"
+                            strokeWidth={2.5}
+                            strokeLinejoin="round"
+                            className="transition-all duration-500 hover:fill-indigo-500/35"
+                          />
+
+                          {/* Vertex Dots & Values */}
+                          {dimStats.map((d, i) => (
+                            <g key={i} className="cursor-pointer group">
+                              <circle
+                                cx={d.px}
+                                cy={d.py}
+                                r={5}
+                                fill="#4f46e5"
+                                stroke="#ffffff"
+                                strokeWidth={2}
+                                className="transition-transform group-hover:scale-125"
+                              />
+                              {/* Label Dimensi di Ujung Sumbu */}
+                              <text
+                                x={d.labelX}
+                                y={d.labelY}
+                                textAnchor={d.anchor}
+                                dominantBaseline="central"
+                                fontSize="10.5"
+                                fontWeight="700"
+                                className="fill-slate-800 dark:fill-slate-200"
+                              >
+                                D{d.dim.id}. {d.dim.nama.split(". ")[1] || d.dim.nama}
+                              </text>
+                            </g>
+                          ))}
+                        </svg>
+                      </div>
+
+                      {/* Legend & Summary Box di samping Radar Chart */}
+                      <div className="w-full xl:w-80 space-y-3 bg-slate-50/90 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shrink-0">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            Rangkuman Skor Radar
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold">
+                            Skala 1 - 5
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {dimStats.map((d) => (
+                            <div key={d.dim.id} className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1.5 truncate max-w-[180px]" title={d.dim.nama}>
+                                <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
+                                <span className="text-slate-600 dark:text-slate-400 truncate">
+                                  D{d.dim.id}. {d.dim.nama.split(". ")[1] || d.dim.nama}
+                                </span>
+                              </div>
+                              <div className="font-mono text-right shrink-0">
+                                <span className="font-bold text-slate-900 dark:text-white">
+                                  {d.avgDim.toFixed(2)}
+                                </span>
+                                <span className="text-[10px] text-slate-400"> ({(d.dim.bobot * 100).toFixed(0)}%)</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 flex justify-between items-center">
+                          <span>Predikat Mutu:</span>
+                          <span className="font-bold text-indigo-600 font-mono">{konsensusSummary.predikat}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 4 Cards Grid Dimensi */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">

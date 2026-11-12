@@ -898,9 +898,9 @@ export default function MonitoringPenilaianRenjaPage() {
 
                 {/* ── GRAFIK RADAR (SPIDER CHART) 6 DIMENSI ── */}
                 {(() => {
-                  const cx = 210;
-                  const cy = 210;
-                  const maxR = 140;
+                  const cx = 250;
+                  const cy = 200;
+                  const maxR = 125;
                   const totalAxes = KERANGKA_EVALUASI_RENJA_STRATEGIS.length;
 
                   // Data koordinat sumbu & titik capaian unit terpilih
@@ -913,8 +913,11 @@ export default function MonitoringPenilaianRenjaPage() {
                     const py = cy + maxR * ratio * Math.sin(angle);
                     const axisX = cx + maxR * Math.cos(angle);
                     const axisY = cy + maxR * Math.sin(angle);
-                    const labelX = cx + (maxR + 28) * Math.cos(angle);
-                    const labelY = cy + (maxR + 22) * Math.sin(angle);
+                    const labelR = maxR + 18;
+                    const labelX = cx + labelR * Math.cos(angle);
+                    const labelY = cy + labelR * Math.sin(angle);
+                    const cosA = Math.cos(angle);
+                    const anchor = Math.abs(cosA) < 0.25 ? "middle" : cosA > 0 ? "start" : "end";
 
                     return {
                       dim,
@@ -927,6 +930,7 @@ export default function MonitoringPenilaianRenjaPage() {
                       axisY,
                       labelX,
                       labelY,
+                      anchor,
                     };
                   });
 
@@ -937,12 +941,12 @@ export default function MonitoringPenilaianRenjaPage() {
                   const ringLevels = [1, 2, 3, 4, 5];
 
                   return (
-                    <div className="flex flex-col lg:flex-row items-center justify-center gap-8 py-4 px-2">
-                      {/* SVG Canvas Radar Chart */}
-                      <div className="relative shrink-0 flex items-center justify-center">
+                    <div className="flex flex-col xl:flex-row items-center justify-between gap-6 py-2 px-1">
+                      {/* SVG Canvas Radar Chart dengan padding cukup agar label tidak terpotong */}
+                      <div className="w-full xl:flex-1 flex items-center justify-center overflow-x-auto py-2">
                         <svg
-                          viewBox="0 0 420 420"
-                          className="w-[320px] h-[320px] sm:w-[380px] sm:h-[380px] overflow-visible drop-shadow-sm select-none"
+                          viewBox="0 0 500 400"
+                          className="w-full max-w-[500px] h-auto max-h-[380px] overflow-visible drop-shadow-sm select-none"
                         >
                           {/* Concentric rings (Level 1..5) */}
                           {ringLevels.map((lvl) => {
@@ -958,8 +962,8 @@ export default function MonitoringPenilaianRenjaPage() {
                               <g key={lvl}>
                                 <polygon
                                   points={ringPoints}
-                                  fill={lvl === 5 ? "rgba(99, 102, 241, 0.03)" : "none"}
-                                  stroke={lvl === 5 ? "rgba(99, 102, 241, 0.35)" : "rgba(148, 163, 184, 0.25)"}
+                                  fill={lvl === 5 ? "rgba(99, 102, 241, 0.04)" : "none"}
+                                  stroke={lvl === 5 ? "rgba(99, 102, 241, 0.4)" : "rgba(148, 163, 184, 0.28)"}
                                   strokeWidth={lvl === 5 ? 1.5 : 1}
                                   strokeDasharray={lvl < 5 ? "3 3" : undefined}
                                 />
@@ -984,7 +988,7 @@ export default function MonitoringPenilaianRenjaPage() {
                               y1={cy}
                               x2={d.axisX}
                               y2={d.axisY}
-                              stroke="rgba(148, 163, 184, 0.3)"
+                              stroke="rgba(148, 163, 184, 0.35)"
                               strokeWidth={1}
                             />
                           ))}
@@ -992,11 +996,11 @@ export default function MonitoringPenilaianRenjaPage() {
                           {/* Data Polygon Fill & Stroke */}
                           <polygon
                             points={polygonPoints}
-                            fill="rgba(99, 102, 241, 0.28)"
+                            fill="rgba(99, 102, 241, 0.25)"
                             stroke="#4f46e5"
                             strokeWidth={2.5}
                             strokeLinejoin="round"
-                            className="transition-all duration-500 hover:fill-indigo-500/40"
+                            className="transition-all duration-500 hover:fill-indigo-500/35"
                           />
 
                           {/* Vertex Dots & Values */}
@@ -1015,13 +1019,7 @@ export default function MonitoringPenilaianRenjaPage() {
                               <text
                                 x={d.labelX}
                                 y={d.labelY}
-                                textAnchor={
-                                  Math.abs(d.labelX - cx) < 15
-                                    ? "middle"
-                                    : d.labelX > cx
-                                    ? "start"
-                                    : "end"
-                                }
+                                textAnchor={d.anchor}
                                 dominantBaseline="central"
                                 fontSize="10.5"
                                 fontWeight="700"
@@ -1035,7 +1033,7 @@ export default function MonitoringPenilaianRenjaPage() {
                       </div>
 
                       {/* Legend & Summary Box di samping Radar Chart */}
-                      <div className="w-full lg:w-72 space-y-3 bg-slate-50/80 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="w-full xl:w-80 space-y-3 bg-slate-50/90 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shrink-0">
                         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                             Rangkuman Skor Radar
@@ -1047,7 +1045,7 @@ export default function MonitoringPenilaianRenjaPage() {
                         <div className="space-y-2">
                           {dimStats.map((d) => (
                             <div key={d.dim.id} className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-1.5 truncate max-w-[170px]" title={d.dim.nama}>
+                              <div className="flex items-center gap-1.5 truncate max-w-[180px]" title={d.dim.nama}>
                                 <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
                                 <span className="text-slate-600 dark:text-slate-400 truncate">
                                   D{d.dim.id}. {d.dim.nama.split(". ")[1] || d.dim.nama}
@@ -1062,9 +1060,9 @@ export default function MonitoringPenilaianRenjaPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 flex justify-between">
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 flex justify-between items-center">
                           <span>Predikat Mutu:</span>
-                          <span className="font-bold text-indigo-600">{konsensusSummary.predikat}</span>
+                          <span className="font-bold text-indigo-600 font-mono">{konsensusSummary.predikat}</span>
                         </div>
                       </div>
                     </div>
