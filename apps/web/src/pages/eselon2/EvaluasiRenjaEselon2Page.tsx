@@ -279,11 +279,11 @@ export default function EvaluasiRenjaEselon2Page() {
             <span>/</span>
             <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon II</Link>
             <span>/</span>
-            <span className="text-[var(--primary)] font-semibold">Evaluasi Renja Eselon III</span>
+            <span className="text-[var(--primary)] font-semibold">Evaluasi Renja Eselon II</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] flex items-center gap-2.5">
             <FileCheck2 className="h-6 w-6 text-indigo-600" />
-            <span>Evaluasi Renja Eselon III (Tingkat Strategis)</span>
+            <span>Evaluasi Renja Eselon II</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Kerangka analitis evaluasi dokumen Renja Eselon II berbasis 4 Dimensi &amp; 12 Sub-Dimensi dengan dukungan Local AI Agent (Offline/On-Premise).

@@ -273,7 +273,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           to="/eselon2/evaluasi"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
         >
-          <span>Kembali ke Evaluasi Renja Eselon III</span>
+          <span>Kembali ke Evaluasi Renja Eselon II</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -290,13 +290,13 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
             <span>/</span>
             <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon II</Link>
             <span>/</span>
-            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon III</Link>
+            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon II</Link>
             <span>/</span>
-            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian</span>
+            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian Renja Eselon II</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] flex items-center gap-2.5">
             <ClipboardCheck className="h-6 w-6 text-indigo-600" />
-            <span>Monitoring Penilaian Renja Eselon III (Multi-Evaluator)</span>
+            <span>Monitoring Penilaian Renja Eselon II</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Kompilasi dan agregasi hasil evaluasi dokumen Renja dari Tim Perencanaan, Tim Penganggaran, dan Inspektorat (Khusus Approver BINCANG &amp; Super Admin).
