@@ -842,6 +842,54 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           {/* MODE 2: GRAFIK PER UNIT KERJA (BREAKDOWN 4 DIMENSI UNIT TERPILIH) */}
           {chartMode === "per_unit" && (
             <div className="space-y-5">
+              {/* Unit Selector Bar Khusus Mode Grafik Per Unit Eselon II */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Pilih Unit Kerja Eselon II:
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="w-full sm:w-80 px-3 py-1.5 rounded-xl border border-indigo-300 dark:border-indigo-800 bg-white dark:bg-slate-800 text-xs font-bold text-indigo-950 dark:text-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
+                  >
+                    {LIST_ESELON2_UNITS.map((u) => (
+                      <option key={u.kode} value={u.kode}>
+                        {u.kode} - {u.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Pills untuk akses cepat unit kerja utama */}
+              <div className="flex flex-wrap items-center gap-1.5 px-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                  Akses Cepat:
+                </span>
+                {LIST_ESELON2_UNITS.map((u) => {
+                  const isCurrent = u.kode === selectedUnit;
+                  return (
+                    <button
+                      key={u.kode}
+                      type="button"
+                      onClick={() => setSelectedUnit(u.kode)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        isCurrent
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      }`}
+                      title={u.nama}
+                    >
+                      {u.kode}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
                   <div>

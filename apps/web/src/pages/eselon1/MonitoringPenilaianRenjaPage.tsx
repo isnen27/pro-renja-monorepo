@@ -845,6 +845,38 @@ export default function MonitoringPenilaianRenjaPage() {
           {/* MODE 2: GRAFIK PER UNIT KERJA (BREAKDOWN 6 DIMENSI UNIT TERPILIH) */}
           {chartMode === "per_unit" && (
             <div className="space-y-5">
+              {/* Unit Selector Bar Khusus Mode Grafik Per Unit */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Pilih Unit Kerja Eselon I yang Ditampilkan:
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {LIST_ESELON1_UNITS.map((u) => {
+                    const isSelected = u.kode === selectedUnit;
+                    return (
+                      <button
+                        key={u.kode}
+                        type="button"
+                        onClick={() => setSelectedUnit(u.kode)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+                        }`}
+                      >
+                        {u.kode}
+                      </button>
+                    );
+                  })}
+                  <div className="ml-2 pl-2 border-l border-slate-300 dark:border-slate-700 text-xs text-slate-500">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{selectedUnit}</span>: {selectedUnitName}
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
                   <div>
