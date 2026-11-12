@@ -310,7 +310,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           to="/eselon2/evaluasi"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
         >
-          <span>Kembali ke Evaluasi Renja Eselon III</span>
+          <span>Kembali ke Evaluasi Renja Eselon II</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -325,15 +325,15 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] font-medium mb-1">
             <span>Perencanaan &amp; Kinerja</span>
             <span>/</span>
-            <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon III</Link>
+            <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon II</Link>
             <span>/</span>
-            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon III</Link>
+            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon II</Link>
             <span>/</span>
-            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian Renja Eselon III</span>
+            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian Renja Eselon II</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] flex items-center gap-2.5">
             <ClipboardCheck className="h-6 w-6 text-indigo-600" />
-            <span>Monitoring Penilaian Renja Eselon III</span>
+            <span>Monitoring Penilaian Renja Eselon II</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Kompilasi dan agregasi hasil evaluasi dokumen Renja dari Tim Perencanaan, Tim Penganggaran, dan Inspektorat (Khusus Approver BINCANG &amp; Super Admin).
@@ -459,7 +459,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
                   <span>Daftar Nilai Tim Penilai Dokumen Renja {selectedUnit} 2027</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Setiap tim memiliki bobot setara (1/3) dalam menyusun skor konsensus akhir Renja Eselon III.
+                  Setiap tim memiliki bobot setara (1/3) dalam menyusun skor konsensus akhir Renja Eselon II.
                 </p>
               </div>
 
@@ -705,7 +705,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-indigo-600" />
-                <span>Visualisasi & Grafik Hasil Penilaian Renja Eselon III</span>
+                <span>Visualisasi & Grafik Hasil Penilaian Renja Eselon II</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Komparasi visual capaian nilai mutu perencanaan strategis seluruh unit kerja operasional, distribusi skor 4 dimensi, dan profil evaluasi antar-tim.
@@ -754,7 +754,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
                 <div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                    Peringkat Nilai Konsensus Evaluasi Renja Eselon III (Skala 0 - 100)
+                    Peringkat Nilai Konsensus Evaluasi Renja Eselon II (Skala 0 - 100)
                   </h4>
                   <p className="text-xs text-slate-500">
                     Rata-rata tertimbang gabungan Tim Perencanaan, Tim Penganggaran, dan Inspektorat untuk seluruh unit kerja.
@@ -863,31 +863,6 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Quick Pills untuk akses cepat unit kerja utama */}
-              <div className="flex flex-wrap items-center gap-1.5 px-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                  Akses Cepat:
-                </span>
-                {LIST_ESELON2_UNITS.map((u) => {
-                  const isCurrent = u.kode === selectedUnit;
-                  return (
-                    <button
-                      key={u.kode}
-                      type="button"
-                      onClick={() => setSelectedUnit(u.kode)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                        isCurrent
-                          ? "bg-indigo-600 text-white shadow-xs"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                      }`}
-                      title={u.nama}
-                    >
-                      {u.kode}
-                    </button>
-                  );
-                })}
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
