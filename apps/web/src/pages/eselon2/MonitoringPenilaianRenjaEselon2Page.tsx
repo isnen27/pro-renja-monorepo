@@ -33,6 +33,7 @@ import {
   SubDimensiEvaluasi,
 } from "../../data/kerangkaEvaluasiRenjaEselon2Data";
 import { UserRole } from "../rab/PilihHistoriRabPage";
+import unitKerjaData from "../../data/unitKerjaData.json";
 
 // Interface profil evaluator
 export interface EvaluatorProfile {
@@ -71,17 +72,17 @@ export const LIST_EVALUATOR: EvaluatorProfile[] = [
   },
 ];
 
-export interface UnitEselon1Option {
+export interface UnitEselon2Option {
   kode: string;
   nama: string;
+  cluster?: string;
 }
 
-export const LIST_ESELON1_UNITS: UnitEselon1Option[] = [
-  { kode: "SETIA", nama: "Sekretariat Utama" },
-  { kode: "TEGAS", nama: "Deputi Bidang Strategi dan Kerja Sama" },
-  { kode: "PENGASUH", nama: "Deputi Bidang Pelaporan dan Pengawasan Kepatuhan" },
-  { kode: "ASA", nama: "Deputi Bidang Analisis Transaksi Keuangan" },
-];
+export const LIST_ESELON2_UNITS: UnitEselon2Option[] = unitKerjaData.map((u) => ({
+  kode: u.singkatan,
+  nama: u.nama,
+  cluster: u.subcluster,
+}));
 
 export default function MonitoringPenilaianRenjaEselon2Page() {
   // Current user role
@@ -113,18 +114,18 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
 
   // Filter & Selected state
   const tahunAnggaran = 2027;
-  const [selectedUnit, setSelectedUnit] = useState<string>("SETIA");
+  const [selectedUnit, setSelectedUnit] = useState<string>("PATIH");
   const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
   const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">("kompilasi");
   const [chartMode, setChartMode] = useState<"semua_unit" | "per_unit" | "per_evaluator">("semua_unit");
 
   const selectedUnitName = useMemo(() => {
-    return LIST_ESELON1_UNITS.find((u) => u.kode === selectedUnit)?.nama || selectedUnit;
+    return LIST_ESELON2_UNITS.find((u) => u.kode === selectedUnit)?.nama || selectedUnit;
   }, [selectedUnit]);
 
   // Ranking & kompilasi nilai untuk seluruh 16 unit Eselon II
   const allUnitsRanking = useMemo(() => {
-    return LIST_ESELON1_UNITS.map((u) => {
+    return LIST_ESELON2_UNITS.map((u) => {
       let sumTotal = 0;
       LIST_EVALUATOR.forEach((ev) => {
         const storageKey = `evaluasi_renja_eselon2_${u.kode}_${tahunAnggaran}_${ev.id}`;
@@ -309,7 +310,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           to="/eselon2/evaluasi"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
         >
-          <span>Kembali ke Evaluasi Renja Eselon II</span>
+          <span>Kembali ke Evaluasi Renja Eselon III</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -324,15 +325,15 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] font-medium mb-1">
             <span>Perencanaan &amp; Kinerja</span>
             <span>/</span>
-            <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon II</Link>
+            <Link to="/eselon2/bab-3" className="hover:underline">Renja Eselon III</Link>
             <span>/</span>
-            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon II</Link>
+            <Link to="/eselon2/evaluasi" className="hover:underline">Evaluasi Renja Eselon III</Link>
             <span>/</span>
-            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian Renja Eselon II</span>
+            <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian Renja Eselon III</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] flex items-center gap-2.5">
             <ClipboardCheck className="h-6 w-6 text-indigo-600" />
-            <span>Monitoring Penilaian Renja Eselon II</span>
+            <span>Monitoring Penilaian Renja Eselon III</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Kompilasi dan agregasi hasil evaluasi dokumen Renja dari Tim Perencanaan, Tim Penganggaran, dan Inspektorat (Khusus Approver BINCANG &amp; Super Admin).
@@ -360,13 +361,13 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Unit Kerja */}
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-[var(--border)] shadow-xs space-y-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unit Eselon I:</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unit Eselon II:</span>
           <select
             value={selectedUnit}
             onChange={(e) => setSelectedUnit(e.target.value)}
             className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
           >
-            {LIST_ESELON1_UNITS.map((u) => (
+            {LIST_ESELON2_UNITS.map((u) => (
               <option key={u.kode} value={u.kode}>
                 {u.kode} - {u.nama}
               </option>
@@ -458,7 +459,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
                   <span>Daftar Nilai Tim Penilai Dokumen Renja {selectedUnit} 2027</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Setiap tim memiliki bobot setara (1/3) dalam menyusun skor konsensus akhir Renja Eselon II.
+                  Setiap tim memiliki bobot setara (1/3) dalam menyusun skor konsensus akhir Renja Eselon III.
                 </p>
               </div>
 
@@ -704,7 +705,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-indigo-600" />
-                <span>Visualisasi & Grafik Hasil Penilaian Renja Eselon II</span>
+                <span>Visualisasi & Grafik Hasil Penilaian Renja Eselon III</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Komparasi visual capaian nilai mutu perencanaan strategis seluruh unit kerja operasional, distribusi skor 4 dimensi, dan profil evaluasi antar-tim.
@@ -753,7 +754,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
                 <div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                    Peringkat Nilai Konsensus Evaluasi Renja Eselon II (Skala 0 - 100)
+                    Peringkat Nilai Konsensus Evaluasi Renja Eselon III (Skala 0 - 100)
                   </h4>
                   <p className="text-xs text-slate-500">
                     Rata-rata tertimbang gabungan Tim Perencanaan, Tim Penganggaran, dan Inspektorat untuk seluruh unit kerja.
