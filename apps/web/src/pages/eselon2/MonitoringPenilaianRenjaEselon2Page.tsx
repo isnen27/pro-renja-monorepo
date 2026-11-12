@@ -114,7 +114,43 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
   // Filter & Selected state
   const [selectedUnit, setSelectedUnit] = useState<string>("SETIA");
   const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
-  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara">("kompilasi");
+  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">("kompilasi");
+  const [chartMode, setChartMode] = useState<"semua_unit" | "per_unit" | "per_evaluator">("semua_unit");
+
+  const selectedUnitName = useMemo(() => {
+    return LIST_ESELON1_UNITS.find((u) => u.kode === selectedUnit)?.nama || selectedUnit;
+  }, [selectedUnit]);
+
+  // Ranking & kompilasi nilai untuk seluruh 16 unit Eselon II
+  const allUnitsRanking = useMemo(() => {
+    return LIST_ESELON1_UNITS.map((u) => {
+      let sumTotal = 0;
+      LIST_EVALUATOR.forEach((ev) => {
+        const storageKey = `evaluasi_renja_eselon2_${u.kode}_${tahunAnggaran}_${ev.id}`;
+        let sMap: Record<string, number> = {};
+        try {
+          const s = localStorage.getItem(storageKey);
+          if (s) sMap = JSON.parse(s);
+        } catch {}
+
+        let t5 = 0;
+        KERANGKA_EVALUASI_RENJA_ESELON2.forEach((dim) => {
+          const subScores = dim.subDimensi.map((sub) => sMap[sub.id] || (ev.id === 'eval-1' ? 4.1 : ev.id === 'eval-2' ? 3.6 : 3.9));
+          const avgSub = subScores.reduce((a, b) => a + b, 0) / (subScores.length || 1);
+          t5 += avgSub * dim.bobot;
+        });
+        sumTotal += t5;
+      });
+      const avg5 = sumTotal / (LIST_EVALUATOR.length || 1);
+      const score100 = (avg5 / 5) * 100;
+      return {
+        kode: u.kode,
+        nama: u.nama,
+        score5: avg5,
+        score: score100,
+      };
+    }).sort((a, b) => b.score - a.score);
+  }, [tahunAnggaran]);
 
   const tahunAnggaran = 2027;
 
