@@ -119,6 +119,11 @@ export default function EvaluasiRenjaStrategisPage() {
   const [highlightKeyword, setHighlightKeyword] = useState<string>("");
   const docScrollRef = useRef<HTMLDivElement>(null);
 
+  // State Tab Dimensi Aktif (Scroll / Tab Samping pada Lembar Kerja)
+  // 0 = Tampilkan Semua (dengan card horizontal scrollable), 1..6 = Tampilkan Dimensi Tertentu
+  const [activeDimensiTab, setActiveDimensiTab] = useState<number>(0);
+  const dimensiScrollRef = useRef<HTMLDivElement>(null);
+
   // Data Dokumen Renja Unit Terpilih
   const activeDocument: DokumenRenjaEselon1Item = useMemo(() => {
     return DOKUMEN_RENJA_ESELON1_DATA[selectedEselon1] || {
@@ -591,7 +596,7 @@ export default function EvaluasiRenjaStrategisPage() {
 
         {/* PANEL KANAN: LEMBAR KERJA EVALUASI RENJA STRATEGIS */}
         <div className={`${showDocPanel ? "xl:col-span-7" : "col-span-1"} space-y-5`}>
-          <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -602,14 +607,109 @@ export default function EvaluasiRenjaStrategisPage() {
                   Nilai setiap sub-dimensi pada skala 1-5 (1-2: Lemah/Gap Signifikan, 3: Memadai, 4-5: Kuat/Komprehensif). Kolom skor tertimbang dihitung otomatis.
                 </p>
               </div>
+
+              {/* Status Kelengkapan Lembar Kerja */}
+              <div className="flex items-center gap-2 text-xs font-semibold shrink-0">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
+                  isAllComplete
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                }`}>
+                  {isAllComplete ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>15/15 Sub-Dimensi Lengkap</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Sebagian Belum Dinilai</span>
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
 
+            {/* NAVIGASI SCROLL / TAB SAMPING PER DIMENSI */}
+            <div className="space-y-1.5 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Pilih Dimensi (Scroll Samping):</span>
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {activeDimensiTab === 0
+                    ? "Menampilkan Semua Dimensi (6 Dimensi)"
+                    : `Fokus Dimensi ke-${activeDimensiTab} dari 6`}
+                </span>
+              </div>
+
+              {/* Scroll Container Horizontal */}
+              <div
+                ref={dimensiScrollRef}
+                className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar scroll-smooth"
+              >
+                {/* Opsi Tampilkan Semua */}
+                <button
+                  type="button"
+                  onClick={() => setActiveDimensiTab(0)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    activeDimensiTab === 0
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750"
+                  }`}
+                >
+                  <span>Semua Dimensi</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] ${
+                    activeDimensiTab === 0 ? "bg-indigo-700 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  }`}>
+                    15 Sub
+                  </span>
+                </button>
+
+                {/* 6 Tombol Dimensi */}
+                {KERANGKA_EVALUASI_RENJA_STRATEGIS.map((dim) => {
+                  const dimRekap = rekapPerDimensi.find((r) => r.dimensiId === dim.id);
+                  const isSelected = activeDimensiTab === dim.id;
+
+                  return (
+                    <button
+                      key={dim.id}
+                      type="button"
+                      onClick={() => setActiveDimensiTab(dim.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750"
+                      }`}
+                      title={dim.nama}
+                    >
+                      <span>{dim.nama}</span>
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                        isSelected
+                          ? "bg-indigo-700 text-white font-bold"
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      }`}>
+                        {dimRekap?.skorDimensi.toFixed(2) || "0.00"} / 5
+                      </span>
+                      {dimRekap?.isComplete && (
+                        <Check className={`w-3.5 h-3.5 ${isSelected ? "text-emerald-300" : "text-emerald-600"}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* DAFTAR KARTU DIMENSI (DIFILTER BERDASARKAN TAB AKTIF) */}
             <div className="space-y-6">
-              {KERANGKA_EVALUASI_RENJA_STRATEGIS.map((dim) => {
+              {KERANGKA_EVALUASI_RENJA_STRATEGIS
+                .filter((dim) => activeDimensiTab === 0 || dim.id === activeDimensiTab)
+                .map((dim) => {
                 const dimRekap = rekapPerDimensi.find((r) => r.dimensiId === dim.id);
 
                 return (
-                  <div key={dim.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs">
+                  <div key={dim.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs animate-in fade-in">
                     {/* Header Dimensi */}
                     <div className="bg-[#1e588a] text-white p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <div className="space-y-0.5">
