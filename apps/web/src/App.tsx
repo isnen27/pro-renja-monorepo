@@ -26,6 +26,8 @@ const IsianBab1Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab1Eselon2
 const IsianBab2Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab2Eselon2Page"));
 const IsianBab3Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab3Eselon2Page"));
 const IsianLampiranEselon2Page = lazy(() => import("./pages/eselon2/IsianLampiranEselon2Page"));
+const EvaluasiRenjaEselon2Page = lazy(() => import("./pages/eselon2/EvaluasiRenjaEselon2Page"));
+const MonitoringPenilaianRenjaEselon2Page = lazy(() => import("./pages/eselon2/MonitoringPenilaianRenjaEselon2Page"));
 const MonitoringSubmitApproveEselon2Page = lazy(() => import("./pages/eselon2/MonitoringSubmitApproveEselon2Page"));
 
 // KAK
@@ -91,6 +93,8 @@ export default function App() {
             <Route path="/eselon2/bab-2" element={<IsianBab2Eselon2Page />} />
             <Route path="/eselon2/bab-3" element={<IsianBab3Eselon2Page />} />
             <Route path="/eselon2/lampiran" element={<IsianLampiranEselon2Page />} />
+            <Route path="/eselon2/evaluasi" element={<EvaluasiRenjaEselon2Page />} />
+            <Route path="/eselon2/monitoring-penilaian" element={<MonitoringPenilaianRenjaEselon2Page />} />
             <Route path="/eselon2/monitoring" element={<MonitoringSubmitApproveEselon2Page />} />
 
             {/* Kerangka Acuan Kerja (TOR) - sub pages */}
