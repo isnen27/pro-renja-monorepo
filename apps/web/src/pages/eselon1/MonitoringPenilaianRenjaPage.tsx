@@ -143,7 +143,7 @@ export default function MonitoringPenilaianRenjaPage() {
         if (evaluator.tim === "Tim Perencanaan (BINCANG)") {
           scoresMap = {
             "1.1": 4, "1.2": 4, "1.3": 4,
-            "2.1": 4, "2.2": 4, "2.3": 4, "2.4": 4,
+            "2.1": 4, "2.2": 4, "2.3": 4,
             "3.1": 4, "3.2": 3, "3.3": 3,
             "4.1": 3, "4.2": 3, "4.3": 3,
             "5.1": 3, "5.2": 3,
@@ -152,7 +152,7 @@ export default function MonitoringPenilaianRenjaPage() {
         } else if (evaluator.tim === "Tim Penganggaran (BINCANG)") {
           scoresMap = {
             "1.1": 4, "1.2": 3, "1.3": 3,
-            "2.1": 3, "2.2": 3, "2.3": 4, "2.4": 3,
+            "2.1": 3, "2.2": 3, "2.3": 4,
             "3.1": 3, "3.2": 3, "3.3": 4,
             "4.1": 3, "4.2": 4, "4.3": 3,
             "5.1": 4, "5.2": 3,
@@ -162,7 +162,7 @@ export default function MonitoringPenilaianRenjaPage() {
           // Inspektorat
           scoresMap = {
             "1.1": 3, "1.2": 4, "1.3": 4,
-            "2.1": 3, "2.2": 4, "2.3": 4, "2.4": 4,
+            "2.1": 3, "2.2": 4, "2.3": 4,
             "3.1": 4, "3.2": 3, "3.3": 3,
             "4.1": 3, "4.2": 3, "4.3": 4,
             "5.1": 3, "5.2": 3,
@@ -401,7 +401,7 @@ export default function MonitoringPenilaianRenjaPage() {
               : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           }`}
         >
-          Matriks Komparasi 16 Sub-Dimensi
+          Matriks Komparasi 15 Sub-Dimensi
         </button>
       </div>
 
@@ -557,7 +557,7 @@ export default function MonitoringPenilaianRenjaPage() {
         </div>
       )}
 
-      {/* ── TAB 2: MATRIKS KOMPARASI 16 SUB-DIMENSI ── */}
+      {/* ── TAB 2: MATRIKS KOMPARASI 15 SUB-DIMENSI ── */}
       {activeTabDetail === "matriks_subdimensi" && (
         <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in">
           <div className="pb-3 border-b border-[var(--border)] space-y-1">

@@ -79,7 +79,7 @@ export async function runLocalAiEvaluation(
   // Jika protocol = 'mock' atau endpoint belum aktif, gunakan simulasi analitis kontekstual
   if (config.protocol === "mock") {
     await new Promise((r) => setTimeout(r, 1500));
-    if (onProgress) onProgress("Menganalisis teks Renja berdasarkan 6 Dimensi & 16 Sub-Dimensi...");
+    if (onProgress) onProgress("Menganalisis teks Renja berdasarkan 6 Dimensi & 15 Sub-Dimensi...");
     await new Promise((r) => setTimeout(r, 1200));
     if (onProgress) onProgress("Menyusun justifikasi skor dan kutipan eviden...");
     await new Promise((r) => setTimeout(r, 800));
@@ -165,8 +165,8 @@ export async function runLocalAiEvaluation(
 
 function buildEvaluationPrompt(docText: string, unitKerja: string): string {
   return `
-Lakukan evaluasi analitis terhadap Dokumen Renja Eselon I unit ${unitKerja} berdasarkan 16 sub-dimensi pada Kertas Kerja Evaluasi Renja Strategis:
-1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 5.1, 5.2, 6.1.
+Lakukan evaluasi analitis terhadap Dokumen Renja Eselon I unit ${unitKerja} berdasarkan 15 sub-dimensi pada Kertas Kerja Evaluasi Renja Strategis:
+1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 5.1, 5.2, 6.1.
 
 Teks Dokumen (ringkasan/kutipan):
 ${docText.slice(0, 15000)}
@@ -231,31 +231,24 @@ function generateContextualMockEvaluation(docText: string, unitKerja: string): A
       },
       {
         subDimensiId: "2.1",
-        skor: 3,
-        justifikasi: "SAKIP dibahas intensif (56 kali pemunculan istilah), namun mekanisme cascading KPI organisasi hingga ke level individu SKP pegawai belum dirinci eksplisit.",
-        kutipanEviden: "Peningkatan Nilai SAKIP PPATK; Implementasi Manajemen Talenta dan Pola Karier...",
-        rekomendasiPerbaikan: "Jelaskan sistem informasi pengait KPI organisasi ke matriks peran hasil (MPH) individu ASN.",
+        skor: 4,
+        justifikasi: "Tata kelola data, standardisasi, dan pemanfaatan sistem informasi pendukung kinerja telah diuraikan secara terarah dalam rencana program kerja.",
+        kutipanEviden: "Penguatan tata kelola data, integrasi sistem informasi kinerja, serta dokumentasi bukti pelaksanaan program kerja...",
+        rekomendasiPerbaikan: "Lengkapi spesifikasi standar interoperabilitas data lintas unit serta format dokumentasi bukti kinerja.",
       },
       {
         subDimensiId: "2.2",
         skor: 4,
-        justifikasi: "Cakupan SPIP dan manajemen risiko sangat kuat, terbukti dengan identifikasi 12 isu strategis dan peran pengendalian internal.",
-        kutipanEviden: "Meningkatkan keandalan pengendalian internal PPATK serta mitigasi risiko kepatuhan...",
-        rekomendasiPerbaikan: "Tampilkan tabel daftar risiko tinggi (high risk) dan rencana mitigasi per program aksi.",
+        justifikasi: "Cakupan pengendalian internal (SPIP) dan pendekatan berbasis risiko (NRA/SRA/profil risiko) sudah mengarahkan fokus prioritas kegiatan.",
+        kutipanEviden: "Meningkatkan keandalan pengendalian internal serta mitigasi risiko operasional dan kepatuhan berbasis peta risiko...",
+        rekomendasiPerbaikan: "Tampilkan matriks risiko tinggi (high risk) beserta langkah pengendalian mutu dan mitigasi per program kerja.",
       },
       {
         subDimensiId: "2.3",
-        skor: 4,
-        justifikasi: "Fokus komponen Reformasi Birokrasi (RB General) diprioritaskan berdasarkan 3 kriteria logis (bobot tinggi dan capaian belum optimal).",
-        kutipanEviden: "Penentuan program kerja 2027 didasarkan pada komponen RB berbobot tinggi dan komponen yang nilainya masih belum optimal.",
-        rekomendasiPerbaikan: "Pertahankan kriteria pemilihan program berbasis bobot komponen pengungkit RB.",
-      },
-      {
-        subDimensiId: "2.4",
-        skor: 4,
-        justifikasi: "Pembangunan Zona Integritas (WBK/WBBM) dipetakan dengan jelas untuk menjamin keberlanjutan unit percontohan.",
-        kutipanEviden: "Peningkatan Kualitas dan Keberlanjutan Pembangunan Zona Integritas (ZI) di seluruh lingkungan PPATK.",
-        rekomendasiPerbaikan: "Uraikan inovasi spesifik per area perubahan pada lembar lampiran Renja.",
+        skor: 3,
+        justifikasi: "Mekanisme pemantauan dan evaluasi pelaksanaan program sudah dicantumkan, namun siklus pelacakan umpan balik pemanfaatan output oleh pemangku kepentingan masih dapat diperjelas.",
+        kutipanEviden: "Pelaksanaan pemantauan dan evaluasi berkala serta tindak lanjut pemanfaatan hasil/rekomendasi kepada pemangku kepentingan...",
+        rekomendasiPerbaikan: "Tetapkan jadwal monev triwulanan/semesteran yang tegas serta instrumen pengumpulan feedback penerima output.",
       },
       {
         subDimensiId: "3.1",

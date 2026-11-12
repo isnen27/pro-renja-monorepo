@@ -246,7 +246,7 @@ export default function EvaluasiRenjaStrategisPage() {
             <span>Evaluasi Renja Level Strategis (Eselon I)</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            Kerangka analitis evaluasi dokumen Renja Eselon I berbasis 6 Dimensi &amp; 16 Sub-Dimensi dengan dukungan Local AI Agent (Offline/On-Premise).
+            Kerangka analitis evaluasi dokumen Renja Eselon I berbasis 6 Dimensi &amp; 15 Sub-Dimensi dengan dukungan Local AI Agent (Offline/On-Premise).
           </p>
         </div>
 
@@ -382,7 +382,7 @@ export default function EvaluasiRenjaStrategisPage() {
         </div>
       </div>
 
-      {/* ── TABEL UTAMA SKORING 6 DIMENSI & 16 SUB-DIMENSI ── */}
+      {/* ── TABEL UTAMA SKORING 6 DIMENSI & 15 SUB-DIMENSI ── */}
       <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
           <div>

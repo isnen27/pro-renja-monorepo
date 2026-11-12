@@ -79,7 +79,7 @@ function getEvaluationCompleteness(unitKerja: string): { isComplete: boolean; ev
   else if (u.includes("ASA")) code = "ASA";
   else if (u.includes("SEKRETARIAT") || u.includes("SETIA")) code = "SETIA";
 
-  const totalCount = 16; // 16 Sub-Dimensi evaluasi
+  const totalCount = 15; // 15 Sub-Dimensi evaluasi
 
   try {
     // 1. Cek lembar kerja evaluasi utama
@@ -89,7 +89,7 @@ function getEvaluationCompleteness(unitKerja: string): { isComplete: boolean; ev
       const parsed = JSON.parse(mainRaw);
       const scoredItems = Object.values(parsed).filter((it: any) => it && Number(it.skor) > 0);
       if (scoredItems.length >= totalCount) {
-        return { isComplete: true, evaluatedCount: scoredItems.length, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (16/16 Sub-Dimensi)." };
+        return { isComplete: true, evaluatedCount: scoredItems.length, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (15/15 Sub-Dimensi)." };
       }
     }
 
@@ -116,7 +116,7 @@ function getEvaluationCompleteness(unitKerja: string): { isComplete: boolean; ev
 
   // Default untuk unit kerja yang sampelnya sudah lengkap (misal SETIA dan TEGAS pada data awal)
   if (code === "SETIA" || code === "TEGAS") {
-    return { isComplete: true, evaluatedCount: 16, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (16/16 Sub-Dimensi)." };
+    return { isComplete: true, evaluatedCount: 15, totalCount, message: "Penilaian Evaluasi Renja telah lengkap (15/15 Sub-Dimensi)." };
   }
 
   return {
