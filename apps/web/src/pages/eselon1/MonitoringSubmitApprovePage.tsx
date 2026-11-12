@@ -123,7 +123,7 @@ function getEvaluationCompleteness(unitKerja: string): { isComplete: boolean; ev
     isComplete: false,
     evaluatedCount: 0,
     totalCount,
-    message: `Penilaian Evaluasi Renja untuk ${code} belum lengkap (Wajib dinilai pada submenu Evaluasi Renja / Monitoring Penilaian sebelum disetujui BINCANG).`,
+    message: `Penilaian Evaluasi Renja Eselon I untuk ${code} belum lengkap (Wajib dinilai pada submenu Evaluasi Renja Eselon I / Monitoring Penilaian sebelum disetujui BINCANG).`,
   };
 }
 
@@ -484,7 +484,7 @@ export default function MonitoringSubmitApprovePage() {
       const evalStatus = getEvaluationCompleteness(targetItem.unit_kerja);
       if (!evalStatus.isComplete) {
         setNoticeModalMessage(
-          "Persetujuan Akhir Gagal! " + evalStatus.message + " Silakan lengkapi evaluasi pada submenu Evaluasi Renja atau periksa Monitoring Penilaian sebelum menyetujui data."
+          "Persetujuan Akhir Gagal! " + evalStatus.message + " Silakan lengkapi evaluasi pada submenu Evaluasi Renja Eselon I atau periksa Monitoring Penilaian sebelum menyetujui data."
         );
         return;
       }

@@ -279,7 +279,7 @@ export default function MonitoringPenilaianRenjaPage() {
           to="/eselon1/evaluasi-strategis"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
         >
-          <span>Kembali ke Evaluasi Renja</span>
+          <span>Kembali ke Evaluasi Renja Eselon I</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -296,7 +296,7 @@ export default function MonitoringPenilaianRenjaPage() {
             <span>/</span>
             <Link to="/eselon1/bab-2" className="hover:underline">Renja Eselon I</Link>
             <span>/</span>
-            <Link to="/eselon1/evaluasi-strategis" className="hover:underline">Evaluasi Renja</Link>
+            <Link to="/eselon1/evaluasi-strategis" className="hover:underline">Evaluasi Renja Eselon I</Link>
             <span>/</span>
             <span className="text-[var(--primary)] font-semibold">Monitoring Penilaian</span>
           </div>

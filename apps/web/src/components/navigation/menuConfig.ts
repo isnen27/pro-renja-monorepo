@@ -74,7 +74,7 @@ export const menuConfig: MenuGroup[] = [
             ],
           },
           { label: "Isian Bab II", href: "/eselon1/bab-2" },
-          { label: "Evaluasi Renja", href: "/eselon1/evaluasi-strategis" },
+          { label: "Evaluasi Renja Eselon I", href: "/eselon1/evaluasi-strategis" },
           { label: "Monitoring Penilaian", href: "/eselon1/monitoring-penilaian" },
           { label: "Monitoring Submit & Approve Data", href: "/eselon1/monitoring" },
         ],

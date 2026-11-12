@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   FileCheck2,
@@ -24,6 +24,13 @@ import {
   Sliders,
   Check,
   FileText,
+  Search,
+  BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Copy,
+  Printer,
+  FileDown,
 } from "lucide-react";
 import {
   KERANGKA_EVALUASI_RENJA_STRATEGIS,
@@ -38,6 +45,10 @@ import {
   runLocalAiEvaluation,
   AiEvaluationResponse,
 } from "../../services/localAiEvaluationService";
+import {
+  DOKUMEN_RENJA_ESELON1_DATA,
+  DokumenRenjaEselon1Item,
+} from "../../data/dokumenRenjaEselon1Data";
 import unitKerjaData from "../../data/unitKerjaData.json";
 
 interface EvaluasiItemState {
@@ -101,6 +112,25 @@ export default function EvaluasiRenjaStrategisPage() {
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [aiStatusMsg, setAiStatusMsg] = useState("");
   const [notification, setNotification] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(null);
+
+  // State Dokumen Viewer Panel
+  const [showDocPanel, setShowDocPanel] = useState<boolean>(true);
+  const [docSearchQuery, setDocSearchQuery] = useState<string>("");
+  const [highlightKeyword, setHighlightKeyword] = useState<string>("");
+  const docScrollRef = useRef<HTMLDivElement>(null);
+
+  // Data Dokumen Renja Unit Terpilih
+  const activeDocument: DokumenRenjaEselon1Item = useMemo(() => {
+    return DOKUMEN_RENJA_ESELON1_DATA[selectedEselon1] || {
+      unit: selectedEselon1,
+      kode: selectedEselon1,
+      nomorDoc: `Renja-${selectedEselon1}-2027`,
+      fileName: `Draft_Renja_${selectedEselon1}_Signed.pdf`,
+      tanggalSubmit: "05 Oktober 2026",
+      statusDokumen: "Dokumen Terunggah Resmi",
+      fullText: "Dokumen Renja lengkap belum tersedia untuk unit kerja ini.",
+    };
+  }, [selectedEselon1]);
 
   const showNotification = (msg: string, type: "success" | "error" | "info" = "success") => {
     setNotification({ msg, type });
@@ -194,11 +224,13 @@ export default function EvaluasiRenjaStrategisPage() {
     setAiStatusMsg("Mempersiapkan dokumen dan prompt evaluasi...");
 
     try {
-      // Ambil teks sampel dokumen (atau dari dokumen renja aktif yang terunggah)
-      const sampleText = `RENCANA KERJA SEKRETARIAT UTAMA TAHUN ANGGARAN 2027... Sasaran: Nilai Reformasi Birokrasi PPATK target 77. Program prioritas: SAKIP, Manajemen Talenta, SPIP, Pengendalian Internal, Mitigasi Temuan BPK, Pembangunan Zona Integritas.`;
+      // Ambil teks dokumen Renja lengkap dari unit kerja yang sedang dievaluasi
+      const docToAnalyze = activeDocument.fullText && activeDocument.fullText.length > 50
+        ? activeDocument.fullText
+        : `RENCANA KERJA UNIT ${selectedEselon1} TAHUN ANGGARAN ${tahunAnggaran}...`;
 
       const aiResult: AiEvaluationResponse = await runLocalAiEvaluation(
-        sampleText,
+        docToAnalyze,
         selectedEselon1,
         (status) => setAiStatusMsg(status)
       );
@@ -239,11 +271,11 @@ export default function EvaluasiRenjaStrategisPage() {
             <span>/</span>
             <Link to="/eselon1/bab-2" className="hover:underline">Renja Eselon I</Link>
             <span>/</span>
-            <span className="text-[var(--primary)] font-semibold">Evaluasi Renja Strategis</span>
+            <span className="text-[var(--primary)] font-semibold">Evaluasi Renja Eselon I</span>
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] flex items-center gap-2.5">
             <FileCheck2 className="h-6 w-6 text-indigo-600" />
-            <span>Evaluasi Renja Level Strategis (Eselon I)</span>
+            <span>Evaluasi Renja Eselon I (Tingkat Strategis)</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Kerangka analitis evaluasi dokumen Renja Eselon I berbasis 6 Dimensi &amp; 15 Sub-Dimensi dengan dukungan Local AI Agent (Offline/On-Premise).
@@ -251,6 +283,21 @@ export default function EvaluasiRenjaStrategisPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Panel Dokumen */}
+          <button
+            type="button"
+            onClick={() => setShowDocPanel(!showDocPanel)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold shadow-xs cursor-pointer transition-colors ${
+              showDocPanel
+                ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+            }`}
+            title="Tampilkan / Sembunyikan Dokumen Renja Sumber di Samping Lembar Kerja"
+          >
+            {showDocPanel ? <PanelLeftClose className="w-4 h-4 text-indigo-600" /> : <PanelLeftOpen className="w-4 h-4 text-slate-500" />}
+            <span>{showDocPanel ? "Sembunyikan Dokumen" : "Lihat Dokumen Sumber"}</span>
+          </button>
+
           {/* Tombol Pengaturan Local AI */}
           <button
             type="button"
@@ -382,140 +429,333 @@ export default function EvaluasiRenjaStrategisPage() {
         </div>
       </div>
 
-      {/* ── TABEL UTAMA SKORING 6 DIMENSI & 15 SUB-DIMENSI ── */}
-      <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-indigo-600" />
-              <span>Lembar Kerja Skoring Evaluasi Renja Strategis</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Nilai setiap sub-dimensi pada skala 1-5 (1-2: Lemah/Gap Signifikan, 3: Memadai, 4-5: Kuat/Komprehensif). Kolom skor tertimbang dihitung otomatis.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {KERANGKA_EVALUASI_RENJA_STRATEGIS.map((dim) => {
-            const dimRekap = rekapPerDimensi.find((r) => r.dimensiId === dim.id);
-
-            return (
-              <div key={dim.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs">
-                {/* Header Dimensi */}
-                <div className="bg-[#1e588a] text-white p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <span className="font-bold text-xs sm:text-sm tracking-wide">{dim.nama}</span>
-                    <span className="block text-[11px] text-blue-100 font-light">{dim.deskripsi}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs font-mono shrink-0">
-                    <span className="bg-blue-900/60 px-2.5 py-1 rounded-lg">Bobot Dimensi: {(dim.bobot * 100).toFixed(0)}%</span>
-                    <span className="bg-white/10 px-2.5 py-1 rounded-lg font-bold">
-                      Skor Dimensi: {dimRekap?.skorDimensi.toFixed(2) || "0.00"} / 5
-                    </span>
-                  </div>
+      {/* ── SPLIT VIEW: DOKUMEN SUMBER & LEMBAR KERJA EVALUASI ── */}
+      <div className={`grid grid-cols-1 ${showDocPanel ? "xl:grid-cols-12" : "grid-cols-1"} gap-6 items-start`}>
+        {/* PANEL KIRI: VIEWER DOKUMEN RENJA LENGKAP UNIT KERJA */}
+        {showDocPanel && (
+          <div className="xl:col-span-5 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden flex flex-col xl:sticky xl:top-6 xl:max-h-[calc(100vh-3.5rem)]">
+            {/* Header Viewer */}
+            <div className="p-4 bg-slate-900 text-white flex flex-col gap-2.5 border-b border-slate-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-400" />
+                  <span className="font-bold text-xs tracking-wide">Dokumen Renja Resmi Unit Kerja</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDocPanel(false)}
+                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Tutup Panel Dokumen"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
 
-                {/* Sub-Dimensi Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
-                        <th className="py-2.5 px-3 w-12 text-center">NO</th>
-                        <th className="py-2.5 px-3 min-w-[280px]">SUB-DIMENSI &amp; KRITERIA PENILAIAN</th>
-                        <th className="py-2.5 px-3 w-24 text-center">BOBOT SUB</th>
-                        <th className="py-2.5 px-3 w-40 text-center">SKOR (1 - 5)</th>
-                        <th className="py-2.5 px-3 w-32 text-right">TERTIMBANG</th>
-                        <th className="py-2.5 px-3 min-w-[320px]">CATATAN ANALISIS &amp; BUKTI EVIDEN</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-sans">
-                      {dim.subDimensi.map((sub, idx) => {
-                        const itemState = scores[sub.id] || { skor: 0, catatan: "" };
-                        const subWeighted = (itemState.skor || 0) * sub.bobot;
-
-                        return (
-                          <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                            <td className="p-3 font-mono text-center font-bold text-slate-500 align-top">
-                              {sub.id}
-                            </td>
-
-                            <td className="p-3 align-top space-y-1.5">
-                              <span className="font-bold text-slate-900 dark:text-slate-100 block">{sub.nama}</span>
-                              <p className="text-[11px] text-slate-600 dark:text-slate-400">{sub.definisi}</p>
-                              <div className="pt-1 text-[10px] space-y-0.5 text-slate-500">
-                                <span className="block font-medium text-slate-600 dark:text-slate-400">Bukti: {sub.jenisBukti}</span>
-                                <span className="block text-emerald-700 dark:text-emerald-400 font-medium">✓ Indikasi Tinggi: {sub.indikasiTinggi}</span>
-                              </div>
-                            </td>
-
-                            <td className="p-3 text-center font-mono font-semibold text-slate-600 dark:text-slate-400 align-top">
-                              {(sub.bobot * 100).toFixed(0)}%
-                            </td>
-
-                            {/* Pilihan Skor 1 - 5 */}
-                            <td className="p-3 align-top text-center">
-                              <div className="inline-flex rounded-lg border border-slate-300 dark:border-slate-600 p-0.5 bg-slate-50 dark:bg-slate-800">
-                                {[1, 2, 3, 4, 5].map((val) => {
-                                  const isSelected = itemState.skor === val;
-                                  return (
-                                    <button
-                                      key={val}
-                                      type="button"
-                                      onClick={() => handleScoreChange(sub.id, val)}
-                                      className={`w-7 h-7 rounded text-xs font-bold transition-all cursor-pointer ${
-                                        isSelected
-                                          ? val >= 4
-                                            ? "bg-emerald-600 text-white shadow-xs"
-                                            : val === 3
-                                            ? "bg-amber-500 text-white shadow-xs"
-                                            : "bg-rose-600 text-white shadow-xs"
-                                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                      }`}
-                                      title={`Beri Skor ${val}`}
-                                    >
-                                      {val}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                              <span className="block text-[10px] text-slate-400 font-mono mt-1">
-                                {itemState.skor > 0 ? `Skor: ${itemState.skor}` : "(Belum)"}
-                              </span>
-                            </td>
-
-                            <td className="p-3 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 align-top">
-                              {subWeighted.toFixed(2)}
-                            </td>
-
-                            {/* Catatan Analisis & Eviden */}
-                            <td className="p-3 align-top space-y-2">
-                              <textarea
-                                value={itemState.catatan}
-                                onChange={(e) => handleCatatanChange(sub.id, e.target.value)}
-                                placeholder="Masukkan catatan temuan analisis atau dasar penetapan skor..."
-                                rows={2}
-                                className="w-full p-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 shadow-inner resize-y"
-                              />
-                              {itemState.kutipanEviden && (
-                                <div className="p-2 rounded bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-[10px] text-indigo-900 dark:text-indigo-200 space-y-0.5">
-                                  <span className="font-bold flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3 text-indigo-600" />
-                                    <span>Kutipan Eviden Dokumen:</span>
-                                  </span>
-                                  <p className="italic">"{itemState.kutipanEviden}"</p>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              {/* Info Dokumen Terpilih */}
+              <div className="bg-slate-800/80 rounded-xl p-2.5 space-y-1 text-xs border border-slate-700/60">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-indigo-300 truncate max-w-[240px]">{activeDocument.unit}</span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    {activeDocument.kode}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span className="truncate flex items-center gap-1 font-mono">
+                    <FileText className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span>{activeDocument.fileName}</span>
+                  </span>
+                  <span>{activeDocument.tanggalSubmit}</span>
+                </div>
+                <div className="text-[10px] text-emerald-400 flex items-center gap-1 pt-0.5 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <span>{activeDocument.statusDokumen}</span>
                 </div>
               </div>
-            );
-          })}
+
+              {/* Search Bar Kata Kunci Eviden dalam Dokumen */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={docSearchQuery}
+                  onChange={(e) => setDocSearchQuery(e.target.value)}
+                  placeholder="Cari narasi / kata kunci eviden (misal: SAKIP, risiko, audit, target)..."
+                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                {docSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setDocSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Filter Tag Bab / Kata Kunci Populer */}
+            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[10px]">
+              <span className="text-slate-400 font-bold uppercase shrink-0">Lompat Kata:</span>
+              {[
+                "BAB I",
+                "BAB II",
+                "Program Prioritas",
+                "Indikator Kinerja",
+                "Risiko",
+                "Audit",
+                "Monev",
+                "SAKIP",
+              ].map((keyword) => (
+                <button
+                  key={keyword}
+                  type="button"
+                  onClick={() => setDocSearchQuery(keyword)}
+                  className={`px-2 py-0.5 rounded-lg border whitespace-nowrap transition-colors cursor-pointer ${
+                    docSearchQuery.toLowerCase() === keyword.toLowerCase()
+                      ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  {keyword}
+                </button>
+              ))}
+            </div>
+
+            {/* Isi Dokumen Scrollable */}
+            <div
+              ref={docScrollRef}
+              className="p-5 overflow-y-auto space-y-4 font-serif text-xs leading-relaxed text-slate-800 dark:text-slate-200 flex-1 max-h-[600px] xl:max-h-none select-text"
+            >
+              {activeDocument.fullText ? (
+                activeDocument.fullText
+                  .split(/\n\n+/)
+                  .filter((p) => p.trim().length > 0)
+                  .map((paragraph, pIdx) => {
+                    const isHeading =
+                      paragraph.startsWith("BAB ") ||
+                      paragraph.startsWith("RENCANA KERJA") ||
+                      paragraph.match(/^[A-Z]\.\s+[A-Z\s]+$/) ||
+                      paragraph.match(/^[0-9]+\.\s+[A-Z\s]+$/);
+
+                    // Pengecekan Highlight pencarian
+                    const matchQuery =
+                      docSearchQuery.trim() !== "" &&
+                      paragraph.toLowerCase().includes(docSearchQuery.toLowerCase().trim());
+
+                    if (isHeading) {
+                      return (
+                        <h4
+                          key={pIdx}
+                          className={`font-sans font-bold text-sm tracking-wide pt-3 pb-1 border-b ${
+                            matchQuery
+                              ? "bg-amber-100 dark:bg-amber-900/40 text-indigo-900 dark:text-indigo-200 border-indigo-400 px-2 rounded"
+                              : "text-slate-900 dark:text-white border-slate-200 dark:border-slate-800"
+                          }`}
+                        >
+                          {paragraph}
+                        </h4>
+                      );
+                    }
+
+                    return (
+                      <p
+                        key={pIdx}
+                        className={`text-justify indent-6 ${
+                          matchQuery
+                            ? "bg-amber-100/80 dark:bg-amber-900/30 p-2 rounded-lg border-l-4 border-amber-500 font-sans"
+                            : ""
+                        }`}
+                      >
+                        {paragraph}
+                      </p>
+                    );
+                  })
+              ) : (
+                <div className="p-8 text-center text-slate-400 space-y-2">
+                  <FileText className="w-8 h-8 mx-auto text-slate-300" />
+                  <p>Teks dokumen belum tersedia.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Panel Dokumen */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-500 font-sans">
+              <span>{activeDocument.fullText ? `${activeDocument.fullText.split(/\s+/).length.toLocaleString()} kata teks lengkap` : "0 kata"}</span>
+              <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                Gunakan narasi di atas untuk mengoreksi skor &amp; eviden AI
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL KANAN: LEMBAR KERJA EVALUASI RENJA STRATEGIS */}
+        <div className={`${showDocPanel ? "xl:col-span-7" : "col-span-1"} space-y-5`}>
+          <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-indigo-600" />
+                  <span>Lembar Kerja Evaluasi Renja Strategis</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Nilai setiap sub-dimensi pada skala 1-5 (1-2: Lemah/Gap Signifikan, 3: Memadai, 4-5: Kuat/Komprehensif). Kolom skor tertimbang dihitung otomatis.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {KERANGKA_EVALUASI_RENJA_STRATEGIS.map((dim) => {
+                const dimRekap = rekapPerDimensi.find((r) => r.dimensiId === dim.id);
+
+                return (
+                  <div key={dim.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-xs">
+                    {/* Header Dimensi */}
+                    <div className="bg-[#1e588a] text-white p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-xs sm:text-sm tracking-wide">{dim.nama}</span>
+                        <span className="block text-[11px] text-blue-100 font-light">{dim.deskripsi}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs font-mono shrink-0">
+                        <span className="bg-blue-900/60 px-2.5 py-1 rounded-lg">Bobot Dimensi: {(dim.bobot * 100).toFixed(0)}%</span>
+                        <span className="bg-white/10 px-2.5 py-1 rounded-lg font-bold">
+                          Skor Dimensi: {dimRekap?.skorDimensi.toFixed(2) || "0.00"} / 5
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Sub-Dimensi Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                            <th className="py-2.5 px-3 w-12 text-center">NO</th>
+                            <th className="py-2.5 px-3 min-w-[240px]">SUB-DIMENSI &amp; KRITERIA PENILAIAN</th>
+                            <th className="py-2.5 px-3 w-20 text-center">BOBOT SUB</th>
+                            <th className="py-2.5 px-3 w-36 text-center">SKOR (1 - 5)</th>
+                            <th className="py-2.5 px-3 w-24 text-right">TERTIMBANG</th>
+                            <th className="py-2.5 px-3 min-w-[280px]">CATATAN ANALISIS &amp; BUKTI EVIDEN</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-sans">
+                          {dim.subDimensi.map((sub, idx) => {
+                            const itemState = scores[sub.id] || { skor: 0, catatan: "" };
+                            const subWeighted = (itemState.skor || 0) * sub.bobot;
+
+                            return (
+                              <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="p-3 font-mono text-center font-bold text-slate-500 align-top">
+                                  {sub.id}
+                                </td>
+
+                                <td className="p-3 align-top space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-bold text-slate-900 dark:text-slate-100">{sub.nama}</span>
+                                    {showDocPanel && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const term = sub.jenisBukti.split(/[,;]/)[0]?.trim() || sub.nama.split(" ")[1];
+                                          setDocSearchQuery(term);
+                                        }}
+                                        className="text-[9px] font-semibold text-indigo-600 hover:text-indigo-800 underline shrink-0 cursor-pointer"
+                                        title={`Cari referensi '${sub.jenisBukti.split(/[,;]/)[0]}' di dokumen`}
+                                      >
+                                        Telusuri Dokumen
+                                      </button>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-slate-600 dark:text-slate-400">{sub.definisi}</p>
+                                  <div className="pt-1 text-[10px] space-y-0.5 text-slate-500">
+                                    <span className="block font-medium text-slate-600 dark:text-slate-400">Bukti: {sub.jenisBukti}</span>
+                                    <span className="block text-emerald-700 dark:text-emerald-400 font-medium">✓ Indikasi Tinggi: {sub.indikasiTinggi}</span>
+                                  </div>
+                                </td>
+
+                                <td className="p-3 text-center font-mono font-semibold text-slate-600 dark:text-slate-400 align-top">
+                                  {(sub.bobot * 100).toFixed(0)}%
+                                </td>
+
+                                {/* Pilihan Skor 1 - 5 */}
+                                <td className="p-3 align-top text-center">
+                                  <div className="inline-flex rounded-lg border border-slate-300 dark:border-slate-600 p-0.5 bg-slate-50 dark:bg-slate-800">
+                                    {[1, 2, 3, 4, 5].map((val) => {
+                                      const isSelected = itemState.skor === val;
+                                      return (
+                                        <button
+                                          key={val}
+                                          type="button"
+                                          onClick={() => handleScoreChange(sub.id, val)}
+                                          className={`w-6 sm:w-7 h-7 rounded text-xs font-bold transition-all cursor-pointer ${
+                                            isSelected
+                                              ? val >= 4
+                                                ? "bg-emerald-600 text-white shadow-xs"
+                                                : val === 3
+                                                ? "bg-amber-500 text-white shadow-xs"
+                                                : "bg-rose-600 text-white shadow-xs"
+                                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                          }`}
+                                          title={`Beri Skor ${val}`}
+                                        >
+                                          {val}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <span className="block text-[10px] text-slate-400 font-mono mt-1">
+                                    {itemState.skor > 0 ? `Skor: ${itemState.skor}` : "(Belum)"}
+                                  </span>
+                                </td>
+
+                                <td className="p-3 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 align-top">
+                                  {subWeighted.toFixed(2)}
+                                </td>
+
+                                {/* Catatan Analisis & Eviden */}
+                                <td className="p-3 align-top space-y-2">
+                                  <textarea
+                                    value={itemState.catatan}
+                                    onChange={(e) => handleCatatanChange(sub.id, e.target.value)}
+                                    placeholder="Masukkan catatan temuan analisis atau dasar penetapan skor..."
+                                    rows={2}
+                                    className="w-full p-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 shadow-inner resize-y"
+                                  />
+                                  {itemState.kutipanEviden && (
+                                    <div className="p-2 rounded bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-[10px] text-indigo-900 dark:text-indigo-200 space-y-0.5">
+                                      <span className="font-bold flex items-center justify-between">
+                                        <span className="flex items-center gap-1">
+                                          <Sparkles className="w-3 h-3 text-indigo-600" />
+                                          <span>Kutipan Eviden Dokumen:</span>
+                                        </span>
+                                        {showDocPanel && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const snippet = itemState.kutipanEviden?.split(/\s+/).slice(0, 4).join(" ") || "";
+                                              setDocSearchQuery(snippet);
+                                            }}
+                                            className="text-[9px] text-indigo-600 underline font-normal cursor-pointer"
+                                            title="Sorot kutipan ini di dokumen"
+                                          >
+                                            Sorot di Dokumen
+                                          </button>
+                                        )}
+                                      </span>
+                                      <p className="italic">"{itemState.kutipanEviden}"</p>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
