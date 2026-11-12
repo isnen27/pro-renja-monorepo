@@ -112,6 +112,7 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
   }, []);
 
   // Filter & Selected state
+  const tahunAnggaran = 2027;
   const [selectedUnit, setSelectedUnit] = useState<string>("SETIA");
   const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
   const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">("kompilasi");
@@ -152,7 +153,6 @@ export default function MonitoringPenilaianRenjaEselon2Page() {
     }).sort((a, b) => b.score - a.score);
   }, [tahunAnggaran]);
 
-  const tahunAnggaran = 2027;
 
   // Akses eksklusif: Approver BINCANG dan Super Admin
   const hasAccess = currentUserRole === "BINCANG" || currentUserRole === "Super Admin";
