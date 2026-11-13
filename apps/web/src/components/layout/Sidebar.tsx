@@ -77,20 +77,6 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
           };
         }
 
-        // Untuk menu RAB: jika Operator atau Approver, tampilkan Isian RAB, RPD, Forum Penelaahan, Revisi Anggaran, dan Laporan RAB
-        if (item.label === "Rencana Anggaran Biaya (RAB)" && isOperatorOrApprover) {
-          return {
-            ...item,
-            submenu: item.submenu?.filter(
-              (sub) =>
-                sub.label === "Isian RAB" ||
-                sub.label === "Rencana Penarikan Dana (RPD)" ||
-                sub.label === "Forum Penelaahan" ||
-                sub.label === "Revisi Anggaran" ||
-                sub.label === "Laporan RAB"
-            ),
-          };
-        }
         return item;
       });
       return { ...group, items };
