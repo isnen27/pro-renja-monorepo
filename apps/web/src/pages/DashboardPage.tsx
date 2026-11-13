@@ -35,7 +35,8 @@ import {
   HelpCircle,
   ExternalLink,
   ArrowDownRight,
-  Receipt
+  Receipt,
+  Target
 } from "lucide-react";
 import unitKerjaData from "../data/unitKerjaData.json";
 
@@ -225,6 +226,14 @@ export default function DashboardPage() {
           instansi: "Inspektorat PPATK (APIP Pengawasan Intern)",
           badgeText: "Administrator Pengawasan & Tata Kelola",
           badgeColor: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+        };
+      default:
+        return {
+          nama: activeUnitInfo.namaPimpinan,
+          jabatan: activeUnitInfo.jabatan,
+          instansi: `${activeUnitInfo.nama} (Satker 3365)`,
+          badgeText: "Pimpinan Unit Kerja / Pejabat Penandatangan",
+          badgeColor: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800"
         };
     }
   }, [currentUserRole, activeUnitInfo]);
