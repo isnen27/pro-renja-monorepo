@@ -100,23 +100,6 @@ export default function DashboardPage() {
             Sistem Informasi Perencanaan dan Penganggaran Pusat Pelaporan dan Analisis Transaksi Keuangan · TA {currentYear}
           </p>
         </div>
-
-        <div className="flex gap-2">
-          <Link
-            to="/rab/input-rinci"
-            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[var(--primary)] text-white hover:opacity-90 flex items-center gap-1.5 shadow-sm transition-opacity"
-          >
-            <Calculator className="h-4 w-4" />
-            <span>Kalkulator RAB Rinci</span>
-          </Link>
-          <Link
-            to="/renstra/cascading"
-            className="px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)] text-[var(--text)] flex items-center gap-1.5 transition-colors"
-          >
-            <BookOpenCheck className="h-4 w-4" />
-            <span>Renstra 2025–2029</span>
-          </Link>
-        </div>
       </div>
 
       {/* Stat cards */}

@@ -174,11 +174,6 @@ export const menuConfig: MenuGroup[] = [
         href: "/referensi/bas",
       },
       {
-        label: "Data Pejabat",
-        icon: BadgeCheck,
-        href: "/referensi/pejabat",
-      },
-      {
         label: "Lokasi",
         icon: MapPin,
         href: "/referensi/lokasi",
@@ -203,6 +198,11 @@ export const menuConfig: MenuGroup[] = [
     groupLabel: "Administrasi & Pengguna",
     items: [
       {
+        label: "Data Pejabat",
+        icon: BadgeCheck,
+        href: "/referensi/pejabat",
+      },
+      {
         label: "Manajemen Pengguna",
         icon: Users,
         submenu: [
@@ -214,16 +214,6 @@ export const menuConfig: MenuGroup[] = [
         label: "Hak Akses & Peran",
         icon: Shield,
         href: "/admin/peran",
-      },
-      {
-        label: "Log Aktivitas",
-        icon: Activity,
-        href: "/admin/log",
-      },
-      {
-        label: "Pengaturan Sistem",
-        icon: Settings,
-        href: "/admin/pengaturan",
       },
     ],
   },
