@@ -59,33 +59,12 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, collapsed]);
 
-  // Filtered menu items when searching & role based
+  // Filtered menu items when searching
   const filteredGroups = useMemo(() => {
-    const isOperatorOrApprover = userRole === "Operator" || userRole === "Approver";
-    const isBincangOrSuperAdmin = userRole === "BINCANG" || userRole === "Super Admin";
-
-    // Modifikasi item menu sesuai hak akses role
-    const roleAdjustedConfig = menuConfig.map((group) => {
-      const items = group.items.map((item) => {
-        // Untuk menu Renja Eselon I: submenu "Monitoring Penilaian" hanya untuk BINCANG & Super Admin
-        if (item.label === "Renja Eselon I") {
-          return {
-            ...item,
-            submenu: item.submenu?.filter(
-              (sub) => sub.label !== "Monitoring Penilaian" || isBincangOrSuperAdmin
-            ),
-          };
-        }
-
-        return item;
-      });
-      return { ...group, items };
-    });
-
-    if (!searchQuery.trim()) return roleAdjustedConfig;
+    if (!searchQuery.trim()) return menuConfig;
     const q = searchQuery.toLowerCase();
 
-    return roleAdjustedConfig
+    return menuConfig
       .map((group) => {
         const matchingItems = group.items.filter((item) => {
           const matchItem = item.label.toLowerCase().includes(q);
@@ -105,7 +84,7 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
         };
       })
       .filter((group) => group.items.length > 0) as MenuGroup[];
-  }, [searchQuery, userRole]);
+  }, [searchQuery]);
 
   return (
     <>
