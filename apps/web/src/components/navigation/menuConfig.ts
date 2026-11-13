@@ -208,12 +208,8 @@ export const menuConfig: MenuGroup[] = [
         submenu: [
           { label: "Daftar Pengguna & Role", href: "/admin/pengguna" },
           { label: "Tambah Pengguna Baru", href: "/admin/pengguna/tambah" },
+          { label: "Hak Akses & Peran", href: "/admin/peran" },
         ],
-      },
-      {
-        label: "Hak Akses & Peran",
-        icon: Shield,
-        href: "/admin/peran",
       },
     ],
   },
