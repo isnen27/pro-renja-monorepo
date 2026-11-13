@@ -21,19 +21,23 @@ import {
   Award,
   Calendar,
   Building2,
-  UserCheck,
   ChevronRight,
   PieChart,
-  Target,
   ArrowRight,
   SlidersHorizontal,
   BookmarkCheck,
   Activity,
   FileCheck2,
-  Scale
+  Scale,
+  Wallet,
+  Percent,
+  CheckCircle,
+  HelpCircle,
+  ExternalLink,
+  ArrowDownRight,
+  Receipt
 } from "lucide-react";
 import unitKerjaData from "../data/unitKerjaData.json";
-import { KERANGKA_EVALUASI_RENJA_ESELON2 } from "../data/kerangkaEvaluasiRenjaEselon2Data";
 
 // Tipe Role Pengguna Sesuai Tata Kelola Perencanaan & Penganggaran
 export type UserRole = "Operator" | "Approver" | "BINCANG" | "Super Admin";
@@ -46,46 +50,53 @@ interface UnitOption {
   targetOutput: string;
   namaPimpinan: string;
   jabatan: string;
+  realisasiPersen: number; // % Serapan
 }
 
-// Master 16 Unit Kerja Eselon II dengan data pagu & pimpinan resmi
+// Master 16 Unit Kerja Eselon II dengan data pagu, realisasi, & pimpinan resmi
 const DAFTAR_UNIT_KERJA: UnitOption[] = unitKerjaData.map((u, idx) => {
-  // Simulasi data realistis sesuai karakteristik unit kerja di PPATK
   let pagu = 6912500000;
   let target = "40 Diklat APU PPT (1.200 Peserta)";
   let pimpinan = "Akhyar Effendi, S.E.";
   let jabatan = "Kepala Pusat Pendidikan dan Pelatihan APU PPT";
+  let serapan = 93.4;
 
   if (u.singkatan === "PATIH") {
     pagu = 6912500000;
     target = "40 Paket Diklat APU PPT & 390 Sertifikasi APH";
     pimpinan = "Akhyar Effendi, S.E.";
     jabatan = "Kepala Pusat Pendidikan dan Pelatihan APU PPT";
+    serapan = 94.2;
   } else if (u.singkatan === "KREASI") {
     pagu = 8450000000;
     target = "12 Naskah Advokasi Regulasi & 4 Harmonisasi RUU";
     pimpinan = "Dr. Fithriadi Muslim, S.H., M.H.";
     jabatan = "Direktur Hukum dan Regulasi";
+    serapan = 91.8;
   } else if (u.singkatan === "REKAN") {
     pagu = 14200000000;
     target = "2.850.000 Laporan Transaksi Keuangan Mencurigakan (LTKM)";
     pimpinan = "M. Syahril Ramadhan, S.E., Ak.";
     jabatan = "Direktur Pelaporan";
+    serapan = 96.5;
   } else if (u.singkatan === "SIASAT") {
     pagu = 18900000000;
     target = "640 Hasil Analisis Strategis & Taktis TPPU/TPPT";
     pimpinan = "Drs. Muhammad Novian";
     jabatan = "Direktur Analisis dan Pemeriksaan I";
+    serapan = 95.1;
   } else if (u.singkatan === "PEKA") {
     pagu = 5800000000;
     target = "28 Audit Kepatuhan & Reviu Tata Kelola Pengawasan";
     pimpinan = "Indra Laksmana, Ak., M.M.";
     jabatan = "Inspektur PPATK";
+    serapan = 95.8;
   } else {
     pagu = 5000000000 + (idx * 750000000);
     target = `${15 + idx * 2} Target Kinerja Prioritas Program`;
     pimpinan = `Pejabat Pimpinan ${u.singkatan}`;
     jabatan = `Kepala / Direktur ${u.nama}`;
+    serapan = Math.min(97.5, Math.max(88.0, 92.5 + ((idx % 7) - 3) * 1.5));
   }
 
   return {
@@ -95,7 +106,8 @@ const DAFTAR_UNIT_KERJA: UnitOption[] = unitKerjaData.map((u, idx) => {
     paguDipa: pagu,
     targetOutput: target,
     namaPimpinan: pimpinan,
-    jabatan: jabatan
+    jabatan: jabatan,
+    realisasiPersen: serapan
   };
 });
 
@@ -137,6 +149,9 @@ export default function DashboardPage() {
     } catch {}
     return "PATIH";
   });
+
+  // 3. Tab Filter Tahun Realisasi Anggaran
+  const [tahunRealisasi, setTahunRealisasi] = useState<"2026_berjalan" | "2025_audited">("2026_berjalan");
 
   // Sinkronisasi dengan localStorage & custom event aplikasi
   useEffect(() => {
@@ -214,9 +229,59 @@ export default function DashboardPage() {
     }
   }, [currentUserRole, activeUnitInfo]);
 
+  // Data Realisasi Anggaran (Monitoring Keuangan Eksekutif)
+  const realisasiData = useMemo(() => {
+    const isPusat = currentUserRole === "BINCANG" || currentUserRole === "Super Admin";
+    const totalPagu = isPusat ? 1201900000000 : activeUnitInfo.paguDipa;
+    const persenSerapan = isPusat ? 94.8 : activeUnitInfo.realisasiPersen;
+    const nominalRealisasi = Math.round(totalPagu * (persenSerapan / 100));
+    const sisaAnggaran = totalPagu - nominalRealisasi;
+
+    // Distribusi per Jenis Belanja (Akun 51, 52, 53)
+    const belanja = isPusat
+      ? [
+          { jenis: "Belanja Pegawai (51)", pagu: 285000000000, realisasi: 279300000000, persen: 98.0, color: "bg-blue-600" },
+          { jenis: "Belanja Barang (52)", pagu: 642000000000, realisasi: 606690000000, persen: 94.5, color: "bg-emerald-600" },
+          { jenis: "Belanja Modal (53)", pagu: 274900000000, realisasi: 252908000000, persen: 92.0, color: "bg-purple-600" },
+        ]
+      : [
+          { jenis: "Belanja Barang Operasional (5211)", pagu: Math.round(totalPagu * 0.25), realisasi: Math.round(totalPagu * 0.25 * 0.96), persen: 96.0, color: "bg-blue-600" },
+          { jenis: "Belanja Penyelenggaraan Diklat/Acara (5212)", pagu: Math.round(totalPagu * 0.45), realisasi: Math.round(totalPagu * 0.45 * 0.94), persen: 94.0, color: "bg-emerald-600" },
+          { jenis: "Belanja Perjalanan Dinas (5241)", pagu: Math.round(totalPagu * 0.30), realisasi: Math.round(totalPagu * 0.30 * 0.92), persen: 92.0, color: "bg-purple-600" },
+        ];
+
+    // Realisasi per Program Utama
+    const program = [
+      {
+        kode: "078.BE",
+        nama: "Program Pencegahan dan Pemberantasan TPPU & TPPT",
+        pagu: isPusat ? 679200000000 : Math.round(totalPagu * 0.82),
+        realisasi: isPusat ? 645240000000 : Math.round(totalPagu * 0.82 * 0.95),
+        persen: 95.0,
+      },
+      {
+        kode: "078.WA",
+        nama: "Program Dukungan Manajemen Pelaksanaan Tugas PPATK",
+        pagu: isPusat ? 522700000000 : Math.round(totalPagu * 0.18),
+        realisasi: isPusat ? 493951500000 : Math.round(totalPagu * 0.18 * 0.945),
+        persen: 94.5,
+      }
+    ];
+
+    return {
+      totalPagu,
+      nominalRealisasi,
+      sisaAnggaran,
+      persenSerapan,
+      ikpaScore: 96.85,
+      deviasiHal3: 2.74,
+      belanja,
+      program
+    };
+  }, [currentUserRole, activeUnitInfo]);
+
   // 6 Dimensi Evaluasi & Perhitungan Skor Radar (Skala 1 - 5 dan 0 - 100)
   const radarDimensions = useMemo(() => {
-    // Skor disesuaikan secara deterministik per unit kerja
     const baseOffset = (selectedUnitKode.charCodeAt(0) % 5) * 0.12;
     const scores = [
       { id: "D1", name: "D1. Penyelarasan Strategis", score: Math.min(4.8, 3.65 + baseOffset), bobot: "20%" },
@@ -249,7 +314,7 @@ export default function DashboardPage() {
     };
   }, [selectedUnitKode]);
 
-  // Ranking 16 Unit Kerja (Untuk perspektif BINCANG / Super Admin)
+  // Ranking 16 Unit Kerja
   const ranking16Unit = useMemo(() => {
     return DAFTAR_UNIT_KERJA.map((u, i) => {
       const offset = ((u.kode.charCodeAt(0) * 7 + i * 3) % 18) - 9;
@@ -261,7 +326,7 @@ export default function DashboardPage() {
     }).sort((a, b) => b.score - a.score);
   }, []);
 
-  // Alokasi Akun BAS 6-Digit untuk Unit Kerja Aktif (Perspektif Unit / Approver)
+  // Alokasi Akun BAS 6-Digit untuk Unit Kerja Aktif
   const rincianAkunBas = useMemo(() => {
     const totalPagu = activeUnitInfo.paguDipa;
     return [
@@ -311,7 +376,6 @@ export default function DashboardPage() {
     const numPoints = 6;
     const angleStep = (Math.PI * 2) / numPoints;
 
-    // Web background polygon points (5 rings: 1 to 5)
     const rings = [1, 2, 3, 4, 5].map(level => {
       const r = (level / 5) * radius;
       const points = [];
@@ -324,7 +388,6 @@ export default function DashboardPage() {
       return { level, path: points.join(" ") };
     });
 
-    // Axis lines
     const axisLines = [];
     const labelPoints = [];
     for (let i = 0; i < numPoints; i++) {
@@ -333,14 +396,12 @@ export default function DashboardPage() {
       const y = center + radius * Math.sin(angle);
       axisLines.push({ x1: center, y1: center, x2: x, y2: y });
 
-      // Label coordinate with extra offset
       const labelDist = radius + 28;
       const lx = center + labelDist * Math.cos(angle);
       const ly = center + labelDist * Math.sin(angle);
       labelPoints.push({ x: lx, y: ly, align: Math.abs(angle) < 0.2 ? "middle" : angle > 0 ? "start" : "end" });
     }
 
-    // Data polygon
     const dataPoints = radarDimensions.scores.map((d, i) => {
       const angle = i * angleStep - Math.PI / 2;
       const val = Math.max(1, Math.min(5, d.score));
@@ -363,50 +424,50 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── 1. BANNER IDENTITAS EKSEKUTIF & ROLE SIMULATOR ────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white p-6 md:p-8 shadow-xl border border-indigo-900/40">
-        {/* Latar belakang grafis dekoratif */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-emerald-600/10 rounded-full blur-2xl pointer-events-none" />
+      {/* ── 1. BANNER IDENTITAS EKSEKUTIF DENGAN TEMA TERANG & BERSIH ────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-50/80 via-indigo-50/60 to-slate-50 border border-indigo-100/90 text-slate-800 p-6 md:p-8 shadow-sm dark:from-slate-900 dark:via-slate-900/95 dark:to-indigo-950/40 dark:border-slate-800 dark:text-slate-100">
+        {/* Latar belakang grafis aksen cerah lembut */}
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-80 h-80 bg-indigo-200/30 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 -mb-16 w-72 h-72 bg-sky-200/40 dark:bg-sky-600/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           {/* Sisi Kiri: Profil Eksekutif */}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                <Building2 className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white text-indigo-700 border border-indigo-200 shadow-xs dark:bg-slate-800 dark:text-indigo-300 dark:border-slate-700">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Pusat Pelaporan dan Analisis Transaksi Keuangan</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                <Calendar className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Tahun Anggaran {currentYear}</span>
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white text-slate-600 border border-slate-200 shadow-xs dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                 Peraturan PPATK No. 11/2025
               </span>
             </div>
 
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Dashboard Eksekutif Perencanaan & Penganggaran</span>
               </h1>
-              <p className="text-sm md:text-base text-slate-300 mt-1 flex items-center gap-2 font-medium">
+              <p className="text-sm md:text-base text-slate-700 dark:text-slate-200 mt-1 flex items-center gap-2 font-medium">
                 <span>Selamat Datang,</span>
-                <span className="text-indigo-300 font-bold underline decoration-indigo-400/50 underline-offset-4">
+                <span className="text-indigo-700 dark:text-indigo-400 font-extrabold underline decoration-indigo-300 underline-offset-4">
                   {userInfo.nama}
                 </span>
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {userInfo.jabatan} · <span className="text-slate-300">{userInfo.instansi}</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                {userInfo.jabatan} · <span className="text-slate-700 dark:text-slate-300 font-semibold">{userInfo.instansi}</span>
               </p>
             </div>
           </div>
 
-          {/* Sisi Kanan: Panel Simulasi Persona & Unit Kerja */}
-          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 lg:min-w-[320px] shadow-inner space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+          {/* Sisi Kanan: Panel Simulasi Persona & Peran (Desain Terang & Bersih) */}
+          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-indigo-100 dark:border-slate-800 rounded-2xl p-4 lg:min-w-[320px] shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Simulasi Persona & Peran:</span>
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${userInfo.badgeColor}`}>
@@ -422,8 +483,8 @@ export default function DashboardPage() {
                   onClick={() => handleChangeRole(role)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left flex items-center justify-between ${
                     currentUserRole === role
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/40"
-                      : "bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800"
+                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                      : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
                   }`}
                 >
                   <span className="truncate">
@@ -436,13 +497,13 @@ export default function DashboardPage() {
 
             {/* Pilihan Unit Kerja */}
             <div className="pt-1">
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
                 Unit Kerja yang Ditampilkan:
               </label>
               <select
                 value={selectedUnitKode}
                 onChange={(e) => handleChangeUnit(e.target.value)}
-                className="w-full text-xs font-semibold bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full text-xs font-semibold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs"
               >
                 {DAFTAR_UNIT_KERJA.map((u) => (
                   <option key={u.kode} value={u.kode}>
@@ -582,7 +643,205 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 3. VISUALISASI UTAMA: RADAR CHART KEMATANGAN PERENCANAAN ─────── */}
+      {/* ── 3. MODUL MONITORING DATA REALISASI ANGGARAN (FINANCIAL MONITORING) ────── */}
+      <div className="aksi-card p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border)]">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                <Wallet className="w-5 h-5" />
+              </span>
+              <h2 className="font-extrabold text-base md:text-lg text-[var(--text)]">
+                Monitoring Realisasi Anggaran & Capaian Kinerja Keuangan (DIPA vs Realisasi)
+              </h2>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              {currentUserRole === "BINCANG" || currentUserRole === "Super Admin"
+                ? "Konsolidasi serapan pagu seluruh Satker PPATK, evaluasi IKPA Kemenkeu, dan kepatuhan Rencana Penarikan Dana (RPD)."
+                : `Pemantauan serapan pagu riil, rincian serapan per jenis belanja, dan pengendalian sisa anggaran unit: ${activeUnitInfo.kode}.`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+              <button
+                onClick={() => setTahunRealisasi("2026_berjalan")}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  tahunRealisasi === "2026_berjalan"
+                    ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                TA 2026 (Tahun Berjalan)
+              </button>
+              <button
+                onClick={() => setTahunRealisasi("2025_audited")}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  tahunRealisasi === "2025_audited"
+                    ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                TA 2025 (Audited BPK)
+              </button>
+            </div>
+
+            <Link
+              to="/referensi/series-anggaran"
+              className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 text-xs font-bold hover:bg-indigo-100 transition-colors inline-flex items-center gap-1"
+            >
+              <span>Series 2020-2025</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 Kartu Metrik Keuangan Realisasi */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Pagu DIPA */}
+          <div className="p-4 rounded-2xl bg-[var(--accent)]/30 border border-[var(--border)] space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] block">
+              Pagu Alokasi DIPA
+            </span>
+            <div className="text-xl font-black text-slate-900 dark:text-white tabular-nums">
+              {formatRupiahSingkat(realisasiData.totalPagu)}
+            </div>
+            <span className="text-[10px] text-slate-500 block">DIPA Kementerian/Lembaga</span>
+          </div>
+
+          {/* Realisasi Anggaran Riil */}
+          <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                Realisasi Anggaran
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-600 text-white">
+                {realisasiData.persenSerapan.toFixed(1)}%
+              </span>
+            </div>
+            <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 tabular-nums">
+              {formatRupiahSingkat(realisasiData.nominalRealisasi)}
+            </div>
+            <div className="w-full bg-emerald-200 dark:bg-emerald-900 h-1.5 rounded-full overflow-hidden mt-1">
+              <div
+                className="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                style={{ width: `${realisasiData.persenSerapan}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Sisa Anggaran */}
+          <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 block">
+              Sisa Anggaran Belum Terserap
+            </span>
+            <div className="text-xl font-black text-amber-700 dark:text-amber-300 tabular-nums">
+              {formatRupiahSingkat(realisasiData.sisaAnggaran)}
+            </div>
+            <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 font-medium block">
+              Tersisa {(100 - realisasiData.persenSerapan).toFixed(1)}% untuk operasional
+            </span>
+          </div>
+
+          {/* Nilai IKPA Kemenkeu */}
+          <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                Nilai IKPA Kemenkeu
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-600 text-white">
+                Sangat Baik
+              </span>
+            </div>
+            <div className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono">
+              {realisasiData.ikpaScore} <span className="text-xs text-slate-500 font-normal">/ 100</span>
+            </div>
+            <span className="text-[10px] text-slate-500 block">
+              Deviasi RPD Hal. III: <span className="font-bold text-emerald-600">{realisasiData.deviasiHal3}%</span> (&lt; 5%)
+            </span>
+          </div>
+        </div>
+
+        {/* Baris Dua Kolom: Realisasi per Jenis Belanja & Program */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+          {/* Kolom 1: Distribusi Serapan per Jenis Belanja (Akun 51, 52, 53) */}
+          <div className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--accent)]/15 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+              <h3 className="text-xs font-bold text-[var(--text)] flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Realisasi per Klaster Jenis Belanja (BAS 2-Digit)</span>
+              </h3>
+              <span className="text-[10px] text-slate-400">Target Serapan: &gt; 90%</span>
+            </div>
+
+            <div className="space-y-3">
+              {realisasiData.belanja.map((b) => (
+                <div key={b.jenis} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[var(--text)]">{b.jenis}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 tabular-nums">
+                        {formatRupiahSingkat(b.realisasi)} / {formatRupiahSingkat(b.pagu)}
+                      </span>
+                      <span className="font-mono font-bold text-emerald-600">
+                        {b.persen.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${b.color} rounded-full transition-all duration-500`}
+                      style={{ width: `${b.persen}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Kolom 2: Realisasi per Program Kerja Prioritas PPATK */}
+          <div className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--accent)]/15 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+              <h3 className="text-xs font-bold text-[var(--text)] flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Realisasi Belanja per Program Kerja Utama PPATK</span>
+              </h3>
+              <span className="badge badge-primary text-[10px]">Tabel 4.3 Renstra</span>
+            </div>
+
+            <div className="space-y-3">
+              {realisasiData.program.map((p) => (
+                <div key={p.kode} className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-[var(--border)] space-y-2">
+                  <div className="flex items-start justify-between text-xs gap-2">
+                    <div>
+                      <span className="font-mono font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded text-[10px]">
+                        {p.kode}
+                      </span>
+                      <p className="font-bold text-[var(--text)] mt-1">{p.nama}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="font-black text-emerald-600 text-sm font-mono block">
+                        {p.persen.toFixed(1)}%
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {formatRupiahSingkat(p.realisasi)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-indigo-600 rounded-full transition-all duration-500"
+                      style={{ width: `${p.persen}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4. VISUALISASI UTAMA: RADAR CHART KEMATANGAN PERENCANAAN ─────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Kolom Kiri (7 Spans): Grafik Radar Spider Web */}
         <div className="lg:col-span-7 aksi-card p-6 flex flex-col justify-between space-y-4">
@@ -755,7 +1014,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 4. VISUALISASI DINAMIS BERDASARKAN ROLE PENGGUNA ──────────────── */}
+      {/* ── 5. VISUALISASI DINAMIS BERDASARKAN ROLE PENGGUNA ──────────────── */}
       {currentUserRole === "BINCANG" || currentUserRole === "Super Admin" ? (
         /* PERSPEKTIF BINCANG / SUPER ADMIN: Peringkat Mutu Perencanaan 16 Unit Kerja */
         <div className="aksi-card p-6 space-y-4">
@@ -820,7 +1079,6 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                  {/* Progress bar nilai */}
                   <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
@@ -949,7 +1207,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── 5. PIPELINE STATUS TAHAPAN DOKUMEN BERJENJANG ────────────────── */}
+      {/* ── 6. PIPELINE STATUS TAHAPAN DOKUMEN BERJENJANG ────────────────── */}
       <div className="aksi-card p-6 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
           <div>
@@ -1003,7 +1261,7 @@ export default function DashboardPage() {
               link: "/rab/monitoring-penilaian",
               icon: Scale
             }
-          ].map((step, idx) => (
+          ].map((step) => (
             <div
               key={step.tahap}
               className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--accent)]/20 hover:border-indigo-400 transition-all flex flex-col justify-between space-y-3"
@@ -1038,7 +1296,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 6. CATATAN STRATEGIS EVALUATOR & AKSES MODUL KUNCI ───────────── */}
+      {/* ── 7. CATATAN STRATEGIS EVALUATOR & AKSES MODUL KUNCI ───────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Kolom Kiri (8 Spans): Catatan Penelaahan & Rekomendasi Prioritas */}
         <div className="lg:col-span-8 aksi-card p-6 space-y-4">
