@@ -34,11 +34,15 @@ const MonitoringSubmitApproveEselon2Page = lazy(() => import("./pages/eselon2/Mo
 const PilihHistoriKakPage = lazy(() => import("./pages/kak/PilihHistoriKakPage"));
 const IsianKakPage = lazy(() => import("./pages/kak/IsianKakPage"));
 const IsianKakPengadaanPage = lazy(() => import("./pages/kak/IsianKakPengadaanPage"));
+const EvaluasiKakPage = lazy(() => import("./pages/kak/EvaluasiKakPage"));
+const MonitoringPenilaianKakPage = lazy(() => import("./pages/kak/MonitoringPenilaianKakPage"));
 const MonitoringSubmitApproveKakPage = lazy(() => import("./pages/kak/MonitoringSubmitApproveKakPage"));
 
 // RAB (Rencana Anggaran Biaya)
 const PilihHistoriRabPage = lazy(() => import("./pages/rab/PilihHistoriRabPage"));
 const IsianRabPage = lazy(() => import("./pages/rab/IsianRabPage"));
+const EvaluasiRabPage = lazy(() => import("./pages/rab/EvaluasiRabPage"));
+const MonitoringPenilaianRabPage = lazy(() => import("./pages/rab/MonitoringPenilaianRabPage"));
 const RevisiAnggaranPage = lazy(() => import("./pages/rab/RevisiAnggaranPage"));
 const AutomaticAdjustmentPage = lazy(() => import("./pages/rab/AutomaticAdjustmentPage"));
 const MatriksUsulanRevisiPage = lazy(() => import("./pages/rab/MatriksUsulanRevisiPage"));
@@ -101,12 +105,16 @@ export default function App() {
             <Route path="/kak/pilih-histori" element={<PilihHistoriKakPage />} />
             <Route path="/kak/isian" element={<IsianKakPage />} />
             <Route path="/kak/pengadaan" element={<IsianKakPengadaanPage />} />
+            <Route path="/kak/evaluasi" element={<EvaluasiKakPage />} />
+            <Route path="/kak/monitoring-penilaian" element={<MonitoringPenilaianKakPage />} />
             <Route path="/kak/monitoring" element={<MonitoringSubmitApproveKakPage />} />
 
             {/* Rencana Anggaran Biaya (RAB) - sub pages */}
             <Route path="/rab/pilih-histori" element={<PilihHistoriRabPage />} />
             <Route path="/rab/isian" element={<IsianRabPage />} />
             <Route path="/rab/rpd" element={<RpdPage />} />
+            <Route path="/rab/evaluasi" element={<EvaluasiRabPage />} />
+            <Route path="/rab/monitoring-penilaian" element={<MonitoringPenilaianRabPage />} />
             <Route path="/rab/forum-penelaahan" element={<ForumPenelaahanPage />} />
             <Route path="/rab/input-rinci" element={<Navigate to="/rab/isian" replace />} />
             <Route path="/rab/revisi" element={<RevisiAnggaranPage />} />
