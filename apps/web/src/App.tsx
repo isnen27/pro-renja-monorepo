@@ -22,6 +22,7 @@ const MonitoringSubmitApprovePage = lazy(() => import("./pages/eselon1/Monitorin
 
 // Eselon 2
 const PilihHistoriEselon2Page = lazy(() => import("./pages/eselon2/PilihHistoriEselon2Page"));
+const PreviewRenjaEselon1Page = lazy(() => import("./pages/eselon2/PreviewRenjaEselon1Page"));
 const IsianBab1Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab1Eselon2Page"));
 const IsianBab2Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab2Eselon2Page"));
 const IsianBab3Eselon2Page = lazy(() => import("./pages/eselon2/IsianBab3Eselon2Page"));
@@ -99,6 +100,7 @@ export default function App() {
 
             {/* Renja Eselon II - sub pages */}
             <Route path="/eselon2/pilih-histori" element={<PilihHistoriEselon2Page />} />
+            <Route path="/eselon2/preview-renja-eselon1" element={<PreviewRenjaEselon1Page />} />
             <Route path="/eselon2/bab-1" element={<IsianBab1Eselon2Page />} />
             <Route path="/eselon2/bab-1/*" element={<IsianBab1Eselon2Page />} />
             <Route path="/eselon2/bab-2" element={<IsianBab2Eselon2Page />} />

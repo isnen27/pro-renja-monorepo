@@ -85,6 +85,7 @@ export const menuConfig: MenuGroup[] = [
         icon: Building,
         submenu: [
           { label: "Pilih Histori", href: "/eselon2/pilih-histori" },
+          { label: "Preview Renja Eselon I", href: "/eselon2/preview-renja-eselon1" },
           {
             label: "Isian Bab I",
             href: "/eselon2/bab-1",
