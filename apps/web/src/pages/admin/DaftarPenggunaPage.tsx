@@ -457,8 +457,8 @@ export default function DaftarPenggunaPage() {
 
       {/* ── MODAL 2: EDIT (SEMUA DATA BISA DIEDIT KECUALI PERAN) ─────────── */}
       {editUser && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 my-8">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600">
@@ -517,14 +517,15 @@ export default function DaftarPenggunaPage() {
                 />
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="font-bold text-[var(--text)] block mb-1">
                   Unit Kerja PPATK <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={editUnitKerja}
                   onChange={(e) => setEditUnitKerja(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
+                  className="w-full max-w-full truncate px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-xs cursor-pointer"
+                  title={editUnitKerja}
                 >
                   {DAFTAR_UNIT_KERJA_PPATK.map((u) => (
                     <option key={u.kode} value={u.labelLengkap}>
@@ -532,6 +533,9 @@ export default function DaftarPenggunaPage() {
                     </option>
                   ))}
                 </select>
+                <span className="text-[10px] text-[var(--text-muted)] mt-1 block truncate">
+                  Pilihan terpilih: <span className="font-medium text-[var(--text)]">{editUnitKerja}</span>
+                </span>
               </div>
 
               <div>
@@ -563,7 +567,7 @@ export default function DaftarPenggunaPage() {
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as "Online" | "Offline")}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
+                  className="w-full max-w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
                 >
                   <option value="Online">Online</option>
                   <option value="Offline">Offline</option>

@@ -219,14 +219,15 @@ export default function TambahPenggunaPage() {
           </div>
 
           {/* Kolom Unit Kerja */}
-          <div>
+          <div className="w-full min-w-0">
             <label className="text-xs font-bold text-[var(--text)] block mb-1.5">
               Unit Kerja PPATK <span className="text-red-500">*</span>
             </label>
             <select
               value={unitKerja}
               onChange={(e) => setUnitKerja(e.target.value)}
-              className="w-full text-xs font-semibold px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full max-w-full truncate text-xs font-semibold px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              title={unitKerja}
             >
               {DAFTAR_UNIT_KERJA_PPATK.map((u) => (
                 <option key={u.kode} value={u.labelLengkap}>
