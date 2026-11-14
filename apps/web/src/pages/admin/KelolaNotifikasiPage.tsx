@@ -32,6 +32,27 @@ export default function KelolaNotifikasiPage() {
   const [targetPeran, setTargetPeran] = useState("Semua Pengguna");
   const [targetUnit, setTargetUnit] = useState("Semua Unit");
   const [successMsg, setSuccessMsg] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch {
+      return "Operator";
+    }
+  });
+
+  useEffect(() => {
+    const handleRole = () => {
+      try {
+        setCurrentUserRole(localStorage.getItem("renja_e2_user_role") || "Operator");
+      } catch {}
+    };
+    window.addEventListener("storage", handleRole);
+    window.addEventListener("renja_role_changed", handleRole);
+    return () => {
+      window.removeEventListener("storage", handleRole);
+      window.removeEventListener("renja_role_changed", handleRole);
+    };
+  }, []);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -75,6 +96,28 @@ export default function KelolaNotifikasiPage() {
     setNotifs(updated);
     saveStoredNotifications(updated);
   };
+
+  if (currentUserRole !== "Super Admin") {
+    return (
+      <div className="max-w-xl mx-auto my-12 p-8 aksi-card text-center space-y-4">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-bold text-[var(--text)]">Akses Dibatasi Khusus Super Admin</h2>
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          Halaman <strong>Kelola Notifikasi</strong> hanya dapat diakses oleh pengguna dengan hak akses <strong>Super Admin</strong>. Untuk menandai notifikasi yang masuk, silakan gunakan tombol lonceng notifikasi pada menu navigasi atas.
+        </p>
+        <div className="pt-2">
+          <a
+            href="/dashboard"
+            className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition-opacity"
+          >
+            Kembali ke Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 max-w-5xl mx-auto">

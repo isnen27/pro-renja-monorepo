@@ -36,20 +36,66 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
 
   // Data notifikasi dinamis dari localStorage / master data
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [hasMarkedAsRead, setHasMarkedAsRead] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("aksi_notif_marked_read") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch {
+      return "Operator";
+    }
+  });
 
   useEffect(() => {
     const refreshNotifications = () => {
       setNotifications(getStoredNotifications());
     };
+    const refreshRoleAndStatus = () => {
+      try {
+        const role = localStorage.getItem("renja_e2_user_role") || "Operator";
+        setCurrentUserRole(role);
+        setHasMarkedAsRead(localStorage.getItem("aksi_notif_marked_read") === "true");
+      } catch {}
+    };
+
     refreshNotifications();
+    refreshRoleAndStatus();
 
     window.addEventListener("aksi_notifications_updated", refreshNotifications);
-    window.addEventListener("storage", refreshNotifications);
+    window.addEventListener("aksi_notif_read_updated", refreshRoleAndStatus);
+    window.addEventListener("renja_role_changed", refreshRoleAndStatus);
+    window.addEventListener("storage", () => {
+      refreshNotifications();
+      refreshRoleAndStatus();
+    });
     return () => {
       window.removeEventListener("aksi_notifications_updated", refreshNotifications);
-      window.removeEventListener("storage", refreshNotifications);
+      window.removeEventListener("aksi_notif_read_updated", refreshRoleAndStatus);
+      window.removeEventListener("renja_role_changed", refreshRoleAndStatus);
     };
   }, []);
+
+  const handleMarkAllRead = () => {
+    try {
+      localStorage.setItem("aksi_notif_marked_read", "true");
+    } catch {}
+    setHasMarkedAsRead(true);
+    window.dispatchEvent(new Event("aksi_notif_read_updated"));
+  };
+
+  const handleResetUnread = () => {
+    try {
+      localStorage.removeItem("aksi_notif_marked_read");
+    } catch {}
+    setHasMarkedAsRead(false);
+    window.dispatchEvent(new Event("aksi_notif_read_updated"));
+  };
 
   // Baca unit kerja & role user sesuai Panduan4
   const [userUnit, setUserUnit] = useState<string>("PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN");
@@ -279,8 +325,9 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
               title="Notifikasi Sistem"
             >
               <Bell className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-              {notifications.length > 0 && (
-                <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center border border-[var(--card)]">
+              {/* Tampilkan angka badge jika ada notifikasi dan BELUM ditandai sudah dibaca */}
+              {notifications.length > 0 && !hasMarkedAsRead && (
+                <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center border border-[var(--card)] animate-pulse">
                   {notifications.length}
                 </span>
               )}
@@ -294,16 +341,37 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
                     <span className="text-xs font-bold text-[var(--text)]">Pemberitahuan Sistem</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="badge badge-red text-[10px] font-semibold">
-                      {notifications.length} Notifikasi
-                    </span>
-                    <a
-                      href="/admin/notifikasi"
-                      onClick={() => setShowNotifications(false)}
-                      className="text-[10px] text-[var(--primary)] hover:underline font-medium"
-                    >
-                      Kelola
-                    </a>
+                    {!hasMarkedAsRead && notifications.length > 0 ? (
+                      <span className="badge badge-red text-[10px] font-semibold">
+                        {notifications.length} Notifikasi
+                      </span>
+                    ) : (
+                      <span className="badge badge-gray text-[10px] font-semibold">
+                        Semua Terbaca
+                      </span>
+                    )}
+
+                    {/* Jika Super Admin: Tampilkan link Kelola */}
+                    {currentUserRole === "Super Admin" ? (
+                      <a
+                        href="/admin/notifikasi"
+                        onClick={() => setShowNotifications(false)}
+                        className="text-[10px] text-[var(--primary)] hover:underline font-bold"
+                      >
+                        Kelola
+                      </a>
+                    ) : (
+                      /* Untuk role lain: Tombol tandai sudah dibaca */
+                      !hasMarkedAsRead && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[10px] text-[var(--primary)] hover:underline font-semibold cursor-pointer"
+                          title="Tandai semua notifikasi sudah dibaca"
+                        >
+                          Tandai Dibaca
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -357,14 +425,41 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
                   )}
                 </div>
 
-                <div className="p-2.5 border-t border-[var(--border)] bg-[var(--card-header)] text-center">
-                  <a
-                    href="/admin/notifikasi"
-                    onClick={() => setShowNotifications(false)}
-                    className="text-xs font-semibold text-[var(--primary)] hover:underline inline-flex items-center gap-1"
-                  >
-                    Buka Halaman Kelola Notifikasi &rarr;
-                  </a>
+                {/* Footer Dropdown */}
+                <div className="p-2.5 border-t border-[var(--border)] bg-[var(--card-header)] flex items-center justify-between text-xs">
+                  {currentUserRole === "Super Admin" ? (
+                    <a
+                      href="/admin/notifikasi"
+                      onClick={() => setShowNotifications(false)}
+                      className="w-full text-center font-semibold text-[var(--primary)] hover:underline inline-flex items-center justify-center gap-1"
+                    >
+                      Buka Halaman Kelola Notifikasi &rarr;
+                    </a>
+                  ) : (
+                    <div className="w-full flex items-center justify-between px-1">
+                      {!hasMarkedAsRead ? (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="w-full text-center font-semibold text-[var(--primary)] hover:underline py-0.5 cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Tandai Semua Sudah Dibaca</span>
+                        </button>
+                      ) : (
+                        <div className="w-full flex items-center justify-between">
+                          <span className="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5 text-emerald-500" /> Semua sudah ditandai dibaca
+                          </span>
+                          <button
+                            onClick={handleResetUnread}
+                            className="text-[11px] text-[var(--primary)] hover:underline cursor-pointer"
+                          >
+                            Tampilkan Angka Lagi
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

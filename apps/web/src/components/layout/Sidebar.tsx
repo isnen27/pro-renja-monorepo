@@ -59,12 +59,31 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, collapsed]);
 
-  // Filtered menu items when searching
+  // Filtered menu items when searching & role access
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return menuConfig;
+    const isSuperAdmin = userRole === "Super Admin";
+
+    // Filter menu khusus Super Admin jika bukan Super Admin
+    let baseGroups = menuConfig.map((group) => {
+      if (group.groupLabel === "Administrasi & Pengguna") {
+        return {
+          ...group,
+          items: group.items.filter((item) => {
+            // "Kelola Notifikasi" hanya tampil untuk role Super Admin
+            if (item.href === "/admin/notifikasi" && !isSuperAdmin) {
+              return false;
+            }
+            return true;
+          }),
+        };
+      }
+      return group;
+    });
+
+    if (!searchQuery.trim()) return baseGroups;
     const q = searchQuery.toLowerCase();
 
-    return menuConfig
+    return baseGroups
       .map((group) => {
         const matchingItems = group.items.filter((item) => {
           const matchItem = item.label.toLowerCase().includes(q);
@@ -84,7 +103,7 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
         };
       })
       .filter((group) => group.items.length > 0) as MenuGroup[];
-  }, [searchQuery]);
+  }, [searchQuery, userRole]);
 
   return (
     <>
