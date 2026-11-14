@@ -56,6 +56,13 @@ const RpdPage = lazy(() => import("./pages/rab/RpdPage"));
 const SeriesAnggaranPage = lazy(() => import("./pages/referensi/SeriesAnggaranPage"));
 const LokasiPage = lazy(() => import("./pages/referensi/LokasiPage"));
 const AsumsiMakroPage = lazy(() => import("./pages/referensi/AsumsiMakroPage"));
+const DataPejabatPage = lazy(() => import("./pages/referensi/DataPejabatPage"));
+
+// Administrasi & Pengguna
+const DaftarPenggunaPage = lazy(() => import("./pages/admin/DaftarPenggunaPage"));
+const TambahPenggunaPage = lazy(() => import("./pages/admin/TambahPenggunaPage"));
+const HakAksesPeranPage = lazy(() => import("./pages/admin/HakAksesPeranPage"));
+const KelolaNotifikasiPage = lazy(() => import("./pages/admin/KelolaNotifikasiPage"));
 
 // Minimal loading placeholder for fast transitions
 function PageLoading() {
@@ -128,6 +135,13 @@ export default function App() {
             <Route path="/referensi/series-anggaran" element={<SeriesAnggaranPage />} />
             <Route path="/referensi/lokasi" element={<LokasiPage />} />
             <Route path="/referensi/asumsi-makro" element={<AsumsiMakroPage />} />
+            <Route path="/referensi/pejabat" element={<DataPejabatPage />} />
+
+            {/* Administrasi & Pengguna */}
+            <Route path="/admin/pengguna" element={<DaftarPenggunaPage />} />
+            <Route path="/admin/pengguna/tambah" element={<TambahPenggunaPage />} />
+            <Route path="/admin/peran" element={<HakAksesPeranPage />} />
+            <Route path="/admin/notifikasi" element={<KelolaNotifikasiPage />} />
 
             {/* Seluruh sub-modul perencanaan, penganggaran, monev, referensi, dan administrasi */}
             <Route path="*" element={<ModulePage />} />

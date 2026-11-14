@@ -12,10 +12,15 @@ import {
   FileSpreadsheet,
   Check,
   ChevronDown,
+  Info,
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import ServerClock from "../ui/ServerClock";
 import ThemeToggle from "../ui/ThemeToggle";
 import UserMenu from "../ui/UserMenu";
+import { getStoredNotifications, type SystemNotification } from "../../data/userManagementData";
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -27,6 +32,24 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
   const [showHelp, setShowHelp] = useState(false);
   const [showModuleMenu, setShowModuleMenu] = useState(false);
   const moduleRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Data notifikasi dinamis dari localStorage / master data
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+
+  useEffect(() => {
+    const refreshNotifications = () => {
+      setNotifications(getStoredNotifications());
+    };
+    refreshNotifications();
+
+    window.addEventListener("aksi_notifications_updated", refreshNotifications);
+    window.addEventListener("storage", refreshNotifications);
+    return () => {
+      window.removeEventListener("aksi_notifications_updated", refreshNotifications);
+      window.removeEventListener("storage", refreshNotifications);
+    };
+  }, []);
 
   // Baca unit kerja & role user sesuai Panduan4
   const [userUnit, setUserUnit] = useState<string>("PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN");
@@ -248,7 +271,7 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
           <div className="h-6 w-px bg-[var(--border)] mx-0.5 sm:mx-1" />
 
           {/* Notification bell */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-1.5 sm:p-2 rounded-lg hover:bg-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors cursor-pointer"
@@ -256,32 +279,92 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
               title="Notifikasi Sistem"
             >
               <Bell className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-              <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center border border-[var(--card)]">
-                6
-              </span>
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center border border-[var(--card)]">
+                  {notifications.length}
+                </span>
+              )}
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 aksi-card shadow-xl z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--text)]">Pemberitahuan Sistem</span>
-                  <span className="badge badge-red">6 Baru</span>
+              <div className="absolute right-0 top-full mt-2 w-84 sm:w-96 aksi-card shadow-xl z-50 overflow-hidden border border-[var(--border)] rounded-2xl bg-[var(--card)]">
+                <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between bg-[var(--card-header)]">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-[var(--primary)]" />
+                    <span className="text-xs font-bold text-[var(--text)]">Pemberitahuan Sistem</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="badge badge-red text-[10px] font-semibold">
+                      {notifications.length} Notifikasi
+                    </span>
+                    <a
+                      href="/admin/notifikasi"
+                      onClick={() => setShowNotifications(false)}
+                      className="text-[10px] text-[var(--primary)] hover:underline font-medium"
+                    >
+                      Kelola
+                    </a>
+                  </div>
                 </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-[var(--border)]">
-                  <div className="p-3 hover:bg-[var(--accent)] transition-colors">
-                    <p className="text-xs font-semibold text-[var(--text)]">Forum Penelaahan Ditutup</p>
-                    <p className="text-[0.7rem] text-[var(--text-muted)] mt-0.5">
-                      Tahap Alokasi Anggaran TA 2026 PPATK telah disetujui DJA dan ditutup.
-                    </p>
-                    <span className="text-[0.65rem] text-[var(--primary)] mt-1 inline-block">10 menit yang lalu</span>
-                  </div>
-                  <div className="p-3 hover:bg-[var(--accent)] transition-colors">
-                    <p className="text-xs font-semibold text-[var(--text)]">Batas Waktu Pengajuan RKA</p>
-                    <p className="text-[0.7rem] text-[var(--text-muted)] mt-0.5">
-                      Penyusunan RKA TA 2027 dimulai untuk Pagu Indikatif.
-                    </p>
-                    <span className="text-[0.65rem] text-[var(--primary)] mt-1 inline-block">1 jam yang lalu</span>
-                  </div>
+
+                <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)]">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-[var(--text-muted)]">
+                      Belum ada notifikasi baru untuk saat ini.
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const getIcon = () => {
+                        switch (n.kategori) {
+                          case "urgent":
+                            return <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />;
+                          case "warning":
+                            return <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />;
+                          case "success":
+                            return <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />;
+                          default:
+                            return <Info className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />;
+                        }
+                      };
+
+                      return (
+                        <div key={n.id} className="p-3.5 hover:bg-[var(--accent)] transition-colors flex items-start gap-3">
+                          {getIcon()}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-bold text-[var(--text)] leading-tight line-clamp-1">
+                                {n.judul}
+                              </p>
+                              <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap">
+                                {n.waktu}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                              {n.pesan}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--primary-bg)] text-[var(--primary)] font-semibold">
+                                Target: {n.target}
+                              </span>
+                              <span className="text-[9px] text-[var(--text-muted)]">
+                                {n.tanggal}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="p-2.5 border-t border-[var(--border)] bg-[var(--card-header)] text-center">
+                  <a
+                    href="/admin/notifikasi"
+                    onClick={() => setShowNotifications(false)}
+                    className="text-xs font-semibold text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+                  >
+                    Buka Halaman Kelola Notifikasi &rarr;
+                  </a>
                 </div>
               </div>
             )}

@@ -19,6 +19,7 @@ import {
   Settings,
   MapPin,
   TrendingUp,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -210,6 +211,11 @@ export const menuConfig: MenuGroup[] = [
           { label: "Tambah Pengguna Baru", href: "/admin/pengguna/tambah" },
           { label: "Hak Akses & Peran", href: "/admin/peran" },
         ],
+      },
+      {
+        label: "Kelola Notifikasi",
+        icon: Bell,
+        href: "/admin/notifikasi",
       },
     ],
   },
