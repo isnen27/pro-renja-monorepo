@@ -406,6 +406,53 @@ export default function PreviewRenjaEselon1Page() {
 
   return (
     <div className="space-y-6 pb-16 max-w-5xl mx-auto">
+      {/* ── STYLE KHUSUS PRINT DOKUMEN RENJA ESELON I ── */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 20mm 20mm 20mm 20mm;
+          }
+          /* Sembunyikan seluruh struktur website (sidebar, topbar, wrapper lain) */
+          body * {
+            visibility: hidden !important;
+          }
+          /* Hanya tampilkan elemen dokumen Renja Eselon I */
+          #print-area-renja-e1,
+          #print-area-renja-e1 * {
+            visibility: visible !important;
+          }
+          #print-area-renja-e1 {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: #0f172a !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .print-break {
+            page-break-before: always !important;
+            break-before: page !important;
+          }
+          table {
+            page-break-inside: auto !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* ── HEADER HALAMAN & PENGATUR SATKER ──────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border)] pb-4 print:hidden">
         <div>
@@ -481,28 +528,40 @@ export default function PreviewRenjaEselon1Page() {
       </div>
 
       {/* ── DOKUMEN PREVIEW LENGKAP RENJA ESELON I (STANDAR FORMAL RESMI) ───── */}
-      <div className="bg-white text-slate-900 p-8 md:p-14 rounded-3xl border border-slate-200 shadow-xl space-y-10 font-serif leading-relaxed print:p-0 print:border-none print:shadow-none print:rounded-none">
+      <div
+        id="print-area-renja-e1"
+        className="bg-white text-slate-900 p-8 md:p-14 rounded-3xl border border-slate-200 shadow-xl space-y-10 font-serif leading-relaxed print:p-0 print:border-none print:shadow-none print:rounded-none"
+      >
         
         {/* ── HALAMAN SAMPUL / KOP DOKUMEN RESMI ── */}
-        <div className="text-center space-y-4 border-b-2 border-slate-900 pb-10">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-indigo-900 flex items-center justify-center text-white shadow-md">
-            <Landmark className="w-10 h-10" />
-          </div>
-          <div className="space-y-1 font-sans">
-            <p className="text-xs tracking-widest font-bold uppercase text-slate-600">
+        <div className="text-center space-y-5 border-b-2 border-slate-900 pb-12 print-break">
+          <div className="space-y-3">
+            <img
+              src="/logo-ppatk.png"
+              alt="Logo PPATK"
+              className="w-28 h-auto mx-auto object-contain drop-shadow-sm"
+            />
+            <p className="text-xs tracking-[0.25em] font-bold uppercase text-slate-700 font-sans">
               PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN
             </p>
-            <h1 className="text-xl md:text-2xl font-black uppercase tracking-wide text-slate-900">
-              RENCANA KERJA (RENJA) TAHUN ANGGARAN {tahunAnggaran}
+          </div>
+
+          <div className="space-y-3 py-6">
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-wider text-slate-900 font-sans">
+              DOKUMEN RENCANA KERJA (RENJA)
             </h1>
-            <h2 className="text-lg md:text-xl font-bold uppercase tracking-wider text-indigo-900">
+            <h2 className="text-lg md:text-2xl font-bold uppercase tracking-wide text-indigo-950 font-sans max-w-2xl mx-auto leading-relaxed">
               {eselon1.namaLengkap.toUpperCase()}
             </h2>
-            <div className="pt-2">
-              <span className="inline-block px-4 py-1 rounded-full text-xs font-bold font-mono tracking-wider bg-slate-100 border border-slate-300 text-slate-800">
-                KODIFIKASI DOKUMEN: RENJA-E1/{eselon1.singkatan}/TA-{tahunAnggaran}
-              </span>
-            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <h3 className="text-base font-bold uppercase tracking-widest text-slate-900 font-sans">
+              TAHUN ANGGARAN {tahunAnggaran}
+            </h3>
+            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold font-mono tracking-wider bg-slate-100 border border-slate-300 text-slate-800">
+              KODIFIKASI DOKUMEN: RENJA-E1/{eselon1.singkatan}/TA-{tahunAnggaran}
+            </span>
           </div>
         </div>
 
