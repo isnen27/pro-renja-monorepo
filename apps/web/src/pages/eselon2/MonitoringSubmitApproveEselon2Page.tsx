@@ -549,11 +549,15 @@ const INITIAL_MONITORING_DATA_E2: MonitoringItemE2[] = [
 const STORAGE_KEY_MONITORING_E2 = "renja_e2_monitoring_list";
 
 export default function MonitoringSubmitApproveEselon2Page() {
+  // Role Pengguna Aktif diambil dari sesi login resmi
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
-      const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      const activeRole = localStorage.getItem("renja_e2_user_role");
+      if (activeRole) {
+        if (activeRole.includes("Operator")) return "Operator";
+        if (activeRole.includes("Approver")) return "Approver";
+        if (activeRole.includes("BINCANG")) return "BINCANG";
+        if (activeRole.includes("Super Admin")) return "Super Admin";
       }
     } catch (e) {}
     return "Approver";
@@ -810,31 +814,23 @@ export default function MonitoringSubmitApproveEselon2Page() {
           </div>
         </div>
 
-        {/* Role Switcher Sandbox */}
-        <div className="flex items-center gap-2 bg-[var(--accent)] p-1.5 rounded-xl border border-[var(--border)]">
-          <span className="text-[0.68rem] font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 flex items-center gap-1">
-            <UserCheck className="h-3.5 w-3.5" />
-            Simulasi Role:
+        {/* Role Badge Status Resmi (Sesuai Akun Login) */}
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-[var(--border)]">
+          <span className="text-[0.68rem] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
+            <UserCheck className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            Peran Sesi:
           </span>
-          {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setCurrentUserRole(r)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                currentUserRole === r
-                  ? r === "Operator"
-                    ? "bg-blue-600 text-white shadow"
-                    : r === "Approver"
-                    ? "bg-emerald-600 text-white shadow"
-                    : r === "BINCANG"
-                    ? "bg-amber-600 text-white shadow"
-                    : "bg-purple-600 text-white shadow"
-                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+          <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold text-white shadow-xs ${
+            currentUserRole === "Operator"
+              ? "bg-blue-600"
+              : currentUserRole === "Approver"
+              ? "bg-emerald-600"
+              : currentUserRole === "BINCANG"
+              ? "bg-amber-600"
+              : "bg-purple-600"
+          }`}>
+            {currentUserRole}
+          </span>
         </div>
       </div>
 

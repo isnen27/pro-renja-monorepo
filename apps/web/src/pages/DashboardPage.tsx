@@ -129,15 +129,34 @@ function formatRupiahSingkat(angka: number): string {
 export default function DashboardPage() {
   const currentYear = 2027;
 
-  // 1. Role Pengguna Aktif (Bisa disimulasikan pimpinan / user)
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
+  // 1. Role Pengguna Aktif & Data User Terautentikasi
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      return localStorage.getItem("renja_e2_user_role") || "Approver";
+    } catch {
+      return "Approver";
+    }
+  });
+
+  const [authProfile, setAuthProfile] = useState<{
+    nama: string;
+    nip: string;
+    jabatan: string;
+    unitKerja: string;
+  } | null>(() => {
+    try {
+      const authStr = localStorage.getItem("aksi_auth_user");
+      if (authStr) {
+        const u = JSON.parse(authStr);
+        return {
+          nama: u.nama,
+          nip: u.nip,
+          jabatan: u.jabatan,
+          unitKerja: u.unitKerja,
+        };
       }
     } catch {}
-    return "Approver";
+    return null;
   });
 
   // 2. Unit Kerja Aktif (Default PATIH - Pusdiklat APU PPT)
@@ -192,8 +211,18 @@ export default function DashboardPage() {
     return DAFTAR_UNIT_KERJA.find(u => u.kode === selectedUnitKode) || DAFTAR_UNIT_KERJA[0];
   }, [selectedUnitKode]);
 
-  // Nama user & jabatan dinamis sesuai role & unit
+  // Nama user & jabatan dinamis sesuai data user login & role
   const userInfo = useMemo(() => {
+    if (authProfile) {
+      return {
+        nama: authProfile.nama,
+        jabatan: authProfile.jabatan,
+        instansi: authProfile.unitKerja,
+        badgeText: currentUserRole,
+        badgeColor: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+      };
+    }
+
     switch (currentUserRole) {
       case "Approver":
         return {
@@ -472,36 +501,30 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Sisi Kanan: Panel Simulasi Persona & Peran (Desain Terang & Bersih) */}
+          {/* Sisi Kanan: Panel Profil Peran Aktif Pengguna */}
           <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-indigo-100 dark:border-slate-800 rounded-2xl p-4 lg:min-w-[320px] shadow-sm space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Simulasi Persona & Peran:</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Peran &amp; Hak Akses Sesi:</span>
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${userInfo.badgeColor}`}>
                 {currentUserRole}
               </span>
             </div>
 
-            {/* Pilihan Role Cepat */}
-            <div className="grid grid-cols-2 gap-1.5">
-              {(["Approver", "BINCANG", "Operator", "Super Admin"] as UserRole[]).map((role) => (
-                <button
-                  key={role}
-                  onClick={() => handleChangeRole(role)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left flex items-center justify-between ${
-                    currentUserRole === role
-                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-                      : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
-                  }`}
-                >
-                  <span className="truncate">
-                    {role === "Approver" ? "Pimpinan Unit" : role === "BINCANG" ? "BINCANG" : role === "Operator" ? "Operator Satker" : "Inspektorat / Admin"}
-                  </span>
-                  {currentUserRole === role && <CheckCircle2 className="w-3 h-3 flex-shrink-0 ml-1" />}
-                </button>
-              ))}
+            {/* Info Wewenang Pengguna */}
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                <span>Status Akun:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Aktif Terautentikasi
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                Menu kertas kerja dan kewenangan submit/approval ditampilkan otomatis sesuai peran resmi Anda.
+              </p>
             </div>
 
             {/* Pilihan Unit Kerja */}

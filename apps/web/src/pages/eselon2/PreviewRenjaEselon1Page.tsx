@@ -507,10 +507,10 @@ export default function PreviewRenjaEselon1Page() {
             </p>
           </div>
 
-          {/* Selector Ganti Unit Kerja untuk Simulasi */}
+          {/* Selector Ganti Unit Kerja Eselon II */}
           <div className="w-full md:w-72 bg-white dark:bg-slate-950 p-2.5 rounded-2xl border border-[var(--border)] shadow-xs">
             <label className="text-[10px] font-bold text-[var(--text-muted)] block mb-1">
-              Simulasi Unit Kerja Eselon II:
+              Unit Kerja Eselon II:
             </label>
             <select
               value={selectedUnitE2}
