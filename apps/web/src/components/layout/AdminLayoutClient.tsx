@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
@@ -7,6 +8,9 @@ export default function AdminLayoutClient({
 }: {
   children: React.ReactNode;
 }) {
+  const location = useLocation();
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/pilih-role";
+
   /**
    * sidebarCollapsed:
    *  - Mobile (<lg): false = overlay terbuka, true = overlay tertutup
@@ -15,6 +19,11 @@ export default function AdminLayoutClient({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
+
+  // Jika di halaman login atau pilih role, render konten full tanpa sidebar & topbar
+  if (isAuthPage) {
+    return <div className="w-full min-h-screen">{children}</div>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)]">

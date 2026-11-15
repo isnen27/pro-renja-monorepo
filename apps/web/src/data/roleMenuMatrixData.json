@@ -1,0 +1,946 @@
+[
+  {
+    "cluster": "Beranda",
+    "menu": "Dashboard Eksekutif",
+    "submenu": "—",
+    "path": "/dashboard",
+    "desc": "Dashboard visual pimpinan & personalisasi role",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Pilih Histori",
+    "path": "/eselon1/pilih-histori",
+    "desc": "Filter histori & status penelaahan",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Isian Bab I",
+    "path": "/eselon1/bab-1",
+    "desc": "Terdapat 4 Sub-bab (Tab):",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "↳ Gambaran Umum",
+    "path": "/eselon1/bab-1?tab=gambaran-umum",
+    "desc": "Profil & Tupoksi Eselon I",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "↳ Capaian Kinerja",
+    "path": "/eselon1/bab-1?tab=capaian-kinerja",
+    "desc": "Indikator Kinerja Utama (IKU)",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "↳ Arah Kebijakan, Strategi, & Target Kinerja",
+    "path": "/eselon1/bab-1?tab=arah-kebijakan",
+    "desc": "Sasaran Strategis & Target Kinerja",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "↳ Analisis Situasi",
+    "path": "/eselon1/bab-1?tab=analisis-situasi",
+    "desc": "Analisis SWOT & Isu Strategis",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Isian Bab II",
+    "path": "/eselon1/bab-2",
+    "desc": "Matriks Renja Eselon I",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Evaluasi Renja Eselon I",
+    "path": "/eselon1/evaluasi-strategis",
+    "desc": "Evaluasi capaian Renja E1",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Monitoring Penilaian",
+    "path": "/eselon1/monitoring-penilaian",
+    "desc": "Penilaian kelayakan Renja E1",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon I",
+    "submenu": "Monitoring Submit & Approve Data",
+    "path": "/eselon1/monitoring",
+    "desc": "Tracking alur approval Eselon I",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Pilih Histori",
+    "path": "/eselon2/pilih-histori",
+    "desc": "Filter unit kerja & status Renja E2",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Preview Renja Eselon I",
+    "path": "/eselon2/preview-renja-eselon1",
+    "desc": "Pratinjau dokumen Renja Eselon I",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Isian Bab I",
+    "path": "/eselon2/bab-1",
+    "desc": "Terdapat 4 Sub-bab (Tab):",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "↳ Gambaran Umum",
+    "path": "/eselon2/bab-1?tab=gambaran-umum",
+    "desc": "Profil Satker / Unit Eselon II",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "↳ Capaian Kinerja",
+    "path": "/eselon2/bab-1?tab=capaian-kinerja",
+    "desc": "Capaian Sasaran Program/Kegiatan",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "↳ Arah Kebijakan, Strategi, & Target Kinerja",
+    "path": "/eselon2/bab-1?tab=arah-kebijakan",
+    "desc": "Target Kinerja Program Unit Kerja",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "↳ Analisis Situasi",
+    "path": "/eselon2/bab-1?tab=analisis-situasi",
+    "desc": "Identifikasi Masalah & Peluang",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Isian Bab II",
+    "path": "/eselon2/bab-2",
+    "desc": "Program, Kegiatan & Klasifikasi Rincian Output",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Isian Bab III",
+    "path": "/eselon2/bab-3",
+    "desc": "Kebutuhan Anggaran & Rencana Pendanaan",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Isian Lampiran",
+    "path": "/eselon2/lampiran",
+    "desc": "Lampiran Matriks Rinci Renja",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Evaluasi Renja Eselon II",
+    "path": "/eselon2/evaluasi",
+    "desc": "Evaluasi capaian Renja E2",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Monitoring Penilaian Renja Eselon II",
+    "path": "/eselon2/monitoring-penilaian",
+    "desc": "Skor & feedback penelaahan",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Rencana Kerja",
+    "menu": "Renja Eselon II",
+    "submenu": "Monitoring Submit & Approve Data",
+    "path": "/eselon2/monitoring",
+    "desc": "Tracking alur persetujuan Renja E2",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Pilih Histori",
+    "path": "/kak/pilih-histori",
+    "desc": "Histori pengajuan KAK/TOR",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Isian KAK/TOR",
+    "path": "/kak/isian",
+    "desc": "Rincian KAK Operasional / Reguler",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Isian KAK/TOR Pengadaan",
+    "path": "/kak/pengadaan",
+    "desc": "KAK khusus belanja modal & pengadaan PBJ",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Evaluasi Kerangka Acuan Kerja (KAK / TOR)",
+    "path": "/kak/evaluasi",
+    "desc": "Telaah substansi teknis KAK",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Monitoring Penilaian Kerangka Acuan Kerja (KAK / TOR)",
+    "path": "/kak/monitoring-penilaian",
+    "desc": "Skoring & status kelayakan TOR",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Kerangka Acuan Kerja (TOR)",
+    "submenu": "Monitoring Submit & Approve Data",
+    "path": "/kak/monitoring",
+    "desc": "Monitoring alur approval KAK",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Pilih Histori",
+    "path": "/rab/pilih-histori",
+    "desc": "Histori alokasi anggaran RAB",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Isian RAB",
+    "path": "/rab/isian",
+    "desc": "Input rincian biaya komponen & akun",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Rencana Penarikan Dana (RPD)",
+    "path": "/rab/rpd",
+    "desc": "Distribusi kas bulanan [Badge: Baru]",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Evaluasi RAB",
+    "path": "/rab/evaluasi",
+    "desc": "Evaluasi kesesuaian anggaran",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Monitoring Penilaian RAB",
+    "path": "/rab/monitoring-penilaian",
+    "desc": "Status verifikasi & skor penelaahan RAB",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Monitoring Submit & Approve Data",
+    "path": "/rab/monitoring",
+    "desc": "Tracking persetujuan RAB",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Forum Penelaahan",
+    "path": "/rab/forum-penelaahan",
+    "desc": "Catatan mitra & telaah anggaran [Badge: Live]",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Revisi Anggaran",
+    "path": "/rab/revisi",
+    "desc": "Pergeseran & perubahan pagu anggaran",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Automatic Adjustment",
+    "path": "/rab/automatic-adjustment",
+    "desc": "Pencadangan anggaran kebijakan APBN",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "Laporan RAB",
+    "path": "—",
+    "desc": "Sub-induk laporan RAB:",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "↳ Monitoring Revisi",
+    "path": "/rab/matriks-usulan-revisi",
+    "desc": "Matriks usulan revisi anggaran",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "↳ Monitoring Blokir",
+    "path": "/rab/monitoring-blokir",
+    "desc": "Pemantauan buka/tutup tanda blokir DJA",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Penganggaran & Biaya",
+    "menu": "Rencana Anggaran Biaya (RAB)",
+    "submenu": "↳ Monitoring RPD",
+    "path": "/rab/monitoring-rpd",
+    "desc": "Deviasi dan realisasi penarikan dana",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Standar Biaya",
+    "submenu": "Standar Biaya Masukan (SBM)",
+    "path": "/standar-biaya/sbm",
+    "desc": "PMK Standar Biaya Masukan",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Standar Biaya",
+    "submenu": "Standar Biaya Keluaran (SBK)",
+    "path": "/standar-biaya/sbk",
+    "desc": "Standar Biaya Keluaran PPATK",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Referensi Informasi Kinerja",
+    "submenu": "Visi & Misi PPATK",
+    "path": "/referensi/visi-misi",
+    "desc": "Profil visi misi PPATK",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Referensi Informasi Kinerja",
+    "submenu": "Visualisasi Sasaran Kinerja",
+    "path": "/referensi/visualisasi-sasaran-kinerja",
+    "desc": "Pohon kinerja / cascading sasaran",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Referensi Informasi Kinerja",
+    "submenu": "Informasi Kinerja",
+    "path": "/referensi/informasi-kinerja",
+    "desc": "Sasaran Strategis, Program & RO PPATK",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Referensi Informasi Kinerja",
+    "submenu": "Unit Kerja PPATK",
+    "path": "/referensi/unit-kerja",
+    "desc": "16 Unit Eselon II & 4 Kedeputian",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Referensi Informasi Kinerja",
+    "submenu": "Satuan Kerja",
+    "path": "/referensi/satuan-kerja",
+    "desc": "Master data satker PPATK",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Bagan Akun Standar (BAS)",
+    "submenu": "—",
+    "path": "/referensi/bas",
+    "desc": "Kodefikasi 6 digit akun belanja",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Lokasi",
+    "submenu": "—",
+    "path": "/referensi/lokasi",
+    "desc": "Master kode provinsi & kab/kota se-Indonesia",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Asumsi Ekonomi Makro",
+    "submenu": "—",
+    "path": "/referensi/asumsi-makro",
+    "desc": "Pertumbuhan, inflasi, nilai tukar [Badge: 2027]",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "REFERENSI",
+    "menu": "Series Anggaran",
+    "submenu": "—",
+    "path": "/referensi/series-anggaran",
+    "desc": "Data historis anggaran [Badge: 2020-2025]",
+    "roles": {
+      "Operator Eselon I": true,
+      "Approver Eselon I": true,
+      "Operator Eselon II": true,
+      "Approver Eselon II": true,
+      "BINCANG": true,
+      "PEKA": true,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Administrasi & Pengguna",
+    "menu": "Data Pejabat",
+    "submenu": "—",
+    "path": "/referensi/pejabat",
+    "desc": "Pejabat PPATK (Kepala, Deputi, Ka.Pusat, Ka.Biro, Direktur)",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Administrasi & Pengguna",
+    "menu": "Manajemen Pengguna",
+    "submenu": "Daftar Pengguna & Role",
+    "path": "/admin/pengguna",
+    "desc": "Master user (NIP, Nama, Jabatan, Unit, Status, CRUD)",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Administrasi & Pengguna",
+    "menu": "Manajemen Pengguna",
+    "submenu": "Tambah Pengguna Baru",
+    "path": "/admin/pengguna/tambah",
+    "desc": "Form registrasi akun pengguna baru",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Administrasi & Pengguna",
+    "menu": "Manajemen Pengguna",
+    "submenu": "Hak Akses & Peran",
+    "path": "/admin/peran",
+    "desc": "Konfigurasi 9 peran resmi & pemisahan tugas",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": true,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  },
+  {
+    "cluster": "Administrasi & Pengguna",
+    "menu": "Kelola Notifikasi",
+    "submenu": "—",
+    "path": "/admin/notifikasi",
+    "desc": "Publikasi notifikasi sistem (Khusus Super Admin)",
+    "roles": {
+      "Operator Eselon I": false,
+      "Approver Eselon I": false,
+      "Operator Eselon II": false,
+      "Approver Eselon II": false,
+      "BINCANG": false,
+      "PEKA": false,
+      "Super Admin": true
+    }
+  }
+]

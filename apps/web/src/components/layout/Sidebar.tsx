@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { X, Search } from "lucide-react";
 import NavGroup from "../navigation/NavGroup";
 import { menuConfig, type MenuGroup } from "../navigation/menuConfig";
+import { filterMenuByRole } from "../../utils/roleMenuPermission";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -61,29 +62,13 @@ export default function Sidebar({ collapsed, onClose }: SidebarProps) {
 
   // Filtered menu items when searching & role access
   const filteredGroups = useMemo(() => {
-    const isSuperAdmin = userRole === "Super Admin";
+    // Terapkan matriks izin akses menu berdasarkan role (role.xlsx)
+    const roleBasedGroups = filterMenuByRole(menuConfig, userRole);
 
-    // Filter menu khusus Super Admin jika bukan Super Admin
-    let baseGroups = menuConfig.map((group) => {
-      if (group.groupLabel === "Administrasi & Pengguna") {
-        return {
-          ...group,
-          items: group.items.filter((item) => {
-            // "Kelola Notifikasi" hanya tampil untuk role Super Admin
-            if (item.href === "/admin/notifikasi" && !isSuperAdmin) {
-              return false;
-            }
-            return true;
-          }),
-        };
-      }
-      return group;
-    });
-
-    if (!searchQuery.trim()) return baseGroups;
+    if (!searchQuery.trim()) return roleBasedGroups;
     const q = searchQuery.toLowerCase();
 
-    return baseGroups
+    return roleBasedGroups
       .map((group) => {
         const matchingItems = group.items.filter((item) => {
           const matchItem = item.label.toLowerCase().includes(q);

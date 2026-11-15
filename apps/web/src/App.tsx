@@ -65,6 +65,10 @@ const TambahPenggunaPage = lazy(() => import("./pages/admin/TambahPenggunaPage")
 const HakAksesPeranPage = lazy(() => import("./pages/admin/HakAksesPeranPage"));
 const KelolaNotifikasiPage = lazy(() => import("./pages/admin/KelolaNotifikasiPage"));
 
+// Auth
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const PilihRolePage = lazy(() => import("./pages/auth/PilihRolePage"));
+
 // Minimal loading placeholder for fast transitions
 function PageLoading() {
   return (
@@ -81,6 +85,10 @@ export default function App() {
       <AdminLayoutClient>
         <Suspense fallback={<PageLoading />}>
           <Routes>
+            {/* Auth Pages */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/pilih-role" element={<PilihRolePage />} />
+
             {/* Root redirects to /dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
