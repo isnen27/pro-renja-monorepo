@@ -138,19 +138,15 @@ export default function PilihHistoriRabPage() {
   const [activeRole, setActiveRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      if (saved) {
+        if (saved.includes("Operator")) return "Operator";
+        if (saved.includes("Approver")) return "Approver";
+        if (saved.includes("BINCANG")) return "BINCANG";
+        if (saved.includes("Super Admin")) return "Super Admin";
       }
     } catch (e) {}
     return "BINCANG";
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("renja_e2_user_role", activeRole);
-      window.dispatchEvent(new Event("renja_role_changed"));
-    } catch (e) {}
-  }, [activeRole]);
 
   const isPrivileged = activeRole === "BINCANG" || activeRole === "Super Admin";
 
@@ -311,21 +307,9 @@ export default function PilihHistoriRabPage() {
               <span>Pilih Histori RAB</span>
             </h1>
           </div>
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-[var(--border)] text-xs">
-            <span className="text-[var(--text-muted)] font-semibold px-2">Peran:</span>
-            {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setActiveRole(r)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeRole === r
-                    ? "bg-white dark:bg-slate-700 text-[var(--text)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs">
+            <span className="text-[var(--text-muted)] font-bold text-[0.68rem] uppercase tracking-wider">Peran Sesi:</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeRole}</span>
           </div>
         </div>
 
@@ -389,21 +373,9 @@ export default function PilihHistoriRabPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-[var(--border)] text-xs">
-            <span className="text-[var(--text-muted)] font-semibold px-2">Peran:</span>
-            {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setActiveRole(r)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeRole === r
-                    ? "bg-white dark:bg-slate-700 text-[var(--text)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs">
+            <span className="text-[var(--text-muted)] font-bold text-[0.68rem] uppercase tracking-wider">Peran Sesi:</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeRole}</span>
           </div>
         </div>
       </div>

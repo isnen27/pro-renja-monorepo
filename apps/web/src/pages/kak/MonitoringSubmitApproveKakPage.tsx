@@ -132,22 +132,19 @@ function formatRupiah(num: number): string {
 }
 
 export default function MonitoringSubmitApproveKakPage() {
-  // Pengaturan role yang sama persis dengan Renja Eselon II (renja_e2_user_role)
+  // Pengaturan role yang sinkron dengan sesi login resmi (renja_e2_user_role)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
-      const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      const activeRole = localStorage.getItem("renja_e2_user_role");
+      if (activeRole) {
+        if (activeRole.includes("Operator")) return "Operator";
+        if (activeRole.includes("Approver")) return "Approver";
+        if (activeRole.includes("BINCANG")) return "BINCANG";
+        if (activeRole.includes("Super Admin")) return "Super Admin";
       }
     } catch (e) {}
     return "Approver";
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("renja_e2_user_role", currentUserRole);
-    } catch (e) {}
-  }, [currentUserRole]);
 
   const [dataList, setDataList] = useState<MonitoringItemKak[]>(() => {
     try {
@@ -572,22 +569,23 @@ export default function MonitoringSubmitApproveKakPage() {
           </p>
         </div>
 
-        {/* Role Switcher sama persis dengan menu Renja Eselon II */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-[var(--border)] text-xs">
-          <span className="text-[var(--text-muted)] font-semibold px-2">Peran:</span>
-          {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setCurrentUserRole(r)}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                currentUserRole === r
-                  ? "bg-white dark:bg-slate-700 text-[var(--text)] shadow-sm"
-                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+        {/* Role Badge Status Resmi (Sesuai Akun Login) */}
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-[var(--border)]">
+          <span className="text-[0.68rem] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
+            <UserCheck className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            Peran Sesi:
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold text-white shadow-xs ${
+            currentUserRole === "Operator"
+              ? "bg-blue-600"
+              : currentUserRole === "Approver"
+              ? "bg-emerald-600"
+              : currentUserRole === "BINCANG"
+              ? "bg-amber-600"
+              : "bg-purple-600"
+          }`}>
+            {currentUserRole}
+          </span>
         </div>
       </div>
 

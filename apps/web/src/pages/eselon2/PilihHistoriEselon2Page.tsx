@@ -252,8 +252,11 @@ export default function PilihHistoriEselon2Page() {
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      if (saved) {
+        if (saved.includes("Operator")) return "Operator";
+        if (saved.includes("Approver")) return "Approver";
+        if (saved.includes("BINCANG")) return "BINCANG";
+        if (saved.includes("Super Admin")) return "Super Admin";
       }
     } catch (e) {}
     return "Operator";
@@ -436,23 +439,10 @@ export default function PilihHistoriEselon2Page() {
           </div>
         </div>
 
-        {/* Role Switcher */}
-        <div className="flex items-center gap-1.5 bg-[var(--accent)] p-1.5 rounded-xl border border-[var(--border)] self-start sm:self-auto">
-          <span className="text-[0.68rem] font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 hidden md:inline">Role:</span>
-          {(["Operator", "Approver", "BINCANG", "Super Admin"] as const).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setCurrentUserRole(r)}
-              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all cursor-pointer ${
-                currentUserRole === r
-                  ? "bg-[var(--primary)] text-white shadow-sm font-semibold"
-                  : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card)]"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+        {/* Status Lencana Peran Sesi */}
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs">
+          <span className="text-[var(--text-muted)] font-bold text-[0.68rem] uppercase tracking-wider">Peran Sesi:</span>
+          <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUserRole}</span>
         </div>
       </div>
 

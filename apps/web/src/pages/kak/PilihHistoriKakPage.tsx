@@ -164,22 +164,19 @@ function getMonitoringListKak(): MonitoringStorageItemKak[] {
 }
 
 export default function PilihHistoriKakPage() {
-  // Pengaturan role yang sama dengan menu Renja Eselon II
+  // Pengaturan role yang sinkron dengan sesi login resmi (renja_e2_user_role)
   const [activeRole, setActiveRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
+      if (saved) {
+        if (saved.includes("Operator")) return "Operator";
+        if (saved.includes("Approver")) return "Approver";
+        if (saved.includes("BINCANG")) return "BINCANG";
+        if (saved.includes("Super Admin")) return "Super Admin";
       }
     } catch (e) {}
     return "Operator";
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("renja_e2_user_role", activeRole);
-    } catch (e) {}
-  }, [activeRole]);
 
   // Cek apakah sudah ada histori Renja Eselon II
   const [activeEselon2Histori, setActiveEselon2Histori] = useState<{
@@ -393,22 +390,10 @@ export default function PilihHistoriKakPage() {
             </h1>
           </div>
 
-          {/* Role Switcher sinkron dengan Renja Eselon II */}
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-[var(--border)] text-xs">
-            <span className="text-[var(--text-muted)] font-semibold px-2">Peran:</span>
-            {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setActiveRole(r)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeRole === r
-                    ? "bg-white dark:bg-slate-700 text-[var(--text)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
+          {/* Status Lencana Peran Sesi */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs">
+            <span className="text-[var(--text-muted)] font-bold text-[0.68rem] uppercase tracking-wider">Peran Sesi:</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeRole}</span>
           </div>
         </div>
 
@@ -484,22 +469,10 @@ export default function PilihHistoriKakPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Role Switcher sama dengan Renja Eselon II */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-[var(--border)] text-xs">
-            <span className="text-[var(--text-muted)] font-semibold px-2">Peran:</span>
-            {(["Operator", "Approver", "BINCANG", "Super Admin"] as UserRole[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setActiveRole(r)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeRole === r
-                    ? "bg-white dark:bg-slate-700 text-[var(--text)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
+          {/* Status Lencana Peran Sesi */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs">
+            <span className="text-[var(--text-muted)] font-bold text-[0.68rem] uppercase tracking-wider">Peran Sesi:</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">{activeRole}</span>
           </div>
 
           <button
