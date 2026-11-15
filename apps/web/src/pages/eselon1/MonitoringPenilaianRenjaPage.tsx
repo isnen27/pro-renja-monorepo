@@ -750,17 +750,19 @@ export default function MonitoringPenilaianRenjaPage() {
               >
                 2. Per Unit Kerja ({selectedUnit})
               </button>
-              <button
-                type="button"
-                onClick={() => setChartMode("per_evaluator")}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  chartMode === "per_evaluator"
-                    ? "bg-indigo-600 text-white shadow-xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                3. Per Evaluator (3 Tim)
-              </button>
+              {!isBincangOrPeka && (
+                <button
+                  type="button"
+                  onClick={() => setChartMode("per_evaluator")}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    chartMode === "per_evaluator"
+                      ? "bg-indigo-600 text-white shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  3. Per Evaluator (3 Tim)
+                </button>
+              )}
             </div>
           </div>
 
@@ -1153,7 +1155,7 @@ export default function MonitoringPenilaianRenjaPage() {
           )}
 
           {/* MODE 3: GRAFIK PER EVALUATOR (KOMPARASI 3 TIM PENILAI) */}
-          {chartMode === "per_evaluator" && (
+          {!isBincangOrPeka && chartMode === "per_evaluator" && (
             <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-5">
               <div className="pb-3 border-b border-[var(--border)]">
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white">
