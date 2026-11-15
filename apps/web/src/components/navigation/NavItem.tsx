@@ -151,60 +151,47 @@ export default function NavItem({ item, collapsed = false }: NavItemProps) {
   // COLLAPSED MODE (Desktop icon-rail only)
   // ══════════════════════════════════════════
   const collapsedItem = (
-    <div className="hidden lg:block relative group/tooltip">
+    <div className="hidden lg:flex justify-center relative group/tooltip py-0.5">
       {hasSubmenu ? (
         <button
           className={`
-            sidebar-nav-item justify-center px-0 w-full cursor-pointer
-            ${isActive ? "active" : ""}
+            p-2 rounded-xl transition-all cursor-pointer flex items-center justify-center
+            ${isActive
+              ? "bg-[var(--primary)] text-white shadow-xs"
+              : "text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text)]"
+            }
           `}
           title={item.label}
           onClick={() => setIsOpen(!isOpen)}
-          style={{ paddingLeft: 0, paddingRight: 0 }}
         >
-          <span
-            className={`
-              flex-shrink-0 p-2 rounded-lg transition-colors
-              ${isActive
-                ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-                : "text-[var(--text-muted)] group-hover/tooltip:bg-[var(--primary-bg)] group-hover/tooltip:text-[var(--primary)]"
-              }
-            `}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
+          <Icon className="h-5 w-5" />
         </button>
       ) : (
         <Link
           to={item.href ?? "#"}
           title={item.label}
-          className={`sidebar-nav-item justify-center px-0 ${isActive ? "active" : ""}`}
-          style={{ paddingLeft: 0, paddingRight: 0 }}
+          className={`
+            p-2 rounded-xl transition-all flex items-center justify-center
+            ${isActive
+              ? "bg-[var(--primary)] text-white shadow-xs"
+              : "text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text)]"
+            }
+          `}
         >
-          <span
-            className={`
-              flex-shrink-0 p-2 rounded-lg transition-colors
-              ${isActive
-                ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-                : "text-[var(--text-muted)] group-hover/tooltip:bg-[var(--primary-bg)] group-hover/tooltip:text-[var(--primary)]"
-              }
-            `}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
+          <Icon className="h-5 w-5" />
         </Link>
       )}
 
       {/* Tooltip on hover */}
       <div className="
-        absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50
+        absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50
         pointer-events-none opacity-0 group-hover/tooltip:opacity-100
         transition-opacity duration-150
       ">
         <div className="
-          bg-[var(--card)] border border-[var(--border)] shadow-lg
-          text-[var(--text)] text-xs font-medium
-          px-2.5 py-1.5 rounded-lg whitespace-nowrap
+          bg-[var(--card)] border border-[var(--border)] shadow-xl
+          text-[var(--text)] text-xs font-semibold
+          px-3 py-1.5 rounded-xl whitespace-nowrap
           flex items-center gap-1.5
         ">
           {item.label}
@@ -226,127 +213,118 @@ export default function NavItem({ item, collapsed = false }: NavItemProps) {
 
   // Item WITH submenu
   if (hasSubmenu) {
+    if (collapsed) {
+      return collapsedItem;
+    }
+
     return (
-      <>
-        {/* Icon-only (collapsed desktop) */}
-        {collapsed && collapsedItem}
-
-        {/* Full item */}
-        <div className={collapsed ? "lg:hidden" : ""}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className={`sidebar-nav-item group w-full text-left cursor-pointer ${isActive ? "active" : ""}`}
-            aria-expanded={isOpen}
+      <div>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`sidebar-nav-item group w-full text-left cursor-pointer ${isActive ? "active" : ""}`}
+          aria-expanded={isOpen}
+        >
+          {/* Icon */}
+          <span
+            className={`
+              flex-shrink-0 p-1.5 rounded-lg mr-3 transition-colors
+              ${isActive
+                ? "bg-[var(--primary-bg)] text-[var(--primary)]"
+                : "bg-[var(--accent)] text-[var(--text-muted)] group-hover:bg-[var(--primary-bg)] group-hover:text-[var(--primary)]"
+              }
+            `}
           >
-            {/* Icon */}
-            <span
-              className={`
-                flex-shrink-0 p-1.5 rounded-lg mr-3 transition-colors
-                ${isActive
-                  ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-                  : "bg-[var(--accent)] text-[var(--text-muted)] group-hover:bg-[var(--primary-bg)] group-hover:text-[var(--primary)]"
-                }
-              `}
-            >
-              <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" />
+          </span>
+
+          {/* Label */}
+          <span className="flex-1 text-left leading-tight">{item.label}</span>
+
+          {/* Badge */}
+          {item.badge && (
+            <span className={`badge badge-${item.badgeVariant ?? "gray"} mr-1`}>
+              {item.badge}
             </span>
+          )}
 
-            {/* Label */}
-            <span className="flex-1 text-left leading-tight">{item.label}</span>
-
-            {/* Badge */}
-            {item.badge && (
-              <span className={`badge badge-${item.badgeVariant ?? "gray"} mr-1`}>
-                {item.badge}
-              </span>
-            )}
-
-            {/* Chevron */}
-            <ChevronDown
-              className={`h-3.5 w-3.5 ml-1 text-[var(--text-muted)] transition-transform duration-200 flex-shrink-0 ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {/* Submenu accordion */}
-          <div
-            className={`overflow-hidden transition-all duration-200 ease-in-out ${
-              isOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"
+          {/* Chevron */}
+          <ChevronDown
+            className={`h-3.5 w-3.5 ml-1 text-[var(--text-muted)] transition-transform duration-200 flex-shrink-0 ${
+              isOpen ? "rotate-180" : ""
             }`}
-          >
-            <div className="mt-0.5 ml-4 pl-3 border-l border-[var(--border)] space-y-0.5 py-0.5">
-              {item.submenu!.map((sub) => (
-                <SubNavItem key={sub.label} sub={sub} />
-              ))}
-            </div>
+          />
+        </button>
+
+        {/* Submenu accordion */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            isOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="mt-0.5 ml-4 pl-3 border-l border-[var(--border)] space-y-0.5 py-0.5">
+            {item.submenu!.map((sub) => (
+              <SubNavItem key={sub.label} sub={sub} />
+            ))}
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   // Item WITHOUT submenu (simple link)
-  return (
-    <>
-      {/* Icon-only (collapsed desktop) */}
-      {collapsed && (
-        <div className="hidden lg:block relative group/tooltip">
-          <Link
-            to={item.href ?? "#"}
-            title={item.label}
-            className={`sidebar-nav-item justify-center px-0 ${isActive ? "active" : ""}`}
-            style={{ paddingLeft: 0, paddingRight: 0 }}
-          >
-            <span
-              className={`
-                flex-shrink-0 p-2 rounded-lg transition-colors
-                ${isActive
-                  ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-                  : "text-[var(--text-muted)] group-hover/tooltip:bg-[var(--primary-bg)] group-hover/tooltip:text-[var(--primary)]"
-                }
-              `}
-            >
-              <Icon className="h-5 w-5" />
-            </span>
-          </Link>
-          {/* Tooltip */}
-          <div className="
-            absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50
-            pointer-events-none opacity-0 group-hover/tooltip:opacity-100
-            transition-opacity duration-150
-          ">
-            <div className="bg-[var(--card)] border border-[var(--border)] shadow-lg text-[var(--text)] text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap">
-              {item.label}
-            </div>
-            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[var(--border)]" />
-          </div>
-        </div>
-      )}
-
-      {/* Full item */}
-      <Link
-        to={item.href ?? "#"}
-        className={`sidebar-nav-item group ${isActive ? "active" : ""} ${collapsed ? "lg:hidden" : ""}`}
-      >
-        <span
+  if (collapsed) {
+    return (
+      <div className="hidden lg:flex justify-center relative group/tooltip py-0.5">
+        <Link
+          to={item.href ?? "#"}
+          title={item.label}
           className={`
-            flex-shrink-0 p-1.5 rounded-lg mr-3 transition-colors
+            p-2 rounded-xl transition-all flex items-center justify-center
             ${isActive
-              ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-              : "bg-[var(--accent)] text-[var(--text-muted)] group-hover:bg-[var(--primary-bg)] group-hover:text-[var(--primary)]"
+              ? "bg-[var(--primary)] text-white shadow-xs"
+              : "text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text)]"
             }
           `}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-5 w-5" />
+        </Link>
+        {/* Tooltip */}
+        <div className="
+          absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50
+          pointer-events-none opacity-0 group-hover/tooltip:opacity-100
+          transition-opacity duration-150
+        ">
+          <div className="bg-[var(--card)] border border-[var(--border)] shadow-xl text-[var(--text)] text-xs font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap">
+            {item.label}
+          </div>
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[var(--border)]" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to={item.href ?? "#"}
+      className={`sidebar-nav-item group ${isActive ? "active" : ""}`}
+    >
+      <span
+        className={`
+          flex-shrink-0 p-1.5 rounded-lg mr-3 transition-colors
+          ${isActive
+            ? "bg-[var(--primary-bg)] text-[var(--primary)]"
+            : "bg-[var(--accent)] text-[var(--text-muted)] group-hover:bg-[var(--primary-bg)] group-hover:text-[var(--primary)]"
+          }
+        `}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="flex-1 leading-tight">{item.label}</span>
+      {item.badge && (
+        <span className={`badge badge-${item.badgeVariant ?? "gray"}`}>
+          {item.badge}
         </span>
-        <span className="flex-1 leading-tight">{item.label}</span>
-        {item.badge && (
-          <span className={`badge badge-${item.badgeVariant ?? "gray"}`}>
-            {item.badge}
-          </span>
-        )}
-      </Link>
-    </>
+      )}
+    </Link>
   );
 }

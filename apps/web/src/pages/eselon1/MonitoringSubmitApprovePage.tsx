@@ -621,7 +621,7 @@ export default function MonitoringSubmitApprovePage() {
   });
 
   return (
-    <div className="min-h-full p-6 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full p-6 w-full max-w-full space-y-6">
       {/* ── Banner Notification for Operator restriction ── */}
       {showRoleNotice && (
         <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-300 text-sm font-semibold flex items-center justify-between shadow-md animate-pulse">

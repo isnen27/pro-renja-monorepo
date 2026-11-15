@@ -30,8 +30,10 @@ export default function AdminLayoutClient({
           onMenuToggle={toggleSidebar}
           sidebarCollapsed={sidebarCollapsed}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
+        <main className={`flex-1 overflow-y-auto ${sidebarCollapsed ? "p-2 sm:p-4 md:p-5" : "p-3 sm:p-4 md:p-6"}`}>
+          <div className="w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

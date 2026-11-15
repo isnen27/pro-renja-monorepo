@@ -64,6 +64,33 @@ function getRowHierarchyLevel(row: WorksheetRow): number {
 }
 
 export default function MonitoringRpdPage() {
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch {
+      return "Operator";
+    }
+  });
+
+  useEffect(() => {
+    const handleRole = () => {
+      try {
+        setCurrentUserRole(localStorage.getItem("renja_e2_user_role") || "Operator");
+      } catch {}
+    };
+    window.addEventListener("storage", handleRole);
+    window.addEventListener("renja_role_changed", handleRole);
+    return () => {
+      window.removeEventListener("storage", handleRole);
+      window.removeEventListener("renja_role_changed", handleRole);
+    };
+  }, []);
+
+  const isBincangOrAdmin =
+    currentUserRole.toLowerCase().includes("bincang") ||
+    currentUserRole.toLowerCase().includes("super admin") ||
+    currentUserRole.toLowerCase().includes("peka");
+
   // Ambil unit kerja dari histori aktif RAB
   const [activeHistori] = useState(() => {
     try {
@@ -80,17 +107,34 @@ export default function MonitoringRpdPage() {
     };
   });
 
-  const activeUnit = activeHistori.kdsatker || "Biro Hukum dan Kerja Sama";
-
-  // Temukan singkatan unit kerja
-  const ukSingkatan = useMemo(() => {
+  const defaultUnit = activeHistori.kdsatker || "Biro Hukum dan Kerja Sama";
+  const defaultUkSingkatan = useMemo(() => {
     const found = unitKerjaData.find(
       (u) =>
-        u.nama.toLowerCase() === activeUnit.toLowerCase() ||
-        u.singkatan.toLowerCase() === activeUnit.toLowerCase()
+        u.nama.toLowerCase() === defaultUnit.toLowerCase() ||
+        u.singkatan.toLowerCase() === defaultUnit.toLowerCase()
     );
     return found ? found.singkatan : "KREASI";
-  }, [activeUnit]);
+  }, [defaultUnit]);
+
+  // Unit kerja yang dipilih untuk BINCANG (bisa "SEMUA" atau kode singkatan tertentu)
+  const [selectedUnitOption, setSelectedUnitOption] = useState<string>("SEMUA");
+
+  // Singkatan unit kerja efektif
+  const ukSingkatan = isBincangOrAdmin
+    ? (selectedUnitOption === "SEMUA" ? defaultUkSingkatan : selectedUnitOption)
+    : defaultUkSingkatan;
+
+  const activeUnitLabel = useMemo(() => {
+    if (isBincangOrAdmin && selectedUnitOption === "SEMUA") {
+      return "Semua Unit Kerja PPATK (Konsolidasi Agregat)";
+    }
+    const target = isBincangOrAdmin ? selectedUnitOption : ukSingkatan;
+    const found = unitKerjaData.find(
+      (u) => u.singkatan.toUpperCase() === target.toUpperCase() || u.nama.toLowerCase() === defaultUnit.toLowerCase()
+    );
+    return found ? `${found.singkatan} - ${found.nama}` : defaultUnit;
+  }, [isBincangOrAdmin, selectedUnitOption, ukSingkatan, defaultUnit]);
 
   // State penyimpanan RPD dari submenu Rencana Penarikan Dana (RPD)
   const [rpdMap, setRpdMap] = useState<Record<string, MonthlyDistribution>>({});
@@ -100,18 +144,54 @@ export default function MonitoringRpdPage() {
   useEffect(() => {
     const loadRpdData = () => {
       try {
-        const savedRpd = localStorage.getItem(`rab_rpd_${ukSingkatan}`);
-        if (savedRpd) {
-          setRpdMap(JSON.parse(savedRpd));
-        } else {
-          setRpdMap({});
-        }
+        if (isBincangOrAdmin && selectedUnitOption === "SEMUA") {
+          // KONSOLIDASI SEMUA UNIT KERJA
+          let combinedRows: WorksheetRow[] = [];
+          let combinedRpd: Record<string, MonthlyDistribution> = {};
 
-        const savedWs = localStorage.getItem(`rab_worksheet_${ukSingkatan}`);
-        if (savedWs) {
-          setRawRows(JSON.parse(savedWs));
+          unitKerjaData.forEach((unit) => {
+            const savedWs = localStorage.getItem(`rab_worksheet_${unit.singkatan}`);
+            if (savedWs) {
+              try {
+                const parsedWs: WorksheetRow[] = JSON.parse(savedWs);
+                combinedRows.push(...parsedWs);
+              } catch {}
+            }
+            const savedRpd = localStorage.getItem(`rab_rpd_${unit.singkatan}`);
+            if (savedRpd) {
+              try {
+                const parsedRpd: Record<string, MonthlyDistribution> = JSON.parse(savedRpd);
+                Object.assign(combinedRpd, parsedRpd);
+              } catch {}
+            }
+          });
+
+          // Fallback jika belum ada data inputan per unit di localStorage
+          if (combinedRows.length === 0) {
+            const defaultWs = localStorage.getItem(`rab_worksheet_${defaultUkSingkatan}`);
+            if (defaultWs) combinedRows = JSON.parse(defaultWs);
+            const defaultRpd = localStorage.getItem(`rab_rpd_${defaultUkSingkatan}`);
+            if (defaultRpd) combinedRpd = JSON.parse(defaultRpd);
+          }
+
+          setRawRows(combinedRows);
+          setRpdMap(combinedRpd);
         } else {
-          setRawRows([]);
+          // UNIT TUNGGAL
+          const targetUnit = isBincangOrAdmin ? selectedUnitOption : ukSingkatan;
+          const savedRpd = localStorage.getItem(`rab_rpd_${targetUnit}`);
+          if (savedRpd) {
+            setRpdMap(JSON.parse(savedRpd));
+          } else {
+            setRpdMap({});
+          }
+
+          const savedWs = localStorage.getItem(`rab_worksheet_${targetUnit}`);
+          if (savedWs) {
+            setRawRows(JSON.parse(savedWs));
+          } else {
+            setRawRows([]);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -125,7 +205,7 @@ export default function MonitoringRpdPage() {
       window.removeEventListener("storage", loadRpdData);
       window.removeEventListener("focus", loadRpdData);
     };
-  }, [ukSingkatan]);
+  }, [isBincangOrAdmin, selectedUnitOption, ukSingkatan, defaultUkSingkatan]);
 
   // Helper index dan daftar anak-anak per baris untuk cascading/rollup
   const descendantMap = useMemo(() => {
@@ -348,7 +428,7 @@ export default function MonitoringRpdPage() {
   };
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-20">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6 pb-20">
       {/* ── Top Header ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
@@ -365,14 +445,40 @@ export default function MonitoringRpdPage() {
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Tampilan data penarikan kas dalam <strong>angka eksak (Rp)</strong> terintegrasi otomatis dari submenu{" "}
-            <strong>Rencana Penarikan Dana (RPD)</strong> untuk Satker/Unit: <strong>{activeUnit}</strong>.
+            <strong>Rencana Penarikan Dana (RPD)</strong> untuk Satker/Unit: <strong>{activeUnitLabel}</strong>.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Unit Kerja Selector Khusus Role BINCANG / PEKA / Super Admin */}
+          {isBincangOrAdmin && (
+            <div className="flex items-center gap-2 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-3 py-1.5 rounded-xl">
+              <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Pilih Unit Kerja (BINCANG):
+                </span>
+                <select
+                  value={selectedUnitOption}
+                  onChange={(e) => setSelectedUnitOption(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-900 dark:text-white border-0 outline-none cursor-pointer pr-4"
+                >
+                  <option value="SEMUA" className="bg-white dark:bg-slate-900 font-bold">
+                    🏛️ Semua Unit Kerja PPATK (Konsolidasi Total)
+                  </option>
+                  {unitKerjaData.map((u) => (
+                    <option key={u.kode} value={u.singkatan} className="bg-white dark:bg-slate-900">
+                      {u.singkatan} - {u.nama}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleExportExcel}
-            className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-90 flex items-center gap-1.5 cursor-pointer transition-all"
+            className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold shadow-xs hover:opacity-90 flex items-center justify-center gap-1.5 cursor-pointer transition-all shrink-0"
           >
             <Download className="w-4 h-4" />
             <span>Ekspor RPD Excel</span>

@@ -31,7 +31,11 @@ import {
   Copy,
   Printer,
   FileDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
+import { WorksheetRow } from "./IsianRabPage";
+import templateGajiData from "../../data/templateRabGajiKantor.json";
 import {
   KERANGKA_EVALUASI_RAB,
   DimensiEvaluasi,
@@ -116,6 +120,7 @@ export default function EvaluasiRabPage() {
 
   // State Dokumen Viewer Panel
   const [showDocPanel, setShowDocPanel] = useState<boolean>(true);
+  const [isDocExpanded, setIsDocExpanded] = useState<boolean>(false);
   const [docSearchQuery, setDocSearchQuery] = useState<string>("");
   const [highlightKeyword, setHighlightKeyword] = useState<string>("");
   const docScrollRef = useRef<HTMLDivElement>(null);
@@ -125,20 +130,53 @@ export default function EvaluasiRabPage() {
   const [activeDimensiTab, setActiveDimensiTab] = useState<number>(0);
   const dimensiScrollRef = useRef<HTMLDivElement>(null);
 
-  // Data Dokumen RAB Unit Terpilih
-  const activeDocument: DokumenRabItem = useMemo(() => {
-    return DOKUMEN_RAB_DATA[selectedEselon2] || {
-      singkatan: selectedEselon2,
-      nama: unitEselon2Options.find(u => u.kode === selectedEselon2)?.nama || selectedEselon2,
-      unit: selectedEselon2,
-      kode: selectedEselon2,
-      nomorDoc: `Renja-${selectedEselon2}-2027`,
-      fileName: `Draft_Renja_${selectedEselon2}_Signed.pdf`,
-      tanggalSubmit: "05 Oktober 2026",
-      statusDokumen: "Dokumen Terunggah Resmi",
-      fullText: "Dokumen RAB lengkap belum tersedia untuk unit kerja ini.",
-    };
+  // State Lembar Kerja Isian RAB Unit Kerja
+  const [worksheetRows, setWorksheetRows] = useState<WorksheetRow[]>([]);
+
+  useEffect(() => {
+    try {
+      const savedWs = localStorage.getItem(`rab_worksheet_${selectedEselon2}`);
+      if (savedWs) {
+        const parsed = JSON.parse(savedWs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setWorksheetRows(parsed);
+          return;
+        }
+      }
+      // Fallback data default dari template
+      const fallbackRows: WorksheetRow[] = (templateGajiData as any)?.pusatGaji || [];
+      setWorksheetRows(fallbackRows);
+    } catch {
+      setWorksheetRows([]);
+    }
   }, [selectedEselon2]);
+
+  // Total Pagu dari Isian RAB
+  const totalPaguIsianRab = useMemo(() => {
+    if (worksheetRows.length === 0) return 0;
+    return worksheetRows
+      .filter((r) => r.type === "detail")
+      .reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+  }, [worksheetRows]);
+
+  // Data Dokumen RAB Unit Terpilih
+  const activeDocument = useMemo(() => {
+    const unitObj = unitEselon2Options.find((u) => u.kode === selectedEselon2);
+    const existingRabData = DOKUMEN_RAB_DATA[selectedEselon2];
+
+    return {
+      singkatan: selectedEselon2,
+      nama: unitObj?.nama || selectedEselon2,
+      unit: unitObj?.nama || selectedEselon2,
+      kode: selectedEselon2,
+      nomorDoc: existingRabData?.nomorSurat || `RAB-${selectedEselon2}-2027`,
+      fileName: `Kertas_Kerja_RAB_${selectedEselon2}_TA2027.xlsx`,
+      tanggalSubmit: "05 Oktober 2026",
+      statusDokumen: "Dokumen Terverifikasi & Tersimpan",
+      fullText: existingRabData?.fullText || "",
+      totalPagu: totalPaguIsianRab > 0 ? totalPaguIsianRab : (existingRabData?.totalPagu || 14850000000),
+    };
+  }, [selectedEselon2, unitEselon2Options, totalPaguIsianRab]);
 
   const showNotification = (msg: string, type: "success" | "error" | "info" = "success") => {
     setNotification({ msg, type });
@@ -270,7 +308,7 @@ export default function EvaluasiRabPage() {
   };
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-24">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6 pb-24">
       {/* ── Top Header & Breadcrumb ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
@@ -439,44 +477,59 @@ export default function EvaluasiRabPage() {
 
       {/* ── SPLIT VIEW: DOKUMEN SUMBER & LEMBAR KERJA EVALUASI ── */}
       <div className={`grid grid-cols-1 ${showDocPanel ? "xl:grid-cols-12" : "grid-cols-1"} gap-6 items-start`}>
-        {/* PANEL KIRI: VIEWER DOKUMEN RENJA LENGKAP UNIT KERJA */}
+        {/* PANEL KIRI: VIEWER DOKUMEN ISIAN RAB LENGKAP UNIT KERJA */}
         {showDocPanel && (
-          <div className="xl:col-span-5 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden flex flex-col xl:sticky xl:top-6 xl:max-h-[calc(100vh-3.5rem)]">
+          <div className={`${isDocExpanded ? "xl:col-span-8" : "xl:col-span-5"} bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden flex flex-col xl:sticky xl:top-6 xl:max-h-[calc(100vh-3.5rem)] transition-all duration-300`}>
             {/* Header Viewer */}
             <div className="p-4 bg-slate-900 text-white flex flex-col gap-2.5 border-b border-slate-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-indigo-400" />
-                  <span className="font-bold text-xs tracking-wide">Dokumen RAB Resmi Unit Kerja</span>
+                  <BookOpen className="w-4 h-4 text-emerald-400" />
+                  <span className="font-bold text-xs tracking-wide">Hasil Isian Kertas Kerja RAB Unit Kerja</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowDocPanel(false)}
-                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Tutup Panel Dokumen"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsDocExpanded(!isDocExpanded)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title={isDocExpanded ? "Perkecil Panel Dokumen" : "Perlebar Panel Dokumen ke Kanan"}
+                  >
+                    {isDocExpanded ? <Minimize2 className="w-4 h-4 text-emerald-400" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDocPanel(false)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Tutup Panel Dokumen"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Info Dokumen Terpilih */}
               <div className="bg-slate-800/80 rounded-xl p-2.5 space-y-1 text-xs border border-slate-700/60">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-indigo-300 truncate max-w-[240px]">{activeDocument.nama}</span>
+                  <span className="font-bold text-emerald-300 truncate max-w-[240px]">{activeDocument.nama}</span>
                   <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
                     {activeDocument.singkatan}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
                   <span className="truncate flex items-center gap-1 font-mono">
-                    <FileText className="w-3 h-3 text-slate-400 shrink-0" />
+                    <FileSpreadsheet className="w-3 h-3 text-emerald-400 shrink-0" />
                     <span>{activeDocument.fileName}</span>
                   </span>
                   <span>{activeDocument.tanggalSubmit}</span>
                 </div>
-                <div className="text-[10px] text-emerald-400 flex items-center gap-1 pt-0.5 font-medium">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                  <span>{activeDocument.statusDokumen}</span>
+                <div className="flex items-center justify-between text-[10px] pt-0.5">
+                  <span className="text-emerald-400 flex items-center gap-1 font-medium">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span>{activeDocument.statusDokumen}</span>
+                  </span>
+                  <span className="font-mono font-bold text-white">
+                    Pagu: Rp {activeDocument.totalPagu.toLocaleString("id-ID")}
+                  </span>
                 </div>
               </div>
 
@@ -487,8 +540,8 @@ export default function EvaluasiRabPage() {
                   type="text"
                   value={docSearchQuery}
                   onChange={(e) => setDocSearchQuery(e.target.value)}
-                  placeholder="Cari narasi / kata kunci eviden (misal: SAKIP, risiko, audit, target)..."
-                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Cari uraian belanja, akun 52xxxx, atau komponen RAB..."
+                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
                 {docSearchQuery && (
                   <button
@@ -502,26 +555,28 @@ export default function EvaluasiRabPage() {
               </div>
             </div>
 
-            {/* Quick Filter Tag Bab / Kata Kunci Populer */}
+            {/* Quick Filter Tag Akun / Kata Kunci Populer */}
             <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[10px]">
-              <span className="text-slate-400 font-bold uppercase shrink-0">Lompat Kata:</span>
+              <span className="text-slate-400 font-bold uppercase shrink-0">Filter Cepat:</span>
               {[
-                "BAB I",
-                "BAB II",
-                "Program Prioritas",
-                "Indikator Kinerja",
-                "Risiko",
-                "Audit",
-                "Monev",
-                "SAKIP",
+                "Semua",
+                "511111",
+                "521211",
+                "521219",
+                "522151",
+                "524111",
+                "Komponen",
+                "Subkomponen",
+                "Honorarium",
+                "Konsumsi",
               ].map((keyword) => (
                 <button
                   key={keyword}
                   type="button"
-                  onClick={() => setDocSearchQuery(keyword)}
+                  onClick={() => setDocSearchQuery(keyword === "Semua" ? "" : keyword)}
                   className={`px-2 py-0.5 rounded-lg border whitespace-nowrap transition-colors cursor-pointer ${
-                    docSearchQuery.toLowerCase() === keyword.toLowerCase()
-                      ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                    (keyword === "Semua" && !docSearchQuery) || docSearchQuery.toLowerCase() === keyword.toLowerCase()
+                      ? "bg-emerald-600 text-white border-emerald-600 font-bold"
                       : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100"
                   }`}
                 >
@@ -530,75 +585,127 @@ export default function EvaluasiRabPage() {
               ))}
             </div>
 
-            {/* Isi Dokumen Scrollable */}
+            {/* Isi Dokumen Scrollable: Tabel Kertas Kerja Isian RAB */}
             <div
               ref={docScrollRef}
-              className="p-5 overflow-y-auto space-y-4 font-serif text-xs leading-relaxed text-slate-800 dark:text-slate-200 flex-1 max-h-[600px] xl:max-h-none select-text"
+              className="p-3 overflow-y-auto space-y-3 font-sans text-xs leading-relaxed text-slate-800 dark:text-slate-200 flex-1 max-h-[600px] xl:max-h-none select-text"
             >
-              {activeDocument.fullText ? (
+              {worksheetRows.length > 0 ? (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
+                        <th className="py-2 px-2.5 text-left w-20">Kode</th>
+                        <th className="py-2 px-2.5 text-left">Uraian / Rincian Belanja</th>
+                        <th className="py-2 px-2 text-center w-20">Volume</th>
+                        <th className="py-2 px-2.5 text-right w-24">Harga Satuan</th>
+                        <th className="py-2 px-2.5 text-right w-28">Total Biaya</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-[11px]">
+                      {worksheetRows
+                        .filter((r) => {
+                          if (!docSearchQuery.trim()) return true;
+                          const q = docSearchQuery.toLowerCase();
+                          return (
+                            (r.kode && r.kode.toLowerCase().includes(q)) ||
+                            (r.uraian && r.uraian.toLowerCase().includes(q)) ||
+                            (r.type && r.type.toLowerCase().includes(q))
+                          );
+                        })
+                        .map((row, rIdx) => {
+                          const isKomponen = row.type === "komponen";
+                          const isSubKomponen = row.type === "subkomponen" || row.type === "subkomponen_sub";
+                          const isAkun = row.type === "akun";
+                          const isDetail = row.type === "detail";
+
+                          let bgClass = "hover:bg-slate-50 dark:hover:bg-slate-800/40";
+                          if (isKomponen) bgClass = "bg-indigo-50/70 dark:bg-indigo-950/40 font-bold text-indigo-900 dark:text-indigo-200";
+                          else if (isSubKomponen) bgClass = "bg-blue-50/50 dark:bg-blue-950/30 font-semibold text-blue-900 dark:text-blue-300";
+                          else if (isAkun) bgClass = "bg-amber-50/40 dark:bg-amber-950/20 font-semibold text-amber-900 dark:text-amber-300";
+
+                          return (
+                            <tr key={row.id || rIdx} className={`${bgClass} transition-colors`}>
+                              <td className="py-1.5 px-2.5 align-top">
+                                {isAkun ? (
+                                  <span className="font-bold text-amber-700 dark:text-amber-400">{row.kode}</span>
+                                ) : isKomponen || isSubKomponen ? (
+                                  <span className="font-bold">{row.kode}</span>
+                                ) : (
+                                  <span className="text-slate-400 text-[10px]">-</span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2.5 font-sans align-top">
+                                <div className={`${isDetail ? "pl-4" : ""} leading-snug`}>
+                                  <span className={isDetail ? "text-slate-700 dark:text-slate-300" : "font-bold"}>
+                                    {row.uraian}
+                                  </span>
+                                  {row.subUraian && (
+                                    <span className="text-[10px] text-slate-400 block font-mono">{row.subUraian}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-1.5 px-2 text-center align-top whitespace-nowrap text-slate-600 dark:text-slate-400">
+                                {isDetail && row.vol !== undefined ? `${row.vol} ${row.sat || ""}` : "-"}
+                              </td>
+                              <td className="py-1.5 px-2.5 text-right align-top whitespace-nowrap text-slate-600 dark:text-slate-400">
+                                {isDetail && row.harga !== undefined ? `Rp ${(Number(row.harga) || 0).toLocaleString("id-ID")}` : "-"}
+                              </td>
+                              <td className="py-1.5 px-2.5 text-right align-top whitespace-nowrap font-bold text-slate-900 dark:text-slate-100">
+                                {row.jumlah !== undefined ? `Rp ${(Number(row.jumlah) || 0).toLocaleString("id-ID")}` : "-"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : activeDocument.fullText ? (
                 activeDocument.fullText
                   .split(/\n\n+/)
                   .filter((p) => p.trim().length > 0)
                   .map((paragraph, pIdx) => {
                     const isHeading =
-                      paragraph.startsWith("BAB ") ||
-                      paragraph.startsWith("RENCANA KERJA") ||
-                      paragraph.match(/^[A-Z]\.\s+[A-Z\s]+$/) ||
-                      paragraph.match(/^[0-9]+\.\s+[A-Z\s]+$/);
-
-                    // Pengecekan Highlight pencarian
-                    const matchQuery =
-                      docSearchQuery.trim() !== "" &&
-                      paragraph.toLowerCase().includes(docSearchQuery.toLowerCase().trim());
-
-                    if (isHeading) {
-                      return (
-                        <h4
-                          key={pIdx}
-                          className={`font-sans font-bold text-sm tracking-wide pt-3 pb-1 border-b ${
-                            matchQuery
-                              ? "bg-amber-100 dark:bg-amber-900/40 text-indigo-900 dark:text-indigo-200 border-indigo-400 px-2 rounded"
-                              : "text-slate-900 dark:text-white border-slate-200 dark:border-slate-800"
-                          }`}
-                        >
-                          {paragraph}
-                        </h4>
-                      );
-                    }
+                      paragraph.startsWith("RINCIAN") ||
+                      paragraph.startsWith("RINGKASAN") ||
+                      paragraph.startsWith("TOTAL") ||
+                      paragraph.startsWith("CATATAN") ||
+                      paragraph.match(/^[0-9]+\.\s+[A-Za-z\s]+:/);
 
                     return (
-                      <p
+                      <div
                         key={pIdx}
-                        className={`text-justify indent-6 ${
-                          matchQuery
-                            ? "bg-amber-100/80 dark:bg-amber-900/30 p-2 rounded-lg border-l-4 border-amber-500 font-sans"
-                            : ""
+                        className={`text-slate-800 dark:text-slate-200 ${
+                          isHeading ? "font-bold border-b border-slate-200 dark:border-slate-700 pb-1 pt-2 text-indigo-700 dark:text-indigo-400" : ""
                         }`}
                       >
-                        {paragraph}
-                      </p>
+                        <p className="whitespace-pre-line font-mono text-[11px]">{paragraph}</p>
+                      </div>
                     );
                   })
               ) : (
                 <div className="p-8 text-center text-slate-400 space-y-2">
-                  <FileText className="w-8 h-8 mx-auto text-slate-300" />
-                  <p>Teks dokumen belum tersedia.</p>
+                  <FileSpreadsheet className="w-8 h-8 mx-auto text-slate-300" />
+                  <p>Data isian RAB belum tersedia untuk unit kerja ini.</p>
                 </div>
               )}
             </div>
 
-            {/* Footer Panel Dokumen */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-500 font-sans">
-              <span>{activeDocument.fullText ? `${activeDocument.fullText.split(/\s+/).length.toLocaleString()} kata teks lengkap` : "0 kata"}</span>
-              <span className="font-medium text-indigo-600 dark:text-indigo-400">
-                Gunakan narasi di atas untuk mengoreksi skor &amp; eviden AI
+            {/* Footer Keterangan Kepatuhan PMK SBM */}
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border-t border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between text-[11px]">
+              <span className="text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Format Standar Bagan Akun Standar (BAS) & PMK SBM TA 2027</span>
+              </span>
+              <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">
+                {worksheetRows.length} Baris Data
               </span>
             </div>
           </div>
         )}
 
         {/* PANEL KANAN: LEMBAR KERJA EVALUASI RENJA STRATEGIS */}
-        <div className={`${showDocPanel ? "xl:col-span-7" : "col-span-1"} space-y-5`}>
+        <div className={`${showDocPanel ? (isDocExpanded ? "xl:col-span-4" : "xl:col-span-7") : "col-span-1"} space-y-5 transition-all duration-300`}>
           <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
               <div>

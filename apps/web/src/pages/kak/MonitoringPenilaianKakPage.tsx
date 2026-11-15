@@ -116,7 +116,26 @@ export default function MonitoringPenilaianKakPage() {
   const tahunAnggaran = 2027;
   const [selectedUnit, setSelectedUnit] = useState<string>("PATIH");
   const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
-  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">("kompilasi");
+
+  // Deteksi peran pengguna:
+  const isOperatorOrApproverE2 =
+    currentUserRole.toLowerCase().includes("operator") ||
+    (currentUserRole.toLowerCase().includes("approver") && !currentUserRole.toLowerCase().includes("bincang"));
+  const isBincangOrPeka =
+    currentUserRole.toLowerCase().includes("bincang") ||
+    currentUserRole.toLowerCase().includes("peka") ||
+    currentUserRole.toLowerCase().includes("super admin");
+
+  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">(() => {
+    return isOperatorOrApproverE2 && !isBincangOrPeka ? "grafik" : "matriks_subdimensi";
+  });
+
+  useEffect(() => {
+    if (isOperatorOrApproverE2 && !isBincangOrPeka) {
+      setActiveTabDetail("grafik");
+    }
+  }, [isOperatorOrApproverE2, isBincangOrPeka]);
+
   const [chartMode, setChartMode] = useState<"semua_unit" | "per_unit" | "per_evaluator">("semua_unit");
 
   const selectedUnitName = useMemo(() => {
@@ -318,7 +337,7 @@ export default function MonitoringPenilaianKakPage() {
   }
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-24">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6 pb-24">
       {/* ── BREADCRUMB & TOP HEADER ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
@@ -414,26 +433,18 @@ export default function MonitoringPenilaianKakPage() {
 
       {/* ── TAB NAVIGASI TAMPILAN KOMPILASI ── */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          onClick={() => setActiveTabDetail("kompilasi")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-            activeTabDetail === "kompilasi"
-              ? "bg-indigo-600 text-white shadow-xs"
-              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
-        >
-          Kompilasi Tim Penilai
-        </button>
-        <button
-          onClick={() => setActiveTabDetail("matriks_subdimensi")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-            activeTabDetail === "matriks_subdimensi"
-              ? "bg-indigo-600 text-white shadow-xs"
-              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
-        >
-          Matriks Komparasi 12 Sub-Dimensi
-        </button>
+        {isBincangOrPeka && (
+          <button
+            onClick={() => setActiveTabDetail("matriks_subdimensi")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+              activeTabDetail === "matriks_subdimensi"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            Matriks Komparasi 12 Sub-Dimensi
+          </button>
+        )}
         <button
           onClick={() => setActiveTabDetail("grafik")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
@@ -443,7 +454,7 @@ export default function MonitoringPenilaianKakPage() {
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          <span>Grafik Hasil Penilaian</span>
+          <span>Grafik Hasil Penilaian Kerangka Acuan Kerja (TOR) per Unit Kerja</span>
         </button>
       </div>
 

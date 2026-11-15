@@ -249,7 +249,7 @@ export default function MonitoringSubmitApproveRabPage() {
   });
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>

@@ -205,7 +205,7 @@ export default function IsianBab2Eselon2Page() {
   }
 
   return (
-    <div className="min-h-full p-6 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full p-6 w-full max-w-full space-y-6">
       {/* ── Banner Notification Save ── */}
       {savedSuccessAlert && (
         <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 text-sm font-semibold flex items-center justify-between shadow-md animate-bounce">

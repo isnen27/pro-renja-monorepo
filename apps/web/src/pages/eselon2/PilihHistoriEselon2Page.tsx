@@ -421,7 +421,7 @@ export default function PilihHistoriEselon2Page() {
   const isFormValid = !!unitKerja && !!statusHistori && isStageAllowed;
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6">
       {/* Header & Role Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">

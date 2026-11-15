@@ -31,6 +31,8 @@ import {
   Copy,
   Printer,
   FileDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   KERANGKA_EVALUASI_RENJA_STRATEGIS,
@@ -115,6 +117,7 @@ export default function EvaluasiRenjaStrategisPage() {
 
   // State Dokumen Viewer Panel
   const [showDocPanel, setShowDocPanel] = useState<boolean>(true);
+  const [isDocExpanded, setIsDocExpanded] = useState<boolean>(false);
   const [docSearchQuery, setDocSearchQuery] = useState<string>("");
   const [highlightKeyword, setHighlightKeyword] = useState<string>("");
   const docScrollRef = useRef<HTMLDivElement>(null);
@@ -267,7 +270,7 @@ export default function EvaluasiRenjaStrategisPage() {
   };
 
   return (
-    <div className="min-h-full p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-24">
+    <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6 pb-24">
       {/* ── Top Header & Breadcrumb ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
@@ -438,7 +441,7 @@ export default function EvaluasiRenjaStrategisPage() {
       <div className={`grid grid-cols-1 ${showDocPanel ? "xl:grid-cols-12" : "grid-cols-1"} gap-6 items-start`}>
         {/* PANEL KIRI: VIEWER DOKUMEN RENJA LENGKAP UNIT KERJA */}
         {showDocPanel && (
-          <div className="xl:col-span-5 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden flex flex-col xl:sticky xl:top-6 xl:max-h-[calc(100vh-3.5rem)]">
+          <div className={`${isDocExpanded ? "xl:col-span-8" : "xl:col-span-5"} bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden flex flex-col xl:sticky xl:top-6 xl:max-h-[calc(100vh-3.5rem)] transition-all duration-300`}>
             {/* Header Viewer */}
             <div className="p-4 bg-slate-900 text-white flex flex-col gap-2.5 border-b border-slate-800">
               <div className="flex items-center justify-between">
@@ -446,14 +449,24 @@ export default function EvaluasiRenjaStrategisPage() {
                   <BookOpen className="w-4 h-4 text-indigo-400" />
                   <span className="font-bold text-xs tracking-wide">Dokumen Renja Resmi Unit Kerja</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowDocPanel(false)}
-                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Tutup Panel Dokumen"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsDocExpanded(!isDocExpanded)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title={isDocExpanded ? "Perkecil Panel Dokumen" : "Perlebar Panel Dokumen ke Kanan"}
+                  >
+                    {isDocExpanded ? <Minimize2 className="w-4 h-4 text-indigo-400" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDocPanel(false)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Tutup Panel Dokumen"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Info Dokumen Terpilih */}
@@ -595,7 +608,7 @@ export default function EvaluasiRenjaStrategisPage() {
         )}
 
         {/* PANEL KANAN: LEMBAR KERJA EVALUASI RENJA STRATEGIS */}
-        <div className={`${showDocPanel ? "xl:col-span-7" : "col-span-1"} space-y-5`}>
+        <div className={`${showDocPanel ? (isDocExpanded ? "xl:col-span-4" : "xl:col-span-7") : "col-span-1"} space-y-5 transition-all duration-300`}>
           <div className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
               <div>
