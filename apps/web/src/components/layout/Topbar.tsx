@@ -20,7 +20,7 @@ import {
 import ServerClock from "../ui/ServerClock";
 import ThemeToggle from "../ui/ThemeToggle";
 import UserMenu from "../ui/UserMenu";
-import { getStoredNotifications, type SystemNotification } from "../../data/userManagementData";
+import { getStoredNotifications, type SystemNotification, getActiveUserUnitKerja } from "../../data/userManagementData";
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -97,55 +97,24 @@ export default function Topbar({ onMenuToggle, sidebarCollapsed }: TopbarProps) 
     window.dispatchEvent(new Event("aksi_notif_read_updated"));
   };
 
-  // Baca unit kerja & role user sesuai Panduan4
-  const [userUnit, setUserUnit] = useState<string>("PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN");
+  // Baca unit kerja & role user sesuai Hak Akses & Peran Pengguna dan master Submenu Unit Kerja PPATK
+  const [userUnit, setUserUnit] = useState<string>(() => getActiveUserUnitKerja());
 
   useEffect(() => {
     const updateUnit = () => {
-      try {
-        const role = localStorage.getItem("renja_e2_user_role") || "Operator";
-        if (role === "Super Admin") {
-          setUserUnit("PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN");
-          return;
-        }
-
-        // Cek dari histori aktif RAB / KAK / Renja
-        const rabSaved = localStorage.getItem("rab_active_histori");
-        if (rabSaved) {
-          const p = JSON.parse(rabSaved);
-          if (p.kdsatker) {
-            setUserUnit(p.kdsatker);
-            return;
-          }
-        }
-
-        const kakSaved = localStorage.getItem("kak_active_histori");
-        if (kakSaved) {
-          const p = JSON.parse(kakSaved);
-          if (p.kdsatker) {
-            setUserUnit(p.kdsatker);
-            return;
-          }
-        }
-
-        const renjaSaved = localStorage.getItem("renja_e2_active_histori");
-        if (renjaSaved) {
-          const p = JSON.parse(renjaSaved);
-          if (p.unit_kerja) {
-            setUserUnit(p.unit_kerja);
-            return;
-          }
-        }
-      } catch (e) {}
-      setUserUnit("PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN");
+      setUserUnit(getActiveUserUnitKerja());
     };
 
     updateUnit();
     window.addEventListener("storage", updateUnit);
     window.addEventListener("focus", updateUnit);
+    window.addEventListener("aksi_users_updated", updateUnit);
+    window.addEventListener("renja_role_changed", updateUnit);
     return () => {
       window.removeEventListener("storage", updateUnit);
       window.removeEventListener("focus", updateUnit);
+      window.removeEventListener("aksi_users_updated", updateUnit);
+      window.removeEventListener("renja_role_changed", updateUnit);
     };
   }, []);
 

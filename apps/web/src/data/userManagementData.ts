@@ -309,3 +309,82 @@ export function saveStoredNotifications(notifs: SystemNotification[]): void {
     console.error("Gagal menyimpan data notifikasi ke localStorage:", e);
   }
 }
+
+/**
+ * Helper untuk mendapatkan Nomenklatur Unit Kerja resmi dari sesi login pengguna
+ * Sesuai data pada submenu Unit Kerja PPATK dan Hak Akses & Peran Pengguna
+ */
+export function getActiveUserUnitKerja(): string {
+  try {
+    const role = localStorage.getItem("renja_e2_user_role") || "Operator";
+    if (role === "Super Admin") {
+      return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
+    }
+
+    // 1. Prioritas Utama: Baca dari sesi pengguna login (aksi_auth_user)
+    const authStr = localStorage.getItem("aksi_auth_user");
+    let targetUserUnit = "";
+    let targetUserNip = "";
+
+    if (authStr) {
+      const authUser = JSON.parse(authStr);
+      targetUserNip = authUser.nip || "";
+      targetUserUnit = authUser.unitKerja || "";
+    }
+
+    // Periksa apakah ada pembaruan unit kerja pada master data pengguna terkini (getStoredUsers)
+    if (targetUserNip) {
+      const allUsers = getStoredUsers();
+      const matched = allUsers.find((u) => u.nip === targetUserNip);
+      if (matched && matched.unitKerja) {
+        targetUserUnit = matched.unitKerja;
+      }
+    }
+
+    if (targetUserUnit) {
+      // Bersihkan prefix kode (misal "BINCANG - Biro Perencanaan dan Keuangan" -> "Biro Perencanaan dan Keuangan")
+      let cleanName = targetUserUnit;
+      if (cleanName.includes(" - ")) {
+        cleanName = cleanName.split(" - ").slice(1).join(" - ").trim();
+      }
+      // Hapus suffix tanda kurung seperti "(Eselon I)"
+      cleanName = cleanName.replace(/\s*\(Eselon\s+[I|V|X]+\)/gi, "").trim();
+
+      // Cocokkan dengan data resmi submenu Unit Kerja PPATK
+      const foundInOfficial = DAFTAR_UNIT_KERJA_PPATK.find(
+        (u) =>
+          u.nama.toLowerCase() === cleanName.toLowerCase() ||
+          u.labelLengkap.toLowerCase().includes(cleanName.toLowerCase()) ||
+          cleanName.toLowerCase().includes(u.nama.toLowerCase())
+      );
+
+      if (foundInOfficial) {
+        return foundInOfficial.nama;
+      }
+      return cleanName;
+    }
+
+    // 2. Fallback jika belum login: baca dari histori aktif
+    const rabSaved = localStorage.getItem("rab_active_histori");
+    if (rabSaved) {
+      const p = JSON.parse(rabSaved);
+      if (p.kdsatker) return p.kdsatker;
+    }
+
+    const kakSaved = localStorage.getItem("kak_active_histori");
+    if (kakSaved) {
+      const p = JSON.parse(kakSaved);
+      if (p.kdsatker) return p.kdsatker;
+    }
+
+    const renjaSaved = localStorage.getItem("renja_e2_active_histori");
+    if (renjaSaved) {
+      const p = JSON.parse(renjaSaved);
+      if (p.unit_kerja) return p.unit_kerja;
+    }
+  } catch (e) {
+    console.error("Gagal mendapatkan unit kerja pengguna:", e);
+  }
+
+  return "Biro Perencanaan dan Keuangan";
+}
