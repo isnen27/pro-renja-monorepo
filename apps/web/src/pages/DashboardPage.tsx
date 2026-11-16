@@ -39,6 +39,7 @@ import {
   Target
 } from "lucide-react";
 import unitKerjaData from "../data/unitKerjaData.json";
+import { DAFTAR_UNIT_KERJA_PPATK } from "../data/userManagementData";
 
 // Tipe Role Pengguna Sesuai Tata Kelola Perencanaan & Penganggaran
 export type UserRole = "Operator" | "Approver" | "BINCANG" | "Super Admin";
@@ -159,7 +160,37 @@ export default function DashboardPage() {
     return null;
   });
 
-  // 2. Unit Kerja Aktif (Default PATIH - Pusdiklat APU PPT)
+  // Hak akses memilih unit kerja: hanya untuk BINCANG, PEKA, dan Super Admin
+  const canSelectUnit = useMemo(() => {
+    const roleUpper = (currentUserRole || "").toUpperCase();
+    return (
+      roleUpper.includes("BINCANG") ||
+      roleUpper.includes("PEKA") ||
+      roleUpper.includes("SUPER ADMIN")
+    );
+  }, [currentUserRole]);
+
+  // Unit kerja bawaan user yang login
+  const userUnitKode = useMemo(() => {
+    if (authProfile && authProfile.unitKerja) {
+      const ukStr = authProfile.unitKerja;
+      // 1. Cek dari prefix kode (contoh: "PATIH - Pusat Pendidikan...")
+      const prefix = ukStr.split(" - ")[0].trim();
+      const matchPrefix = DAFTAR_UNIT_KERJA.find((u) => u.kode === prefix);
+      if (matchPrefix) return matchPrefix.kode;
+
+      // 2. Cek kecocokan nama
+      const matchNama = DAFTAR_UNIT_KERJA.find(
+        (u) =>
+          ukStr.toLowerCase().includes(u.nama.toLowerCase()) ||
+          u.nama.toLowerCase().includes(ukStr.toLowerCase())
+      );
+      if (matchNama) return matchNama.kode;
+    }
+    return "PATIH";
+  }, [authProfile]);
+
+  // 2. Unit Kerja Aktif
   const [selectedUnitKode, setSelectedUnitKode] = useState<string>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_active_unit");
@@ -169,6 +200,13 @@ export default function DashboardPage() {
     } catch {}
     return "PATIH";
   });
+
+  // Jika bukan role BINCANG, PEKA, atau Super Admin, kunci pilihan unit kerja sesuai unit kerja user
+  useEffect(() => {
+    if (!canSelectUnit && userUnitKode) {
+      setSelectedUnitKode(userUnitKode);
+    }
+  }, [canSelectUnit, userUnitKode]);
 
   // 3. Tab Filter Tahun Realisasi Anggaran
   const [tahunRealisasi, setTahunRealisasi] = useState<"2026_berjalan" | "2025_audited">("2026_berjalan");
@@ -527,22 +565,36 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Pilihan Unit Kerja */}
+            {/* Tampilan Unit Kerja */}
             <div className="pt-1">
               <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
                 Unit Kerja yang Ditampilkan:
               </label>
-              <select
-                value={selectedUnitKode}
-                onChange={(e) => handleChangeUnit(e.target.value)}
-                className="w-full text-xs font-semibold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs"
-              >
-                {DAFTAR_UNIT_KERJA.map((u) => (
-                  <option key={u.kode} value={u.kode}>
-                    {u.kode} - {u.nama}
-                  </option>
-                ))}
-              </select>
+              {canSelectUnit ? (
+                <select
+                  value={selectedUnitKode}
+                  onChange={(e) => handleChangeUnit(e.target.value)}
+                  className="w-full text-xs font-semibold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs cursor-pointer"
+                >
+                  {DAFTAR_UNIT_KERJA.map((u) => (
+                    <option key={u.kode} value={u.kode}>
+                      {u.kode} - {u.nama}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span className="truncate">
+                      {activeUnitInfo.kode} - {activeUnitInfo.nama}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 ml-1">
+                    Terkunci
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
