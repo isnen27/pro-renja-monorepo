@@ -216,26 +216,14 @@ export default function HakAksesPeranPage() {
       )}
 
       {/* Banner Aturan Bisnis & Segregation of Duties */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/60 text-xs text-purple-900 dark:text-purple-200 space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-2 font-bold text-sm text-purple-800 dark:text-purple-300">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>Multi-Role & Pemisahan Fungsi (SoD)</span>
-          </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-            Pengguna dapat memiliki <b>lebih dari 1 peran</b> (misal: BINCANG dan Tim Perencanaan). Namun, peran <b>Operator</b> dan <b>Approver</b> <u>tidak dapat</u> disematkan bersamaan pada satu pengguna guna menjamin integritas reviu berjenjang.
-          </p>
+      <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/60 text-xs text-purple-900 dark:text-purple-200 space-y-1.5 shadow-xs">
+        <div className="flex items-center gap-2 font-bold text-sm text-purple-800 dark:text-purple-300">
+          <Sparkles className="w-4 h-4 text-purple-600" />
+          <span>Multi-Role &amp; Pemisahan Fungsi (Segregation of Duties)</span>
         </div>
-
-        <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-2 font-bold text-sm text-amber-800 dark:text-amber-300">
-            <Lock className="w-4 h-4 text-amber-600" />
-            <span>Otoritas Khusus Super Admin</span>
-          </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-            Peran <b>Super Admin</b> dengan kendali penuh sistem AKSI memiliki hak eksklusif dan <u>hanya dapat disematkan</u> pada akun <b>Isnen Hadi Al Ghozali</b>.
-          </p>
-        </div>
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+          Pengguna dapat memiliki <b>lebih dari 1 peran</b> (misal: BINCANG dan Tim Perencanaan). Namun, peran <b>Operator</b> dan <b>Approver</b> <u>tidak dapat</u> disematkan bersamaan pada satu pengguna guna menjamin integritas reviu berjenjang.
+        </p>
       </div>
 
       {/* Filter & Pencarian */}
