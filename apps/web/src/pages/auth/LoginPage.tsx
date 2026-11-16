@@ -20,11 +20,11 @@ import {
 import { getStoredUsers } from "../../data/userManagementData";
 
 interface CaptchaChallenge {
-  type: "math" | "color" | "sequence";
+  type: "math" | "sequence" | "word" | "context" | "visual";
   question: string;
   answer: string | number;
   hint: string;
-  options?: string[];
+  badge?: string;
 }
 
 export default function LoginPage() {
@@ -41,61 +41,181 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Creative CAPTCHA System (Matematika & Logika Akuntabilitas Perencanaan)
+  // Dynamic CAPTCHA Generator (>1000 variasi unik)
   const [captchaChallenge, setCaptchaChallenge] = useState<CaptchaChallenge>({
     type: "math",
     question: "Berapa hasil dari 14 + 13?",
     answer: "27",
     hint: "Ketik angka jawaban yang benar",
+    badge: "Matematika Anggaran",
   });
   const [captchaSeed, setCaptchaSeed] = useState(1);
 
-  // Generator CAPTCHA acak yang kreatif & interaktif
+  // Generator CAPTCHA algoritmis dengan ribuan kombinasi dinamis
   const generateCaptcha = () => {
     setCaptchaSeed((prev) => prev + 1);
     setCaptchaInput("");
 
-    const challenges: CaptchaChallenge[] = [
-      {
-        type: "math",
-        question: "Berapa hasil penjumlahan 15 + 12?",
-        answer: "27",
-        hint: "Ketik angka jawaban yang benar",
-      },
-      {
-        type: "math",
-        question: "Jika Pagu 50 Miliar dikurangi Belanja 23 Miliar, sisa berapa Miliar?",
-        answer: "27",
-        hint: "Ketik angka nominal selisihnya",
-      },
-      {
-        type: "sequence",
-        question: "Lengkapi deret kode satker: 10, 20, 30, [ ? ]",
-        answer: "40",
-        hint: "Ketik angka lanjutan deret",
-      },
-      {
-        type: "math",
-        question: "Hitung perkalian sederhana: 9 x 3 = ...",
-        answer: "27",
-        hint: "Ketik hasil perkalian",
-      },
-      {
-        type: "sequence",
-        question: "Bulan ke-7 dalam kalender anggaran nasional adalah? (Ketik angka bulannya)",
-        answer: "7",
-        hint: "Ketik digit angka 7",
-      },
-      {
-        type: "math",
-        question: "Kode status histori awal adalah D00. Jika ditambah 1 revisi, kodenya D0[?]",
-        answer: "1",
-        hint: "Ketik digit nomor revisi pertama",
-      },
-    ];
+    const category = Math.floor(Math.random() * 6);
+    let challenge: CaptchaChallenge;
 
-    const randomIndex = Math.floor(Math.random() * challenges.length);
-    setCaptchaChallenge(challenges[randomIndex]);
+    if (category === 0) {
+      // 1. Penjumlahan Anggaran / Angka Acak (10-89 + 10-89) -> 6400 variasi
+      const a = Math.floor(Math.random() * 50) + 11;
+      const b = Math.floor(Math.random() * 40) + 10;
+      const contexts = [
+        `Penjumlahan Pagu: ${a} Miliar + ${b} Miliar = [ ? ] Miliar`,
+        `Hitung hasil alokasi: ${a} + ${b} = ...`,
+        `Berapa total rencana belanja: ${a} + ${b}?`,
+        `Verifikasi angka: ${a} ditambah ${b} adalah...`
+      ];
+      const q = contexts[Math.floor(Math.random() * contexts.length)];
+      challenge = {
+        type: "math",
+        question: q,
+        answer: (a + b).toString(),
+        hint: "Ketik hasil penjumlahannya dalam angka",
+        badge: "Penjumlahan Anggaran",
+      };
+    } else if (category === 1) {
+      // 2. Pengurangan Anggaran (Sisa Pagu / Efisiensi) -> ribuan variasi
+      const a = Math.floor(Math.random() * 60) + 40; // 40..99
+      const b = Math.floor(Math.random() * 30) + 5;  // 5..34
+      const contexts = [
+        `Jika Pagu ${a} Miliar terealisasi ${b} Miliar, sisa pagu = [ ? ] Miliar`,
+        `Hitung selisih efisiensi anggaran: ${a} - ${b} = ...`,
+        `Berapa sisa pagu operasional dari ${a} dikurangi ${b}?`,
+        `Verifikasi pengurangan: ${a} - ${b} = [ ? ]`
+      ];
+      const q = contexts[Math.floor(Math.random() * contexts.length)];
+      challenge = {
+        type: "math",
+        question: q,
+        answer: (a - b).toString(),
+        hint: "Ketik angka selisihnya",
+        badge: "Efisiensi Pagu",
+      };
+    } else if (category === 2) {
+      // 3. Perkalian Ringkas Komponen Biaya -> ratusan variasi
+      const a = Math.floor(Math.random() * 10) + 3; // 3..12
+      const b = Math.floor(Math.random() * 8) + 2;  // 2..9
+      const contexts = [
+        `Pengadaan ${a} paket dengan biaya @ Rp ${b} Juta, totalnya [ ? ] Juta`,
+        `Hitung perkalian volume kegiatan: ${a} x ${b} = ...`,
+        `Berapa hasil dari ${a} dikali ${b}?`
+      ];
+      const q = contexts[Math.floor(Math.random() * contexts.length)];
+      challenge = {
+        type: "math",
+        question: q,
+        answer: (a * b).toString(),
+        hint: "Ketik hasil perkaliannya",
+        badge: "Volume Kegiatan",
+      };
+    } else if (category === 3) {
+      // 4. Deret Angka Pola Perencanaan -> ratusan variasi
+      const start = Math.floor(Math.random() * 30) + 5;
+      const step = Math.floor(Math.random() * 8) + 2; // step 2..9
+      const s1 = start;
+      const s2 = s1 + step;
+      const s3 = s2 + step;
+      const s4 = s3 + step;
+      challenge = {
+        type: "sequence",
+        question: `Lengkapi deret kode perencanaan: ${s1}, ${s2}, ${s3}, [ ? ]`,
+        answer: s4.toString(),
+        hint: `Lengkapi angka berikutnya (selisih +${step})`,
+        badge: "Pola Deret Kode",
+      };
+    } else if (category === 4) {
+      // 5. Alfanumerik Token Keamanan Acak (Anti-Bot) -> 10.000+ variasi
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      challenge = {
+        type: "visual",
+        question: `Ketik kode verifikasi keamanan: [ ${code} ]`,
+        answer: code,
+        hint: "Ketik persis 5 karakter huruf/angka di atas",
+        badge: "Token Keamanan Acak",
+      };
+    } else {
+      // 6. Logika Konteks Organisasi & Anggaran PPATK
+      const contextPool = [
+        {
+          q: "Tahun Anggaran penyusunan Renja berjalan saat ini adalah TA [ ? ]",
+          a: "2027",
+          h: "Ketik 4 digit tahun perencanaan (2027)",
+          b: "Tahun Anggaran",
+        },
+        {
+          q: "Berapa jumlah Deputi (Eselon I teknis) di lingkungan PPATK? (Ketik angkanya)",
+          a: "3",
+          h: "Ketik angka 3 (TEGAS, PENGASUH, ASA)",
+          b: "Struktur Organisasi",
+        },
+        {
+          q: "Ketik singkatan Biro Perencanaan dan Keuangan PPATK (7 huruf)",
+          a: "bincang",
+          h: "Ketik BINCANG (huruf besar atau kecil)",
+          b: "Singkatan Unit",
+        },
+        {
+          q: "Ketik singkatan Inspektorat PPATK (4 huruf)",
+          a: "peka",
+          h: "Ketik PEKA (huruf besar atau kecil)",
+          b: "Singkatan Unit",
+        },
+        {
+          q: "Ketik singkatan Pusat Pendidikan dan Pelatihan APU PPT (5 huruf)",
+          a: "patih",
+          h: "Ketik PATIH (huruf besar atau kecil)",
+          b: "Singkatan Unit",
+        },
+        {
+          q: "Jumlah kuartal (triwulan) dalam satu siklus tahun anggaran adalah [ ? ]",
+          a: "4",
+          h: "Ketik angka 4",
+          b: "Kalender Fiskal",
+        },
+        {
+          q: "Kode status awal histori kertas kerja sebelum revisi adalah D0[ ? ]",
+          a: "0",
+          h: "Ketik angka 0 untuk kode D00",
+          b: "Status Histori",
+        },
+        {
+          q: "Singkatan dari Rencana Kerja Kementerian/Lembaga adalah [ ? ] (5 huruf)",
+          a: "renja",
+          h: "Ketik RENJA (huruf besar atau kecil)",
+          b: "Perencanaan",
+        },
+        {
+          q: "Singkatan dari Rencana Anggaran Biaya adalah [ ? ] (3 huruf)",
+          a: "rab",
+          h: "Ketik RAB (huruf besar atau kecil)",
+          b: "Penganggaran",
+        },
+        {
+          q: "Singkatan dari Kerangka Acuan Kerja adalah [ ? ] (3 huruf)",
+          a: "kak",
+          h: "Ketik KAK (huruf besar atau kecil)",
+          b: "Kerangka Kerja",
+        },
+      ];
+      const pick = contextPool[Math.floor(Math.random() * contextPool.length)];
+      challenge = {
+        type: "context",
+        question: pick.q,
+        answer: pick.a,
+        hint: pick.h,
+        badge: pick.b,
+      };
+    }
+
+    setCaptchaChallenge(challenge);
   };
 
   useEffect(() => {
@@ -371,8 +491,15 @@ export default function LoginPage() {
               </div>
 
               {/* Tampilan Visual Soal CAPTCHA */}
-              <div className="p-3 rounded-xl bg-white border border-slate-200 text-center select-none space-y-1 shadow-xs">
-                <p className="text-xs font-bold text-slate-800 tracking-wide">
+              <div className="p-3 rounded-xl bg-white border border-slate-200 text-center select-none space-y-1.5 shadow-xs">
+                {captchaChallenge.badge && (
+                  <div className="flex justify-center">
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold">
+                      {captchaChallenge.badge}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs font-bold text-slate-800 tracking-wide font-mono">
                   {captchaChallenge.question}
                 </p>
                 <p className="text-[10px] text-indigo-600 font-medium italic">
