@@ -204,9 +204,6 @@ export default function MonitoringPenilaianRabPage() {
   }, [tahunAnggaran]);
 
 
-  // Akses eksklusif: Approver BINCANG dan Super Admin
-  const hasAccess = currentUserRole === "BINCANG" || currentUserRole === "Super Admin";
-
   // Data skoring simulasi per evaluator untuk unit terpilih
   const evaluationRecords = useMemo(() => {
     // Skor dasar untuk masing-masing evaluator
@@ -334,37 +331,6 @@ export default function MonitoringPenilaianRabPage() {
       countEvaluator: evaluationRecords.length,
     };
   }, [evaluationRecords]);
-
-  // JIKA BUKAN BINCANG ATAU SUPER ADMIN: BLOKIR TAMPILAN
-  if (!hasAccess) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="p-4 bg-rose-100 dark:bg-rose-950/50 rounded-2xl border border-rose-200 dark:border-rose-900 text-rose-600">
-          <Lock className="w-12 h-12 stroke-[1.5]" />
-        </div>
-        <div className="space-y-1.5 max-w-md">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Akses Terbatas (Restricted Access)
-          </h2>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Halaman <strong>Monitoring Penilaian Renja</strong> adalah kompilasi hasil evaluasi lintas-tim (Tim Perencanaan, Tim Penganggaran, dan Inspektorat) yang hanya dapat diakses oleh <strong>Approver BINCANG</strong> dan <strong>Super Admin</strong>.
-          </p>
-          <div className="pt-2">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-              Role Anda saat ini: {currentUserRole}
-            </span>
-          </div>
-        </div>
-        <Link
-          to="/rab/evaluasi"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
-        >
-          <span>Kembali ke Evaluasi Rencana Anggaran Biaya (RAB)</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-full p-4 sm:p-6 w-full max-w-full space-y-6 pb-24">
