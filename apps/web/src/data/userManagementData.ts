@@ -75,18 +75,20 @@ export function isPejabatJabatan(jabatan: string): boolean {
 // Validasi Aturan Bisnis Pemberian Peran
 export function validateRoles(
   nama: string,
-  roles: string[]
+  roles: string[],
+  userNipOrId?: string
 ): { valid: boolean; message?: string } {
-  // Aturan 1: Super Admin hanya dapat disematkan pada user Isnen Hadi Al Ghozali
+  // Aturan 1: Super Admin hanya dapat disematkan pada user Isnen Hadi Al Ghozali dengan ID / NIP 199002272012101003
   const hasSuperAdmin = roles.includes("Super Admin");
   const isTargetSuperAdmin =
-    nama.trim().toLowerCase() === "isnen hadi al ghozali";
+    nama.trim().toLowerCase() === "isnen hadi al ghozali" ||
+    (userNipOrId && userNipOrId.trim() === "199002272012101003");
 
   if (hasSuperAdmin && !isTargetSuperAdmin) {
     return {
       valid: false,
       message:
-        "Peran 'Super Admin' hanya dapat disematkan secara khusus pada user 'Isnen Hadi Al Ghozali'.",
+        "Peran 'Super Admin' hanya dapat disematkan secara khusus pada user 'Isnen Hadi Al Ghozali' dengan ID 199002272012101003.",
     };
   }
 
@@ -111,7 +113,7 @@ export function validateRoles(
 export const INITIAL_USERS: UserAccount[] = [
   {
     id: "USR-00",
-    nip: "199008152014031001",
+    nip: "199002272012101003",
     nama: "Isnen Hadi Al Ghozali",
     jabatan: "Kepala Biro Perencanaan dan Keuangan",
     unitKerja: "BINCANG - Biro Perencanaan dan Keuangan",

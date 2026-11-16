@@ -93,12 +93,13 @@ export default function HakAksesPeranPage() {
       }
     } else {
       // Tambah peran
-      // Validasi 1: Super Admin hanya untuk Isnen Hadi Al Ghozali
-      if (
-        role === "Super Admin" &&
-        selectedUser.nama.trim().toLowerCase() !== "isnen hadi al ghozali"
-      ) {
-        setValidationError("Peran 'Super Admin' hanya dapat disematkan khusus pada user 'Isnen Hadi Al Ghozali'.");
+      // Validasi 1: Super Admin hanya untuk Isnen Hadi Al Ghozali dengan ID 199002272012101003
+      const isSuperAdminAllowed =
+        (selectedUser.nip && selectedUser.nip.trim() === "199002272012101003") ||
+        (selectedUser.nama && selectedUser.nama.trim().toLowerCase() === "isnen hadi al ghozali");
+
+      if (role === "Super Admin" && !isSuperAdminAllowed) {
+        setValidationError("Peran 'Super Admin' hanya dapat disematkan khusus pada user 'Isnen Hadi Al Ghozali' dengan ID 199002272012101003.");
         return;
       }
 
@@ -130,7 +131,7 @@ export default function HakAksesPeranPage() {
     }
 
     // Validasi akhir dengan helper
-    const val = validateRoles(selectedUser.nama, nextRoles);
+    const val = validateRoles(selectedUser.nama, nextRoles, selectedUser.nip);
     if (!val.valid) {
       setValidationError(val.message || "Kombinasi peran tidak valid.");
       return;
@@ -148,7 +149,7 @@ export default function HakAksesPeranPage() {
       return;
     }
 
-    const val = validateRoles(selectedUser.nama, tempRoles);
+    const val = validateRoles(selectedUser.nama, tempRoles, selectedUser.nip);
     if (!val.valid) {
       setValidationError(val.message || "Kombinasi peran tidak valid.");
       return;
@@ -401,29 +402,25 @@ export default function HakAksesPeranPage() {
                 <span className="text-slate-400">{tempRoles.length} Peran Terpilih</span>
               </div>
 
-              {/* 9 Pilihan Peran Checkbox */}
+              {/* Pilihan Peran Checkbox (Super Admin hanya muncul pada Isnen Hadi Al Ghozali ID 199002272012101003) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
-                {DAFTAR_PERAN.map((role) => {
+                {DAFTAR_PERAN.filter((role) => {
+                  if (role === "Super Admin") {
+                    const isTargetSuperAdmin =
+                      (selectedUser.nip && selectedUser.nip.trim() === "199002272012101003") ||
+                      (selectedUser.nama && selectedUser.nama.trim().toLowerCase() === "isnen hadi al ghozali");
+                    return isTargetSuperAdmin;
+                  }
+                  return true;
+                }).map((role) => {
                   const isChecked = tempRoles.includes(role);
-                  const isSuperAdminRole = role === "Super Admin";
-                  const isSuperAdminAllowed =
-                    selectedUser.nama.trim().toLowerCase() === "isnen hadi al ghozali";
-
-                  // Disabling logic
-                  const isSuperAdminLocked = isSuperAdminRole && !isSuperAdminAllowed;
 
                   return (
                     <div
                       key={role}
-                      onClick={() => {
-                        if (!isSuperAdminLocked) {
-                          handleToggleRole(role);
-                        }
-                      }}
+                      onClick={() => handleToggleRole(role)}
                       className={`p-3 rounded-xl border text-xs transition-all flex items-start gap-2.5 cursor-pointer select-none ${
-                        isSuperAdminLocked
-                          ? "opacity-50 bg-slate-50 dark:bg-slate-800/40 border-slate-200 cursor-not-allowed"
-                          : isChecked
+                        isChecked
                           ? "bg-purple-50/80 dark:bg-purple-950/50 border-purple-400 shadow-xs"
                           : "bg-white dark:bg-slate-900 border-[var(--border)] hover:bg-[var(--accent)]/30"
                       }`}
@@ -431,7 +428,6 @@ export default function HakAksesPeranPage() {
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        disabled={isSuperAdminLocked}
                         onChange={() => {}}
                         className="mt-0.5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
                       />
@@ -439,12 +435,6 @@ export default function HakAksesPeranPage() {
                         <span className="font-bold text-[var(--text)] block truncate">
                           {role}
                         </span>
-                        {isSuperAdminLocked && (
-                          <span className="text-[10px] text-amber-600 flex items-center gap-1 mt-0.5">
-                            <Lock className="w-3 h-3" />
-                            <span>Khusus Isnen Hadi Al Ghozali</span>
-                          </span>
-                        )}
                         {isChecked && (
                           <span className="text-[10px] text-purple-600 font-semibold block mt-0.5">
                             Aktif

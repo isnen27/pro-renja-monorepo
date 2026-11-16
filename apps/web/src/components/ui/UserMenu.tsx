@@ -45,7 +45,7 @@ export default function UserMenu() {
     } catch {}
     return {
       name: "Isnen Hadi Al Ghozali",
-      nip: "199008152014031001",
+      nip: "199002272012101003",
       role: "Super Admin",
       unitCode: "BINCANG",
       initials: "IH",
