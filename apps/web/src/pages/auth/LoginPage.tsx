@@ -466,9 +466,10 @@ export default function LoginPage() {
                 onChange={(e) => setTahunAnggaran(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 cursor-pointer transition-all"
               >
-                <option value="2027">Tahun Anggaran 2027 (Penyusunan Berjalan)</option>
-                <option value="2026">Tahun Anggaran 2026 (Pelaksanaan DIPA)</option>
-                <option value="2025">Tahun Anggaran 2025 (Arsip Histori)</option>
+                <option value="2025">TA 2025</option>
+                <option value="2026">TA 2026</option>
+                <option value="2027">TA 2027</option>
+                <option value="2028">TA 2028</option>
               </select>
             </div>
 
