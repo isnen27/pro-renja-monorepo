@@ -113,29 +113,60 @@ export default function MonitoringPenilaianRenjaPage() {
 
   // Filter & Selected state
   const tahunAnggaran = 2027;
-  const [selectedUnit, setSelectedUnit] = useState<string>("SETIA");
-  const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
 
   // Deteksi peran pengguna:
-  const isOperatorOrApproverE1 =
-    currentUserRole.toLowerCase().includes("operator") ||
-    (currentUserRole.toLowerCase().includes("approver") && !currentUserRole.toLowerCase().includes("bincang"));
-  const isBincangOrPeka =
-    currentUserRole.toLowerCase().includes("bincang") ||
-    currentUserRole.toLowerCase().includes("peka") ||
-    currentUserRole.toLowerCase().includes("super admin");
+  const isBincangOrPeka = useMemo(() => {
+    const roleUpper = (currentUserRole || "").toUpperCase();
+    return (
+      roleUpper.includes("BINCANG") ||
+      roleUpper.includes("PEKA") ||
+      roleUpper.includes("SUPER ADMIN")
+    );
+  }, [currentUserRole]);
 
-  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">(() => {
-    return isOperatorOrApproverE1 && !isBincangOrPeka ? "grafik" : "matriks_subdimensi";
+  // Unit Eselon I terpersonalisasi milik user
+  const userEselon1Unit = useMemo(() => {
+    try {
+      const authStr = localStorage.getItem("aksi_auth_user");
+      if (authStr) {
+        const u = JSON.parse(authStr);
+        const uk = (u.unitKerja || "").toUpperCase();
+        if (uk.includes("ANALISIS") || uk.includes("SIASAT") || uk.includes("SIDIK") || uk.includes("SIAGA") || uk.includes("ASA")) {
+          return "ASA";
+        }
+        if (uk.includes("HUKUM") || uk.includes("KERJA SAMA") || uk.includes("KREASI") || uk.includes("SALAM") || uk.includes("SERASI") || uk.includes("TEGAS")) {
+          return "TEGAS";
+        }
+        if (uk.includes("PELAPORAN") || uk.includes("PENGAWASAN") || uk.includes("REKAN") || uk.includes("PENJAGA") || uk.includes("PATUH") || uk.includes("PENGASUH")) {
+          return "PENGASUH";
+        }
+      }
+    } catch {}
+    return "SETIA";
+  }, []);
+
+  const [selectedUnit, setSelectedUnit] = useState<string>(() => {
+    return isBincangOrPeka ? "SETIA" : userEselon1Unit;
   });
 
-  useEffect(() => {
-    if (isOperatorOrApproverE1 && !isBincangOrPeka) {
-      setActiveTabDetail("grafik");
-    }
-  }, [isOperatorOrApproverE1, isBincangOrPeka]);
+  const [selectedTimFilter, setSelectedTimFilter] = useState<string>("Semua Tim");
 
-  const [chartMode, setChartMode] = useState<"semua_unit" | "per_unit" | "per_evaluator">("semua_unit");
+  const [activeTabDetail, setActiveTabDetail] = useState<"kompilasi" | "matriks_subdimensi" | "berita_acara" | "grafik">(() => {
+    return !isBincangOrPeka ? "grafik" : "matriks_subdimensi";
+  });
+
+  const [chartMode, setChartMode] = useState<"semua_unit" | "per_unit" | "per_evaluator">(() => {
+    return !isBincangOrPeka ? "per_unit" : "semua_unit";
+  });
+
+  // Sinkronisasi otomatis jika peran pengguna bukan BINCANG, PEKA, atau Super Admin
+  useEffect(() => {
+    if (!isBincangOrPeka) {
+      setActiveTabDetail("grafik");
+      setChartMode("per_unit");
+      setSelectedUnit(userEselon1Unit);
+    }
+  }, [isBincangOrPeka, userEselon1Unit]);
 
   const selectedUnitName = useMemo(() => {
     return LIST_ESELON1_UNITS.find((u) => u.kode === selectedUnit)?.nama || selectedUnit;
@@ -386,17 +417,24 @@ export default function MonitoringPenilaianRenjaPage() {
         {/* Unit Kerja */}
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-[var(--border)] shadow-xs space-y-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unit Eselon I:</span>
-          <select
-            value={selectedUnit}
-            onChange={(e) => setSelectedUnit(e.target.value)}
-            className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
-          >
-            {LIST_ESELON1_UNITS.map((u) => (
-              <option key={u.kode} value={u.kode}>
-                {u.kode} - {u.nama}
-              </option>
-            ))}
-          </select>
+          {isBincangOrPeka ? (
+            <select
+              value={selectedUnit}
+              onChange={(e) => setSelectedUnit(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
+            >
+              {LIST_ESELON1_UNITS.map((u) => (
+                <option key={u.kode} value={u.kode}>
+                  {u.kode} - {u.nama}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+              <span className="truncate">{selectedUnit} - {selectedUnitName}</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider shrink-0 ml-1">Terkunci</span>
+            </div>
+          )}
           <span className="text-[10px] text-slate-400 block">Tahun Anggaran: {tahunAnggaran}</span>
         </div>
 
@@ -727,43 +765,38 @@ export default function MonitoringPenilaianRenjaPage() {
                 Komparasi visual capaian nilai mutu perencanaan strategis seluruh unit Eselon I, distribusi skor 6 dimensi, dan profil evaluasi antar-tim.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold shrink-0">
-              <button
-                type="button"
-                onClick={() => setChartMode("semua_unit")}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  chartMode === "semua_unit"
-                    ? "bg-indigo-600 text-white shadow-xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                1. Seluruh Unit Kerja (4 Eselon I)
-              </button>
-              <button
-                type="button"
-                onClick={() => setChartMode("per_unit")}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  chartMode === "per_unit"
-                    ? "bg-indigo-600 text-white shadow-xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                2. Per Unit Kerja ({selectedUnit})
-              </button>
-              {!isBincangOrPeka && (
+            {isBincangOrPeka ? (
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold shrink-0">
                 <button
                   type="button"
-                  onClick={() => setChartMode("per_evaluator")}
+                  onClick={() => setChartMode("semua_unit")}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    chartMode === "per_evaluator"
+                    chartMode === "semua_unit"
                       ? "bg-indigo-600 text-white shadow-xs font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
                   }`}
                 >
-                  3. Per Evaluator (3 Tim)
+                  1. Seluruh Unit Kerja (4 Eselon I)
                 </button>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setChartMode("per_unit")}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    chartMode === "per_unit"
+                      ? "bg-indigo-600 text-white shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  2. Per Unit Kerja ({selectedUnit})
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold shrink-0">
+                <span className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-xs font-bold">
+                  Grafik Penilaian Unit Kerja: {selectedUnit} ({selectedUnitName})
+                </span>
+              </div>
+            )}
           </div>
 
           {/* MODE 1: GRAFIK SELURUH UNIT KERJA (4 UNIT ESELON I) */}
