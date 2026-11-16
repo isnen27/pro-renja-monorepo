@@ -86,12 +86,10 @@ export const LIST_ESELON2_UNITS: UnitEselon2Option[] = unitKerjaData.map((u) => 
 
 export default function MonitoringPenilaianRabPage() {
   // Current user role
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
-      if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
-        return saved as UserRole;
-      }
+      if (saved) return saved;
     } catch {}
     return "BINCANG";
   });
@@ -101,7 +99,7 @@ export default function MonitoringPenilaianRabPage() {
     const handleRole = () => {
       try {
         const saved = localStorage.getItem("renja_e2_user_role");
-        if (saved) setCurrentUserRole(saved as UserRole);
+        if (saved) setCurrentUserRole(saved);
       } catch {}
     };
     window.addEventListener("storage", handleRole);
