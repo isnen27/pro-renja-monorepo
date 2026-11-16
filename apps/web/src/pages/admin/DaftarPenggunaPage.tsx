@@ -71,9 +71,29 @@ export default function DaftarPenggunaPage() {
     };
   }, []);
 
+  // Ambil peran user yang sedang login dari sesi aktif
+  const currentUserActiveRole = useMemo(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const isCurrentSuperAdmin = currentUserActiveRole.toUpperCase().includes("SUPER ADMIN");
+
   // Filter Data
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
+      // User Isnen Hadi Al Ghozali (NIP: 199002272012101003) hanya muncul di akun dengan role Super Admin
+      const isIsnen =
+        (u.nip && u.nip.trim() === "199002272012101003") ||
+        (u.nama && u.nama.trim().toLowerCase() === "isnen hadi al ghozali");
+
+      if (isIsnen && !isCurrentSuperAdmin) {
+        return false;
+      }
+
       const matchSearch =
         u.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.nip.includes(searchQuery) ||
@@ -85,7 +105,7 @@ export default function DaftarPenggunaPage() {
 
       return matchSearch && matchUnit && matchStatus;
     });
-  }, [users, searchQuery, filterUnit, filterStatus]);
+  }, [users, searchQuery, filterUnit, filterStatus, isCurrentSuperAdmin]);
 
   // Handle Buka Modal Edit
   const handleOpenEdit = (user: UserAccount) => {
