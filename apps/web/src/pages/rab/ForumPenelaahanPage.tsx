@@ -54,6 +54,8 @@ import unitKerjaData from "../../data/unitKerjaData.json";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import RichTextEditor from "../../components/ui/RichTextEditor";
 import { WorksheetRow } from "./IsianRabPage";
+import { getActiveUserUnitKerja } from "../../data/userManagementData";
+import { isPrivilegedRole } from "../../data/userUnitHelper";
 
 interface AttachedDocument {
   id: string;
@@ -128,8 +130,9 @@ export default function ForumPenelaahanPage() {
       const kakSaved = localStorage.getItem("kak_active_histori");
       if (kakSaved) return JSON.parse(kakSaved);
     } catch (e) {}
+    const defaultPersonalized = getActiveUserUnitKerja();
     return {
-      kdsatker: "Biro Hukum dan Kerja Sama",
+      kdsatker: defaultPersonalized || "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
       kode_sts_history: "B00",
       status_histori: "DIPA Awal",
       label: "DIPA Awal - B00",
@@ -191,7 +194,7 @@ export default function ForumPenelaahanPage() {
     setTahap(determinedTahap);
   }, [determinedTahap]);
 
-  // Unit kerja user sesuai Panduan4:
+  // Unit kerja user sesuai sesi login:
   // "sistem akan menunjukkan Unit Kerja user sesuai data pada submenu Unit Kerja PPATK tanpa nomor/kode unit kerja,
   // untuk role Super Admin, unit kerjanya PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN"
   const [userUnit] = useState<string>(() => {
@@ -200,6 +203,12 @@ export default function ForumPenelaahanPage() {
       if (role === "Super Admin") {
         return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
       }
+      // Prioritas 1: Unit kerja terpersonalisasi user login
+      const officialUnit = getActiveUserUnitKerja();
+      if (officialUnit && !isPrivilegedRole(role)) {
+        return officialUnit;
+      }
+      // Prioritas 2 (untuk peran istimewa atau fallback): histori aktif
       const rabSaved = localStorage.getItem("rab_active_histori");
       if (rabSaved) {
         const p = JSON.parse(rabSaved);
@@ -215,6 +224,7 @@ export default function ForumPenelaahanPage() {
         const p = JSON.parse(renjaSaved);
         if (p.unit_kerja) return p.unit_kerja;
       }
+      if (officialUnit) return officialUnit;
     } catch (e) {}
     return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
   });

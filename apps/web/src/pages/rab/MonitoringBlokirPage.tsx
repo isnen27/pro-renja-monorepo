@@ -28,6 +28,8 @@ import unitKerjaData from "../../data/unitKerjaData.json";
 import { getUnitKerjaByNamaOrSingkatan } from "../kak/kakKinerjaHelper";
 import { UserRole } from "./PilihHistoriRabPage";
 import { buildHierarchyTree, getVisibleRowsFromTree } from "./drillDownHelper";
+import { getActiveUserUnitKerja } from "../../data/userManagementData";
+import { isPrivilegedRole } from "../../data/userUnitHelper";
 
 // Default template hierarki lengkap Program s.d. Detail Belanja
 const DEFAULT_HIERARCHY_ROWS: BlokirRowItem[] = [
@@ -366,21 +368,25 @@ export default function MonitoringBlokirPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Role Aktif (BINCANG / Super Admin / Operator / Approver)
-  const [currentUserRole] = useState<UserRole>(() => {
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem("renja_e2_user_role");
       if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
         return saved as UserRole;
       }
     } catch (e) {}
-    return "BINCANG";
+    return "Operator";
   });
 
-  const isPrivileged = currentUserRole === "BINCANG" || currentUserRole === "Super Admin";
+  const isPrivileged = isPrivilegedRole(currentUserRole);
 
-  // Unit kerja default user biasa (diambil dari sesi histori aktif)
+  // Unit kerja default user biasa (diambil dari profil user login atau sesi histori aktif)
   const userUnitKerja = useMemo(() => {
     try {
+      const official = getActiveUserUnitKerja();
+      if (official && !isPrivilegedRole(currentUserRole)) {
+        return getUnitKerjaByNamaOrSingkatan(official).singkatan;
+      }
       const raw = localStorage.getItem("rab_active_histori");
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -388,8 +394,28 @@ export default function MonitoringBlokirPage() {
           return getUnitKerjaByNamaOrSingkatan(parsed.kdsatker).singkatan;
         }
       }
+      if (official) {
+        return getUnitKerjaByNamaOrSingkatan(official).singkatan;
+      }
     } catch (e) {}
-    return "KREASI";
+    return "PATIH";
+  }, [currentUserRole]);
+
+  useEffect(() => {
+    const handleRoleUpdate = () => {
+      try {
+        const saved = localStorage.getItem("renja_e2_user_role");
+        if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
+          setCurrentUserRole(saved as UserRole);
+        }
+      } catch (e) {}
+    };
+    window.addEventListener("renja_role_changed", handleRoleUpdate);
+    window.addEventListener("storage", handleRoleUpdate);
+    return () => {
+      window.removeEventListener("renja_role_changed", handleRoleUpdate);
+      window.removeEventListener("storage", handleRoleUpdate);
+    };
   }, []);
 
   // Filter unit kerja

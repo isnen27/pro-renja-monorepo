@@ -19,6 +19,8 @@ import {
 import unitKerjaData from "../../data/unitKerjaData.json";
 import kewenanganRevisiData from "../../data/kewenanganRevisiData.json";
 import { WorksheetRow } from "./IsianRabPage";
+import { getActiveUserUnitKerja } from "../../data/userManagementData";
+import { isPrivilegedRole } from "../../data/userUnitHelper";
 
 interface RevisionMonitoringItem {
   id: string;
@@ -61,7 +63,16 @@ export default function MatriksUsulanRevisiPage() {
   }, []);
 
   const kodeHistori = (activeHistoriObj?.kode_sts_history || "C02").toUpperCase();
-  const satkerNama = activeHistoriObj?.kdsatker || "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme";
+  const satkerNama = useMemo(() => {
+    try {
+      const role = localStorage.getItem("renja_e2_user_role") || "Operator";
+      const officialUnit = getActiveUserUnitKerja();
+      if (officialUnit && !isPrivilegedRole(role)) {
+        return officialUnit;
+      }
+    } catch (e) {}
+    return activeHistoriObj?.kdsatker || getActiveUserUnitKerja() || "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme";
+  }, [activeHistoriObj]);
 
   // Data Dummy Monitoring Revisi Sesuai Format Gambar Pengguna (ID Revisi: 2026.417654.007, Revisi: KPA)
   const [monitoringList, setMonitoringList] = useState<RevisionMonitoringItem[]>(() => {

@@ -15,6 +15,8 @@ import {
 import unitKerjaData from "../../data/unitKerjaData.json";
 import informasiKinerjaData from "../../data/informasiKinerjaData.json";
 import { WorksheetRow } from "./IsianRabPage";
+import { getActiveUserUnitKerja, isPrivilegedRole } from "../../data/userUnitHelper";
+import { getUnitKerjaByNamaOrSingkatan } from "../kak/kakKinerjaHelper";
 
 const BULAN_NAMES = [
   "Januari",
@@ -86,10 +88,7 @@ export default function MonitoringRpdPage() {
     };
   }, []);
 
-  const isBincangOrAdmin =
-    currentUserRole.toLowerCase().includes("bincang") ||
-    currentUserRole.toLowerCase().includes("super admin") ||
-    currentUserRole.toLowerCase().includes("peka");
+  const isBincangOrAdmin = isPrivilegedRole(currentUserRole);
 
   // Ambil unit kerja dari histori aktif RAB
   const [activeHistori] = useState(() => {
@@ -100,21 +99,23 @@ export default function MonitoringRpdPage() {
       if (kakSaved) return JSON.parse(kakSaved);
     } catch (e) {}
     return {
-      kdsatker: "Biro Hukum dan Kerja Sama",
+      kdsatker: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
       kode_sts_history: "B00",
       status_histori: "DIPA Awal",
       label: "DIPA Awal - B00",
     };
   });
 
-  const defaultUnit = activeHistori.kdsatker || "Biro Hukum dan Kerja Sama";
+  const defaultUnit = useMemo(() => {
+    if (!isBincangOrAdmin) {
+      return getActiveUserUnitKerja();
+    }
+    return activeHistori.kdsatker || getActiveUserUnitKerja();
+  }, [isBincangOrAdmin, activeHistori]);
+
   const defaultUkSingkatan = useMemo(() => {
-    const found = unitKerjaData.find(
-      (u) =>
-        u.nama.toLowerCase() === defaultUnit.toLowerCase() ||
-        u.singkatan.toLowerCase() === defaultUnit.toLowerCase()
-    );
-    return found ? found.singkatan : "KREASI";
+    const unitObj = getUnitKerjaByNamaOrSingkatan(defaultUnit);
+    return unitObj?.singkatan || "PATIH";
   }, [defaultUnit]);
 
   // Unit kerja yang dipilih untuk BINCANG (bisa "SEMUA" atau kode singkatan tertentu)

@@ -22,6 +22,8 @@ import {
   WorksheetRow,
   calculateHierarchyAmounts,
 } from "./IsianRabPage";
+import { getActiveUserUnitKerja, isPrivilegedRole } from "../../data/userUnitHelper";
+import { getUnitKerjaByNamaOrSingkatan } from "../kak/kakKinerjaHelper";
 
 const BULAN_NAMES = [
   "Januari",
@@ -217,6 +219,30 @@ function buildFallbackWorksheet(ukSingkatan: string): WorksheetRow[] {
 }
 
 export default function RpdPage() {
+  const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem("renja_e2_user_role") || "Operator";
+    } catch {
+      return "Operator";
+    }
+  });
+
+  useEffect(() => {
+    const handleRole = () => {
+      try {
+        setCurrentUserRole(localStorage.getItem("renja_e2_user_role") || "Operator");
+      } catch {}
+    };
+    window.addEventListener("storage", handleRole);
+    window.addEventListener("renja_role_changed", handleRole);
+    return () => {
+      window.removeEventListener("storage", handleRole);
+      window.removeEventListener("renja_role_changed", handleRole);
+    };
+  }, []);
+
+  const isPrivileged = isPrivilegedRole(currentUserRole);
+
   // Ambil unit kerja dari histori aktif RAB
   const [activeHistori] = useState(() => {
     try {
@@ -226,23 +252,24 @@ export default function RpdPage() {
       if (kakSaved) return JSON.parse(kakSaved);
     } catch (e) {}
     return {
-      kdsatker: "Biro Hukum dan Kerja Sama",
+      kdsatker: "Pusat Pendidikan dan Pelatihan Anti Pencucian Uang dan Pencegahan Pendanaan Terorisme",
       kode_sts_history: "B00",
       status_histori: "DIPA Awal",
       label: "DIPA Awal - B00",
     };
   });
 
-  const activeUnit = activeHistori.kdsatker || "Biro Hukum dan Kerja Sama";
+  const activeUnit = useMemo(() => {
+    if (!isPrivileged) {
+      return getActiveUserUnitKerja();
+    }
+    return activeHistori.kdsatker || getActiveUserUnitKerja();
+  }, [isPrivileged, activeHistori]);
 
   // Temukan singkatan unit kerja
   const ukSingkatan = useMemo(() => {
-    const found = unitKerjaData.find(
-      (u) =>
-        u.nama.toLowerCase() === activeUnit.toLowerCase() ||
-        u.singkatan.toLowerCase() === activeUnit.toLowerCase()
-    );
-    return found ? found.singkatan : "KREASI";
+    const unitObj = getUnitKerjaByNamaOrSingkatan(activeUnit);
+    return unitObj?.singkatan || "PATIH";
   }, [activeUnit]);
 
   // Muat worksheet dari submenu Isian RAB (histori terakhir yang tersimpan)

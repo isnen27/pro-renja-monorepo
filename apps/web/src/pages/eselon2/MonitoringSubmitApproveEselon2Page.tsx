@@ -1,3 +1,4 @@
+import { isPrivilegedRole, getUserPersonalizedUnit, matchesUserUnitKerja } from "../../data/userUnitHelper";
 import { useState, useEffect } from "react";
 import {
   ClipboardCheck,
@@ -569,6 +570,10 @@ export default function MonitoringSubmitApproveEselon2Page() {
     } catch (e) {}
   }, [currentUserRole]);
 
+  // Hak Akses & Personalisasi Unit Kerja
+  const isPrivileged = isPrivilegedRole(currentUserRole);
+  const userUnitKerja = getUserPersonalizedUnit();
+
   const [dataList, setDataList] = useState<MonitoringItemE2[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_MONITORING_E2);
@@ -768,7 +773,14 @@ export default function MonitoringSubmitApproveEselon2Page() {
   }
 
   const filteredData = dataList.filter((item) => {
-    if (selectedUnitFilter !== "Semua" && item.unit_kerja !== selectedUnitFilter) return false;
+    // Personalisasi Unit Kerja: selain BINCANG, PEKA, dan Super Admin hanya menampilkan Unit Kerja user
+    if (!isPrivileged) {
+      if (!matchesUserUnitKerja(item.unit_kerja, userUnitKerja)) {
+        return false;
+      }
+    } else {
+      if (selectedUnitFilter !== "Semua" && item.unit_kerja !== selectedUnitFilter) return false;
+    }
     if (
       searchTerm &&
       !item.unit_kerja.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -842,19 +854,24 @@ export default function MonitoringSubmitApproveEselon2Page() {
               <Filter className="h-3.5 w-3.5" />
               Filter Tampilan:
             </span>
-            {[
-              { id: "all", label: "Seluruh Data", count: dataList.length },
-              {
-                id: "pending",
-                label: "Data Belum Disetujui",
-                count: dataList.filter((d) => !d.is_approved).length,
-              },
-              {
-                id: "approved",
-                label: "Data Sudah Disetujui",
-                count: dataList.filter((d) => d.is_approved).length,
-              },
-            ].map((f) => (
+            {(() => {
+              const baseList = isPrivileged
+                ? dataList
+                : dataList.filter((d) => matchesUserUnitKerja(d.unit_kerja, userUnitKerja));
+              return [
+                { id: "all", label: "Seluruh Data", count: baseList.length },
+                {
+                  id: "pending",
+                  label: "Data Belum Disetujui",
+                  count: baseList.filter((d) => !d.is_approved).length,
+                },
+                {
+                  id: "approved",
+                  label: "Data Sudah Disetujui",
+                  count: baseList.filter((d) => d.is_approved).length,
+                },
+              ];
+            })().map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFilterMode(f.id as FilterMode)}

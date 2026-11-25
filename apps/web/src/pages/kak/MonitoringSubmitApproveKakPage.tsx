@@ -1,3 +1,4 @@
+import { isPrivilegedRole, getUserPersonalizedUnit, matchesUserUnitKerja } from "../../data/userUnitHelper";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -145,6 +146,10 @@ export default function MonitoringSubmitApproveKakPage() {
     } catch (e) {}
     return "Approver";
   });
+
+  // Hak Akses & Personalisasi Unit Kerja
+  const isPrivileged = isPrivilegedRole(currentUserRole);
+  const userUnitKerja = getUserPersonalizedUnit();
 
   const [dataList, setDataList] = useState<MonitoringItemKak[]>(() => {
     try {
@@ -531,6 +536,12 @@ export default function MonitoringSubmitApproveKakPage() {
 
   // Filter Data
   const filteredData = dataList.filter((item) => {
+    // Personalisasi Unit Kerja: selain BINCANG, PEKA, dan Super Admin hanya menampilkan Unit Kerja user
+    if (!isPrivileged) {
+      if (!matchesUserUnitKerja(item.unit_kerja, userUnitKerja)) {
+        return false;
+      }
+    }
     const matchSearch =
       (item.unit_kerja || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.kodifikasi || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -605,19 +616,24 @@ export default function MonitoringSubmitApproveKakPage() {
       {/* ── Filter Bar & Search (Style Eselon II) ── */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {[
-            { id: "all", label: "Seluruh Data", count: dataList.length },
-            {
-              id: "pending",
-              label: "Data Belum Disetujui",
-              count: dataList.filter((d) => !d.is_approved).length,
-            },
-            {
-              id: "approved",
-              label: "Data Sudah Disetujui",
-              count: dataList.filter((d) => d.is_approved).length,
-            },
-          ].map((f) => (
+          {(() => {
+            const baseList = isPrivileged
+              ? dataList
+              : dataList.filter((d) => matchesUserUnitKerja(d.unit_kerja, userUnitKerja));
+            return [
+              { id: "all", label: "Seluruh Data", count: baseList.length },
+              {
+                id: "pending",
+                label: "Data Belum Disetujui",
+                count: baseList.filter((d) => !d.is_approved).length,
+              },
+              {
+                id: "approved",
+                label: "Data Sudah Disetujui",
+                count: baseList.filter((d) => d.is_approved).length,
+              },
+            ];
+          })().map((f) => (
             <button
               key={f.id}
               onClick={() => setFilterMode(f.id as FilterMode)}

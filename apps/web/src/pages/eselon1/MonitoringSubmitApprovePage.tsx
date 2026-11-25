@@ -1,3 +1,4 @@
+import { isPrivilegedRole, getUserPersonalizedEselon1Unit } from "../../data/userUnitHelper";
 import { useState, useEffect } from "react";
 import {
   ClipboardCheck,
@@ -255,6 +256,10 @@ export default function MonitoringSubmitApprovePage() {
     }
     return INITIAL_MONITORING_DATA;
   });
+
+  // Hak Akses & Personalisasi Unit Kerja
+  const isPrivileged = isPrivilegedRole(currentUserRole);
+  const personalizedE1Unit = getUserPersonalizedEselon1Unit();
 
   // State Filters
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
@@ -597,9 +602,19 @@ export default function MonitoringSubmitApprovePage() {
 
   // ── Logic Filtering ────────────────────────────────────────────────────────
   const filteredData = dataList.filter((item) => {
-    // Unit Kerja Filter
-    if (selectedUnitFilter !== "Semua" && item.unit_kerja !== selectedUnitFilter) {
-      return false;
+    // Personalisasi Unit Kerja: selain BINCANG, PEKA, dan Super Admin hanya menampilkan Unit Kerja user
+    if (!isPrivileged) {
+      const matchPersonalized =
+        item.unit_kerja.toLowerCase().includes(personalizedE1Unit.toLowerCase()) ||
+        personalizedE1Unit.toLowerCase().includes(item.unit_kerja.toLowerCase());
+      if (!matchPersonalized) {
+        return false;
+      }
+    } else {
+      // Unit Kerja Filter untuk role dengan hak akses penuh
+      if (selectedUnitFilter !== "Semua" && item.unit_kerja !== selectedUnitFilter) {
+        return false;
+      }
     }
     // Search Filter
     if (
@@ -684,19 +699,28 @@ export default function MonitoringSubmitApprovePage() {
               <Filter className="h-3.5 w-3.5" />
               Filter Tampilan:
             </span>
-            {[
-              { id: "all", label: "Seluruh Data", count: dataList.length },
-              {
-                id: "pending",
-                label: "Data Belum Disetujui",
-                count: dataList.filter((d) => !d.is_approved).length,
-              },
-              {
-                id: "approved",
-                label: "Data Sudah Disetujui",
-                count: dataList.filter((d) => d.is_approved).length,
-              },
-            ].map((f) => (
+            {(() => {
+              const baseList = isPrivileged
+                ? dataList
+                : dataList.filter(
+                    (item) =>
+                      item.unit_kerja.toLowerCase().includes(personalizedE1Unit.toLowerCase()) ||
+                      personalizedE1Unit.toLowerCase().includes(item.unit_kerja.toLowerCase())
+                  );
+              return [
+                { id: "all", label: "Seluruh Data", count: baseList.length },
+                {
+                  id: "pending",
+                  label: "Data Belum Disetujui",
+                  count: baseList.filter((d) => !d.is_approved).length,
+                },
+                {
+                  id: "approved",
+                  label: "Data Sudah Disetujui",
+                  count: baseList.filter((d) => d.is_approved).length,
+                },
+              ];
+            })().map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFilterMode(f.id as FilterMode)}

@@ -33,6 +33,8 @@ import unitKerjaData from "../../data/unitKerjaData.json";
 import kewenanganRevisiData from "../../data/kewenanganRevisiData.json";
 import { WorksheetRow } from "./IsianRabPage";
 import RichTextEditor, { AttachedDocument } from "../../components/ui/RichTextEditor";
+import { getActiveUserUnitKerja } from "../../data/userManagementData";
+import { isPrivilegedRole } from "../../data/userUnitHelper";
 
 export default function RevisiAnggaranPage() {
   // Modal Pratinjau Cetak Matriks Usulan Revisi
@@ -150,6 +152,10 @@ export default function RevisiAnggaranPage() {
       if (role === "Super Admin") {
         return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
       }
+      const officialUnit = getActiveUserUnitKerja();
+      if (officialUnit && !isPrivilegedRole(role)) {
+        return officialUnit;
+      }
       const rabSaved = localStorage.getItem("rab_active_histori");
       if (rabSaved) {
         const p = JSON.parse(rabSaved);
@@ -165,6 +171,7 @@ export default function RevisiAnggaranPage() {
         const p = JSON.parse(renjaSaved);
         if (p.unit_kerja) return p.unit_kerja;
       }
+      if (officialUnit) return officialUnit;
     } catch (e) {}
     return "PUSAT PELAPORAN DAN ANALISIS TRANSAKSI KEUANGAN";
   });
