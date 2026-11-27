@@ -524,35 +524,19 @@ export default function DashboardPage() {
 
         <div className="relative z-10">
           {/* Profil Eksekutif */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white text-indigo-700 border border-indigo-200 shadow-xs dark:bg-slate-800 dark:text-indigo-300 dark:border-slate-700">
-                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Pusat Pelaporan dan Analisis Transaksi Keuangan</span>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Dashboard Eksekutif Perencanaan & Penganggaran</span>
+            </h1>
+            <p className="text-sm md:text-base text-slate-700 dark:text-slate-200 mt-1 flex items-center gap-2 font-medium">
+              <span>Selamat Datang,</span>
+              <span className="text-indigo-700 dark:text-indigo-400 font-extrabold underline decoration-indigo-300 underline-offset-4">
+                {userInfo.nama}
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Tahun Anggaran {currentYear}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white text-slate-600 border border-slate-200 shadow-xs dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                Peraturan PPATK No. 11/2025
-              </span>
-            </div>
-
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Dashboard Eksekutif Perencanaan & Penganggaran</span>
-              </h1>
-              <p className="text-sm md:text-base text-slate-700 dark:text-slate-200 mt-1 flex items-center gap-2 font-medium">
-                <span>Selamat Datang,</span>
-                <span className="text-indigo-700 dark:text-indigo-400 font-extrabold underline decoration-indigo-300 underline-offset-4">
-                  {userInfo.nama}
-                </span>
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                {userInfo.jabatan} · <span className="text-slate-700 dark:text-slate-300 font-semibold">{userInfo.instansi}</span>
-              </p>
-            </div>
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+              {userInfo.jabatan} · <span className="text-slate-700 dark:text-slate-300 font-semibold">{userInfo.instansi}</span>
+            </p>
           </div>
         </div>
       </div>
