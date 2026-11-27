@@ -128,7 +128,15 @@ function formatRupiahSingkat(angka: number): string {
 }
 
 export default function DashboardPage() {
-  const currentYear = 2027;
+  const [currentYear, setCurrentYear] = useState<number>(() => {
+    try {
+      const savedTahun = localStorage.getItem("aksi_active_tahun");
+      if (savedTahun && !isNaN(Number(savedTahun))) {
+        return Number(savedTahun);
+      }
+    } catch {}
+    return 2027;
+  });
 
   // 1. Role Pengguna Aktif & Data User Terautentikasi
   const [currentUserRole, setCurrentUserRole] = useState<string>(() => {
@@ -208,9 +216,6 @@ export default function DashboardPage() {
     }
   }, [canSelectUnit, userUnitKode]);
 
-  // 3. Tab Filter Tahun Realisasi Anggaran
-  const [tahunRealisasi, setTahunRealisasi] = useState<"2026_berjalan" | "2025_audited">("2026_berjalan");
-
   // Sinkronisasi dengan localStorage & custom event aplikasi
   useEffect(() => {
     const handleRoleChange = () => {
@@ -218,6 +223,10 @@ export default function DashboardPage() {
         const saved = localStorage.getItem("renja_e2_user_role");
         if (saved && ["Operator", "Approver", "BINCANG", "Super Admin"].includes(saved)) {
           setCurrentUserRole(saved as UserRole);
+        }
+        const savedTahun = localStorage.getItem("aksi_active_tahun");
+        if (savedTahun && !isNaN(Number(savedTahun))) {
+          setCurrentYear(Number(savedTahun));
         }
       } catch {}
     };
@@ -251,11 +260,18 @@ export default function DashboardPage() {
 
   // Nama user & jabatan dinamis sesuai data user login & role
   const userInfo = useMemo(() => {
+    const cleanInstansi = (str: string) => {
+      return (str || "")
+        .replace(/\s*\(Satker\s*\d+\)/gi, "")
+        .replace(/\s*\(Satker\s*[^\)]+\)/gi, "")
+        .trim();
+    };
+
     if (authProfile) {
       return {
         nama: authProfile.nama,
         jabatan: authProfile.jabatan,
-        instansi: authProfile.unitKerja,
+        instansi: cleanInstansi(authProfile.unitKerja),
         badgeText: currentUserRole,
         badgeColor: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
       };
@@ -266,7 +282,7 @@ export default function DashboardPage() {
         return {
           nama: activeUnitInfo.namaPimpinan,
           jabatan: activeUnitInfo.jabatan,
-          instansi: `${activeUnitInfo.nama} (Satker 3365)`,
+          instansi: cleanInstansi(activeUnitInfo.nama),
           badgeText: "Pimpinan Unit Kerja / Pejabat Penandatangan",
           badgeColor: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800"
         };
@@ -274,7 +290,7 @@ export default function DashboardPage() {
         return {
           nama: "Danang Tri Hartono, S.H.",
           jabatan: "Koordinator Perencanaan dan Penganggaran (BINCANG)",
-          instansi: "Biro Perencanaan dan Keuangan PPATK (Satker 453374)",
+          instansi: cleanInstansi("Biro Perencanaan dan Keuangan PPATK"),
           badgeText: "Tim Perencana & Evaluator Pusat",
           badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800"
         };
@@ -282,7 +298,7 @@ export default function DashboardPage() {
         return {
           nama: "Budi Santoso, S.Sos",
           jabatan: `Penyusun Rencana Kerja & Anggaran ${activeUnitInfo.kode}`,
-          instansi: `${activeUnitInfo.nama} (Satker 3365)`,
+          instansi: cleanInstansi(activeUnitInfo.nama),
           badgeText: "Operator Satuan Kerja",
           badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
         };
@@ -290,7 +306,7 @@ export default function DashboardPage() {
         return {
           nama: "Indra Laksmana, Ak., M.M.",
           jabatan: "Inspektur / Administrator Pengawasan Sistem AKSI",
-          instansi: "Inspektorat PPATK (APIP Pengawasan Intern)",
+          instansi: cleanInstansi("Inspektorat PPATK (APIP Pengawasan Intern)"),
           badgeText: "Administrator Pengawasan & Tata Kelola",
           badgeColor: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800"
         };
@@ -298,12 +314,12 @@ export default function DashboardPage() {
         return {
           nama: activeUnitInfo.namaPimpinan,
           jabatan: activeUnitInfo.jabatan,
-          instansi: `${activeUnitInfo.nama} (Satker 3365)`,
+          instansi: cleanInstansi(activeUnitInfo.nama),
           badgeText: "Pimpinan Unit Kerja / Pejabat Penandatangan",
           badgeColor: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800"
         };
     }
-  }, [currentUserRole, activeUnitInfo]);
+  }, [currentUserRole, activeUnitInfo, authProfile]);
 
   // Data Realisasi Anggaran (Monitoring Keuangan Eksekutif)
   const realisasiData = useMemo(() => {
@@ -506,8 +522,8 @@ export default function DashboardPage() {
         <div className="absolute top-0 right-0 -mt-16 -mr-16 w-80 h-80 bg-indigo-200/30 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 -mb-16 w-72 h-72 bg-sky-200/40 dark:bg-sky-600/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          {/* Sisi Kiri: Profil Eksekutif */}
+        <div className="relative z-10">
+          {/* Profil Eksekutif */}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white text-indigo-700 border border-indigo-200 shadow-xs dark:bg-slate-800 dark:text-indigo-300 dark:border-slate-700">
@@ -538,77 +554,18 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-
-          {/* Sisi Kanan: Panel Profil Peran Aktif Pengguna */}
-          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-indigo-100 dark:border-slate-800 rounded-2xl p-4 lg:min-w-[320px] shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Peran &amp; Hak Akses Sesi:</span>
-              </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${userInfo.badgeColor}`}>
-                {currentUserRole}
-              </span>
-            </div>
-
-            {/* Info Wewenang Pengguna */}
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                <span>Status Akun:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Aktif Terautentikasi
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
-                Menu kertas kerja dan kewenangan submit/approval ditampilkan otomatis sesuai peran resmi Anda.
-              </p>
-            </div>
-
-            {/* Tampilan Unit Kerja */}
-            <div className="pt-1">
-              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                Unit Kerja yang Ditampilkan:
-              </label>
-              {canSelectUnit ? (
-                <select
-                  value={selectedUnitKode}
-                  onChange={(e) => handleChangeUnit(e.target.value)}
-                  className="w-full text-xs font-semibold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs cursor-pointer"
-                >
-                  {DAFTAR_UNIT_KERJA.map((u) => (
-                    <option key={u.kode} value={u.kode}>
-                      {u.kode} - {u.nama}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 flex items-center justify-between shadow-xs">
-                  <div className="flex items-center gap-2 truncate">
-                    <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <span className="truncate">
-                      {activeUnitInfo.kode} - {activeUnitInfo.nama}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 ml-1">
-                    Terkunci
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
       {/* ── 2. INDIKATOR KINERJA UTAMA (4 HERO STAT CARDS) ────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Kartu 1: Alokasi Pagu Anggaran TA 2027 */}
+        {/* Kartu 1: Alokasi Pagu Anggaran */}
         <div className="aksi-card p-5 relative overflow-hidden flex flex-col justify-between group hover:border-indigo-400 transition-all">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                 {currentUserRole === "BINCANG" || currentUserRole === "Super Admin"
-                  ? "Pagu Anggaran PPATK 2027"
+                  ? `Pagu Anggaran PPATK ${currentYear}`
                   : `Pagu Unit: ${activeUnitInfo.kode}`}
               </p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">
@@ -748,33 +705,16 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
-              <button
-                onClick={() => setTahunRealisasi("2026_berjalan")}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  tahunRealisasi === "2026_berjalan"
-                    ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                TA 2026 (Tahun Berjalan)
-              </button>
-              <button
-                onClick={() => setTahunRealisasi("2025_audited")}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  tahunRealisasi === "2025_audited"
-                    ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                TA 2025 (Audited BPK)
-              </button>
+              <span className="px-3.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-xs font-bold">
+                TA {currentYear} (Sesi Aktif)
+              </span>
             </div>
 
             <Link
               to="/referensi/series-anggaran"
               className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 text-xs font-bold hover:bg-indigo-100 transition-colors inline-flex items-center gap-1"
             >
-              <span>Series 2020-2025</span>
+              <span>Series Anggaran</span>
               <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
